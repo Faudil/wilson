@@ -1,0 +1,77 @@
+{
+  "promptVersion": "letter-analysis@1",
+  "isOfficialLetter": true,
+  "letterType": "ofpra_decision",
+  "issuer": "OFPRA",
+  "references": [
+    "N° OFPRA : 26009876",
+    "Décision n° 2026-D-5521"
+  ],
+  "letterDate": "2026-10-28",
+  "deadline": {
+    "date": "2026-11-28",
+    "kind": "appeal",
+    "explicit": false,
+    "sourceQuote": "dans le délai d'un mois à compter de la notification de la présente décision"
+  },
+  "urgency": "high",
+  "confidence": 0.92,
+  "reviewerWarnings": [
+    "Rejet OFPRA : un délai légal de recours devant la CNDA est en jeu, à faire vérifier d'urgence par un juriste ou une association.",
+    "La date du 28 novembre 2026 est calculée (un mois à partir de la notification), elle n'est pas imprimée ; la date de remise réelle du courrier recommandé peut différer. À vérifier."
+  ],
+  "fr": {
+    "title": "L'OFPRA a rejeté votre demande d'asile. C'est urgent.",
+    "summary": "L'OFPRA a décidé de rejeter votre demande d'asile. Les raisons sont écrites dans le document joint à la lettre. La lettre dit que vous pouvez faire un recours devant la Cour nationale du droit d'asile (CNDA), dans un délai d'un mois après la notification. Le recours doit être écrit en français et signé. Cette lettre est très importante. Il faut en parler vite à l'association ou à un avocat.",
+    "actions": [
+      "Allez vite à l'association ou voyez un avocat, avec la lettre et le document joint.",
+      "Gardez la lettre recommandée et notez la date de réception.",
+      "Demandez à l'association ou à l'avocat comment obtenir l'aide juridictionnelle (aide pour payer un avocat)."
+    ],
+    "orientation": [
+      "Allez très vite à l'association ou chez un avocat pour parler de cette décision. L'association peut vous aider à trouver un avocat.",
+      "La lettre indique la CNDA, 35 rue du Tribunal, 99200 Exempleville, pour les recours."
+    ]
+  },
+  "target": {
+    "title": "OFPRA has rejected your asylum application. This is urgent.",
+    "summary": "OFPRA has decided to reject your asylum application. The reasons are written in the document attached to the letter. The letter says that you can make an appeal to the National Court of Asylum (CNDA), within one month after notification. The appeal must be written in French and signed. This letter is very important. You need to talk about it quickly with the association or a lawyer.",
+    "actions": [
+      "Go quickly to the association or see a lawyer, with the letter and the attached document.",
+      "Keep the registered letter and write down the date you received it.",
+      "Ask the association or the lawyer how to get legal aid (help to pay a lawyer)."
+    ],
+    "orientation": [
+      "Go very quickly to the association or to a lawyer to talk about this decision. The association can help you find a lawyer.",
+      "The letter names the CNDA, 35 rue du Tribunal, 99200 Exempleville, for appeals."
+    ]
+  },
+  "targets": {
+    "en": {
+      "title": "OFPRA has rejected your asylum application. This is urgent.",
+      "summary": "OFPRA has decided to reject your asylum application. The reasons are written in the document attached to the letter. The letter says that you can make an appeal to the National Court of Asylum (CNDA), within one month after notification. The appeal must be written in French and signed. This letter is very important. You need to talk about it quickly with the association or a lawyer.",
+      "actions": [
+        "Go quickly to the association or see a lawyer, with the letter and the attached document.",
+        "Keep the registered letter and write down the date you received it.",
+        "Ask the association or the lawyer how to get legal aid (help to pay a lawyer)."
+      ],
+      "orientation": [
+        "Go very quickly to the association or to a lawyer to talk about this decision. The association can help you find a lawyer.",
+        "The letter names the CNDA, 35 rue du Tribunal, 99200 Exempleville, for appeals."
+      ]
+    },
+    "ar": {
+      "title": "رفضت OFPRA طلب اللجوء الخاص بك. هذا الأمر عاجل.",
+      "summary": "قررت OFPRA رفض طلب اللجوء الخاص بك. الأسباب مكتوبة في الوثيقة المرفقة بالرسالة. تقول الرسالة إنه يمكنك تقديم طعن أمام المحكمة الوطنية لحق اللجوء (CNDA) خلال شهر واحد بعد التبليغ. يجب أن يكون الطعن مكتوبًا بالفرنسية وموقّعًا. هذه الرسالة مهمة جدًا. يجب أن تتحدث عنها بسرعة مع الجمعية أو مع محامٍ.",
+      "actions": [
+        "اذهب بسرعة إلى الجمعية أو قابل محاميًا ومعك الرسالة والوثيقة المرفقة.",
+        "احتفظ بالرسالة المسجلة واكتب تاريخ استلامها.",
+        "اسأل الجمعية أو المحامي كيف تحصل على المساعدة القضائية (مساعدة لدفع أتعاب المحامي)."
+      ],
+      "orientation": [
+        "اذهب بسرعة كبيرة إلى الجمعية أو إلى محامٍ للحديث عن هذا القرار. يمكن للجمعية أن تساعدك في إيجاد محامٍ.",
+        "تذكر الرسالة CNDA، 35 rue du Tribunal، 99200 Exempleville، لتقديم الطعون."
+      ]
+    }
+  }
+}

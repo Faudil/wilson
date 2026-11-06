@@ -1,0 +1,74 @@
+{
+  "promptVersion": "letter-analysis@1",
+  "isOfficialLetter": true,
+  "letterType": "caf",
+  "issuer": "Caisse d'allocations familiales de Valmont",
+  "references": [
+    "N° allocataire : 1234567",
+    "2026/11/0458"
+  ],
+  "letterDate": "2026-10-31",
+  "deadline": {
+    "date": "2026-11-20",
+    "kind": "reply",
+    "explicit": true,
+    "sourceQuote": "avant le 20 novembre 2026"
+  },
+  "urgency": "high",
+  "confidence": 0.95,
+  "reviewerWarnings": [],
+  "fr": {
+    "title": "La CAF vous demande des documents avant le 20 novembre 2026.",
+    "summary": "La CAF vérifie votre droit aux aides. Elle vous demande trois choses : votre titre de séjour ou récépissé, vos trois derniers bulletins de salaire (ou une attestation sur l'honneur si vous n'avez pas de revenus), et un RIB à votre nom. Il faut les envoyer avant le 20 novembre 2026. Sinon, le paiement de vos aides peut être arrêté.",
+    "actions": [
+      "Rassemblez : titre de séjour ou récépissé, 3 derniers bulletins de salaire (ou attestation sur l'honneur), RIB à votre nom.",
+      "Faites des copies lisibles. N'envoyez pas les originaux.",
+      "Envoyez-les à la CAF avant le 20 novembre 2026 (en ligne ou par courrier)."
+    ],
+    "orientation": [
+      "L'association peut vous aider à préparer les documents et à les envoyer en ligne.",
+      "Pour une question sur le dossier, appelez la CAF au numéro gratuit de la lettre."
+    ]
+  },
+  "target": {
+    "title": "The CAF asks you for documents before 20 November 2026.",
+    "summary": "The CAF is checking your right to benefits. It asks you for three things: your residence permit or récépissé, your last three payslips (or a statement on honour if you have no income), and a bank details slip (RIB) in your name. You must send them before 20 November 2026. If not, payment of your benefits can be stopped.",
+    "actions": [
+      "Gather: residence permit or récépissé, last 3 payslips (or statement on honour), RIB in your name.",
+      "Make clear copies. Do not send the originals.",
+      "Send them to the CAF before 20 November 2026 (online or by post)."
+    ],
+    "orientation": [
+      "The association can help you prepare the documents and send them online.",
+      "For a question about your file, call the CAF on the free number on the letter."
+    ]
+  },
+  "targets": {
+    "en": {
+      "title": "The CAF asks you for documents before 20 November 2026.",
+      "summary": "The CAF is checking your right to benefits. It asks you for three things: your residence permit or récépissé, your last three payslips (or a statement on honour if you have no income), and a bank details slip (RIB) in your name. You must send them before 20 November 2026. If not, payment of your benefits can be stopped.",
+      "actions": [
+        "Gather: residence permit or récépissé, last 3 payslips (or statement on honour), RIB in your name.",
+        "Make clear copies. Do not send the originals.",
+        "Send them to the CAF before 20 November 2026 (online or by post)."
+      ],
+      "orientation": [
+        "The association can help you prepare the documents and send them online.",
+        "For a question about your file, call the CAF on the free number on the letter."
+      ]
+    },
+    "ar": {
+      "title": "تطلب منك CAF وثائق قبل 20 نوفمبر 2026.",
+      "summary": "تتحقق CAF من حقك في المساعدات. تطلب منك ثلاثة أشياء: بطاقة الإقامة أو الوصل (récépissé)، وآخر ثلاث كشوف رواتب (أو تصريحًا بالشرف إذا لم يكن لديك دخل)، وكشف الهوية البنكية (RIB) باسمك. يجب إرسالها قبل 20 نوفمبر 2026. وإلا فقد يتوقف دفع مساعداتك.",
+      "actions": [
+        "اجمع: بطاقة الإقامة أو الوصل، آخر 3 كشوف رواتب (أو تصريحًا بالشرف)، RIB باسمك.",
+        "اصنع نسخًا واضحة. لا ترسل الأوراق الأصلية.",
+        "أرسلها إلى CAF قبل 20 نوفمبر 2026 (عبر الإنترنت أو بالبريد)."
+      ],
+      "orientation": [
+        "يمكن للجمعية أن تساعدك في تجهيز الوثائق وإرسالها عبر الإنترنت.",
+        "لأي سؤال عن ملفك، اتصل بـ CAF على الرقم المجاني المكتوب في الرسالة."
+      ]
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "promptVersion": "letter-analysis@1",
+  "isOfficialLetter": true,
+  "letterType": "tax",
+  "issuer": "Service des impôts des particuliers de Valmont",
+  "references": [
+    "N° fiscal : 12 34 567 890 123",
+    "Avis n° 2026-33-0912"
+  ],
+  "letterDate": "2026-10-27",
+  "deadline": {
+    "date": "2026-11-30",
+    "kind": "reply",
+    "explicit": true,
+    "sourceQuote": "au plus tard le 30 novembre 2026"
+  },
+  "urgency": "medium",
+  "confidence": 0.94,
+  "reviewerWarnings": [],
+  "fr": {
+    "title": "Les impôts vous rappellent de faire votre déclaration de revenus 2025 avant le 30 novembre 2026.",
+    "summary": "Les impôts n'ont pas reçu votre déclaration de revenus de 2025. La lettre dit qu'il faut la faire même si vous n'avez eu aucun revenu en France. Vous pouvez la faire en ligne ou sur papier, au plus tard le 30 novembre 2026. Sinon, il peut y avoir une majoration de 10 % sur les impôts éventuellement dus. Si vous avez déjà fait votre déclaration, ne tenez pas compte de cette lettre.",
+    "actions": [
+      "Vérifiez si vous avez déjà fait la déclaration 2025.",
+      "Si non, faites-la avant le 30 novembre 2026 (en ligne ou sur papier).",
+      "Gardez la preuve de dépôt."
+    ],
+    "orientation": [
+      "L'association peut vous aider à faire la déclaration en ligne.",
+      "Pour une question sur votre dossier, appelez le service des impôts au numéro de la lettre."
+    ]
+  },
+  "target": {
+    "title": "The tax office reminds you to file your 2025 income tax return before 30 November 2026.",
+    "summary": "The tax office has not received your 2025 income tax return. The letter says you must file it even if you had no income in France. You can file online or on paper, by 30 November 2026 at the latest. If not, a 10% surcharge can be added to any tax owed. If you have already filed your return, ignore this letter.",
+    "actions": [
+      "Check whether you already filed the 2025 return.",
+      "If not, file it before 30 November 2026 (online or on paper).",
+      "Keep the proof of filing."
+    ],
+    "orientation": [
+      "The association can help you file the return online.",
+      "For a question about your file, call the tax office on the number in the letter."
+    ]
+  },
+  "targets": {
+    "en": {
+      "title": "The tax office reminds you to file your 2025 income tax return before 30 November 2026.",
+      "summary": "The tax office has not received your 2025 income tax return. The letter says you must file it even if you had no income in France. You can file online or on paper, by 30 November 2026 at the latest. If not, a 10% surcharge can be added to any tax owed. If you have already filed your return, ignore this letter.",
+      "actions": [
+        "Check whether you already filed the 2025 return.",
+        "If not, file it before 30 November 2026 (online or on paper).",
+        "Keep the proof of filing."
+      ],
+      "orientation": [
+        "The association can help you file the return online.",
+        "For a question about your file, call the tax office on the number in the letter."
+      ]
+    },
+    "ar": {
+      "title": "تذكّرك مصلحة الضرائب بتقديم تصريح الدخل لعام 2025 قبل 30 نوفمبر 2026.",
+      "summary": "لم تتلقَّ مصلحة الضرائب تصريح دخلك لعام 2025. تقول الرسالة إنه يجب تقديمه حتى لو لم يكن لديك أي دخل في فرنسا. يمكنك تقديمه عبر الإنترنت أو على الورق، في موعد أقصاه 30 نوفمبر 2026. وإلا فقد تُضاف زيادة بنسبة 10٪ على الضرائب المستحقة إن وُجدت. إذا قدّمت تصريحك من قبل، فتجاهل هذه الرسالة.",
+      "actions": [
+        "تحقق هل قدّمت تصريح 2025 من قبل.",
+        "إذا لم تفعل، قدّمه قبل 30 نوفمبر 2026 (عبر الإنترنت أو على الورق).",
+        "احتفظ بإثبات التقديم."
+      ],
+      "orientation": [
+        "يمكن للجمعية أن تساعدك في تقديم التصريح عبر الإنترنت.",
+        "لأي سؤال عن ملفك، اتصل بمصلحة الضرائب على الرقم المكتوب في الرسالة."
+      ]
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "promptVersion": "letter-analysis@1",
+  "isOfficialLetter": true,
+  "letterType": "prefecture_residence_permit",
+  "issuer": "Préfecture de Valmont",
+  "references": [
+    "N° étranger : 9900 1234 56",
+    "VAL-2026-04817"
+  ],
+  "letterDate": "2026-11-03",
+  "deadline": {
+    "date": "2026-12-08",
+    "kind": "appointment",
+    "explicit": true,
+    "sourceQuote": "vous êtes convoqué(e) le 8 décembre 2026 à 9h30"
+  },
+  "urgency": "medium",
+  "confidence": 0.95,
+  "reviewerWarnings": [],
+  "fr": {
+    "title": "La préfecture vous convoque à un rendez-vous pour votre demande de titre de séjour.",
+    "summary": "La préfecture traite votre demande de titre de séjour. Elle vous demande de venir à un rendez-vous le 8 décembre 2026 à 9h30, au guichet 6. Il faut apporter des documents originaux. Si vous ne pouvez pas venir, il faut prévenir la préfecture avant. Si vous ne venez pas, votre dossier peut prendre du retard.",
+    "actions": [
+      "Notez le rendez-vous : 8 décembre 2026 à 9h30, préfecture de Valmont, guichet 6.",
+      "Préparez les originaux : passeport ou pièce d'identité, récépissé, justificatif de domicile de moins de 3 mois, 3 photos d'identité.",
+      "Si vous ne pouvez pas venir, prévenez le bureau du séjour avant la date."
+    ],
+    "orientation": [
+      "L'association peut vous aider à préparer vos documents avant le rendez-vous.",
+      "Pour changer la date, contactez le bureau du séjour de la préfecture (numéro sur la lettre)."
+    ]
+  },
+  "target": {
+    "title": "The prefecture has invited you to an appointment about your residence permit application.",
+    "summary": "The prefecture is working on your residence permit application. It asks you to come to an appointment on 8 December 2026 at 9:30, at desk 6. You must bring original documents. If you cannot come, you must tell the prefecture before that date. If you do not come, your file can be delayed.",
+    "actions": [
+      "Write down the appointment: 8 December 2026 at 9:30, Préfecture de Valmont, desk 6.",
+      "Prepare the originals: passport or ID, your récépissé, proof of address less than 3 months old, 3 passport photos.",
+      "If you cannot come, tell the prefecture's residence office before the date."
+    ],
+    "orientation": [
+      "The association can help you prepare your documents before the appointment.",
+      "To change the date, contact the residence office of the prefecture (number on the letter)."
+    ]
+  },
+  "targets": {
+    "en": {
+      "title": "The prefecture has invited you to an appointment about your residence permit application.",
+      "summary": "The prefecture is working on your residence permit application. It asks you to come to an appointment on 8 December 2026 at 9:30, at desk 6. You must bring original documents. If you cannot come, you must tell the prefecture before that date. If you do not come, your file can be delayed.",
+      "actions": [
+        "Write down the appointment: 8 December 2026 at 9:30, Préfecture de Valmont, desk 6.",
+        "Prepare the originals: passport or ID, your récépissé, proof of address less than 3 months old, 3 passport photos.",
+        "If you cannot come, tell the prefecture's residence office before the date."
+      ],
+      "orientation": [
+        "The association can help you prepare your documents before the appointment.",
+        "To change the date, contact the residence office of the prefecture (number on the letter)."
+      ]
+    },
+    "ar": {
+      "title": "تدعوك المحافظة إلى موعد بخصوص طلب بطاقة الإقامة.",
+      "summary": "المحافظة تدرس طلب بطاقة الإقامة الخاص بك. تطلب منك الحضور إلى موعد يوم 8 ديسمبر 2026 الساعة 9:30 عند الشباك رقم 6. يجب أن تحضر الوثائق الأصلية. إذا لم تستطع الحضور، يجب أن تخبر المحافظة قبل هذا التاريخ. إذا لم تحضر، قد يتأخر ملفك.",
+      "actions": [
+        "سجّل الموعد: 8 ديسمبر 2026 الساعة 9:30، Préfecture de Valmont، الشباك 6.",
+        "جهّز الوثائق الأصلية: جواز السفر أو بطاقة الهوية، الوصل (récépissé)، إثبات السكن لا يزيد عمره عن 3 أشهر، 3 صور شخصية.",
+        "إذا لم تستطع الحضور، أخبر مكتب الإقامة في المحافظة قبل التاريخ."
+      ],
+      "orientation": [
+        "يمكن للجمعية أن تساعدك في تجهيز وثائقك قبل الموعد.",
+        "لتغيير الموعد، اتصل بمكتب الإقامة في المحافظة (الرقم مكتوب على الرسالة)."
+      ]
+    },
+    "fa": {
+      "title": "ولایت شما را برای وقت ملاقات درباره درخواست اجازه اقامت دعوت کرده است.",
+      "summary": "ولایت درخواست اجازه اقامت شما را بررسی می‌کند. از شما می‌خواهد که در ۸ دسامبر ۲۰۲۶ ساعت ۹:۳۰ به کانتر شماره ۶ بیایید. باید اسناد اصلی را با خود بیاورید. اگر نمی‌توانید بیایید، باید پیش از آن تاریخ به ولایت خبر بدهید. اگر نیایید، پرونده شما ممکن است دیر شود.",
+      "actions": [
+        "وقت ملاقات را یادداشت کنید: ۸ دسامبر ۲۰۲۶ ساعت ۹:۳۰، Préfecture de Valmont، کانتر ۶.",
+        "اسناد اصلی را آماده کنید: پاسپورت یا کارت هویت، رسید (récépissé)، سند آدرس کمتر از ۳ ماه، ۳ عکس.",
+        "اگر نمی‌توانید بیایید، پیش از آن تاریخ به دفتر اقامت ولایت خبر بدهید."
+      ],
+      "orientation": [
+        "انجمن می‌تواند در آماده کردن اسناد پیش از ملاقات به شما کمک کند.",
+        "برای تغییر تاریخ، با دفتر اقامت ولایت تماس بگیرید (شماره در نامه است)."
+      ]
+    }
+  }
+}

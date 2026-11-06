@@ -1,0 +1,76 @@
+{
+  "promptVersion": "letter-analysis@1",
+  "isOfficialLetter": true,
+  "letterType": "ofii",
+  "issuer": "OFII - Direction territoriale de Valmont",
+  "references": [
+    "N° OFII : 2026-VAL-30417",
+    "N° étranger : 9900 3333 21"
+  ],
+  "letterDate": "2026-11-04",
+  "deadline": {
+    "date": "2026-11-23",
+    "kind": "reply",
+    "explicit": true,
+    "sourceQuote": "avant le 23 novembre 2026"
+  },
+  "urgency": "high",
+  "confidence": 0.94,
+  "reviewerWarnings": [
+    "Suspension de l'ADA : risque de perte de ressources, la personne doit être reçue rapidement par un bénévole."
+  ],
+  "fr": {
+    "title": "L'OFII a arrêté de payer votre allocation (ADA). Vous pouvez répondre avant le 23 novembre 2026.",
+    "summary": "L'OFII a suspendu le paiement de votre allocation pour demandeur d'asile (ADA) depuis le 1er novembre 2026. La lettre dit que vous n'êtes pas venu au rendez-vous du 20 octobre 2026. Avant une décision finale, vous pouvez écrire vos explications et joindre des preuves, avant le 23 novembre 2026. Ensuite, l'OFII peut décider de payer de nouveau, de retirer ou de réduire l'allocation.",
+    "actions": [
+      "Écrivez à l'OFII pour expliquer pourquoi vous n'êtes pas venu, avant le 23 novembre 2026.",
+      "Joignez des preuves si vous en avez (papier du médecin, convocation, etc.).",
+      "Déposez la réponse à l'accueil de l'OFII ou envoyez-la à l'adresse de la lettre. Gardez une copie."
+    ],
+    "orientation": [
+      "Venez vite à l'association : un bénévole peut vous aider à écrire votre réponse.",
+      "Pour une question sur l'allocation, contactez l'OFII de Valmont (adresse sur la lettre)."
+    ]
+  },
+  "target": {
+    "title": "OFII has stopped paying your allowance (ADA). You can reply before 23 November 2026.",
+    "summary": "OFII has suspended payment of your asylum seeker allowance (ADA) since 1 November 2026. The letter says you did not come to the appointment on 20 October 2026. Before a final decision, you can write your explanation and attach proof, before 23 November 2026. After that, OFII can decide to pay again, to withdraw or to reduce the allowance.",
+    "actions": [
+      "Write to OFII to explain why you did not come, before 23 November 2026.",
+      "Attach proof if you have some (doctor's paper, appointment letter, etc.).",
+      "Hand your reply in at the OFII desk or send it to the address on the letter. Keep a copy."
+    ],
+    "orientation": [
+      "Come quickly to the association: a volunteer can help you write your reply.",
+      "For a question about the allowance, contact OFII Valmont (address on the letter)."
+    ]
+  },
+  "targets": {
+    "en": {
+      "title": "OFII has stopped paying your allowance (ADA). You can reply before 23 November 2026.",
+      "summary": "OFII has suspended payment of your asylum seeker allowance (ADA) since 1 November 2026. The letter says you did not come to the appointment on 20 October 2026. Before a final decision, you can write your explanation and attach proof, before 23 November 2026. After that, OFII can decide to pay again, to withdraw or to reduce the allowance.",
+      "actions": [
+        "Write to OFII to explain why you did not come, before 23 November 2026.",
+        "Attach proof if you have some (doctor's paper, appointment letter, etc.).",
+        "Hand your reply in at the OFII desk or send it to the address on the letter. Keep a copy."
+      ],
+      "orientation": [
+        "Come quickly to the association: a volunteer can help you write your reply.",
+        "For a question about the allowance, contact OFII Valmont (address on the letter)."
+      ]
+    },
+    "ar": {
+      "title": "أوقفت OFII دفع مساعدتك (ADA). يمكنك الرد قبل 23 نوفمبر 2026.",
+      "summary": "علّقت OFII دفع مساعدة طالب اللجوء (ADA) منذ 1 نوفمبر 2026. تقول الرسالة إنك لم تحضر موعد 20 أكتوبر 2026. قبل القرار النهائي، يمكنك كتابة توضيحاتك وإرفاق إثباتات، قبل 23 نوفمبر 2026. بعد ذلك يمكن لـ OFII أن تقرر الدفع من جديد أو سحب المساعدة أو تخفيضها.",
+      "actions": [
+        "اكتب إلى OFII لتشرح لماذا لم تحضر، قبل 23 نوفمبر 2026.",
+        "أرفق إثباتات إن وجدت (ورقة من الطبيب، رسالة موعد، إلخ).",
+        "سلّم ردك في مكتب الاستقبال في OFII أو أرسله إلى العنوان المكتوب في الرسالة. احتفظ بنسخة."
+      ],
+      "orientation": [
+        "تعال بسرعة إلى الجمعية: يمكن لمتطوع أن يساعدك في كتابة ردك.",
+        "لأي سؤال عن المساعدة، اتصل بـ OFII Valmont (العنوان في الرسالة)."
+      ]
+    }
+  }
+}
