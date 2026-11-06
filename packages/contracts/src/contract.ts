@@ -37,9 +37,7 @@ const letters = {
   /** The original photo, streamed decrypted. Only while it still exists (purged after processing). */
   photo: base.input(z.object({ id: IdSchema })).output(z.file()),
   edit: base.input(LetterEditSchema).output(LetterDetailSchema),
-  /** Regenerate `target` prose from (edited) `fr` prose. */
-  retranslate: base.input(z.object({ id: IdSchema })).output(LetterDetailSchema),
-  /** Fails with CONFLICT if `target` is stale. Queues the WhatsApp send. */
+  /** If `frEdited`, regenerates `target` from `fr` (LLM), then queues the WhatsApp send. */
   approve: base.input(z.object({ id: IdSchema })).output(LetterDetailSchema),
   /** Discards the draft; beneficiary receives the fixed "a volunteer will contact you" message. */
   reject: base.input(z.object({ id: IdSchema, note: z.string().max(500).optional() })).output(LetterDetailSchema),
@@ -60,7 +58,8 @@ const documents = {
     .output(z.array(DeadlineRowSchema)),
   file: base.input(z.object({ id: IdSchema })).output(z.file()),
   update: base.input(DocumentUpdateSchema).output(DocumentSchema),
-  delete: base.input(z.object({ id: IdSchema })).output(z.void()),
+  /** Archives the document (hidden from the beneficiary, reminders cancelled); hard-deleted 30 days later. */
+  archive: base.input(z.object({ id: IdSchema })).output(DocumentSchema),
 };
 
 /** Only mounted when WHATSAPP_MODE=sandbox. Simulates a phone talking to the bot. */

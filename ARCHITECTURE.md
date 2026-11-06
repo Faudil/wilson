@@ -1,6 +1,6 @@
 # Mon courrier — Architecture (POC)
 
-Status: draft v0.1, written before any implementation. Items marked **[Q]** depend on open questions to the association.
+Status: v0.2. Open questions answered by the association on 2026-11-06 (see §12).
 
 ## 1. What it does
 
@@ -40,8 +40,8 @@ wilson/
    │                    reminders.dispatch (cron) · media.purge (cron)      │
    └──────┬───────────────────────┬───────────────────────┬────────────────┘
           ▼                       ▼                       ▼
-   PostgreSQL 17           MinIO (S3 API)           Anthropic API (Claude Haiku, vision)
-   data + pg-boss queues   encrypted blobs only     [Q1: direct vs EU-region provider]
+   PostgreSQL 17           MinIO (S3 API)           LLM provider (default: Anthropic API, Claude Opus)
+   data + pg-boss queues   encrypted blobs only     behind the generic LlmProvider interface
    backoffice (nginx, static build) ──/rpc──▶ api
 ```
 
@@ -53,14 +53,14 @@ wilson/
 
 ### 4.1 First contact & language
 1. Unknown `wa_id` → create `beneficiary` (new per-user data key, see §6).
-2. If the first message is text, detect language with Haiku (`language-detect.v1`, returns one of the 10 codes or `unknown`). If it is a photo or detection is unsure, send the **language menu**: a numbered list in native scripts (`1 Français · 2 English · 3 العربية …`). Numbers work on every keyboard.
+2. If the first message is text, detect language with Opus (`language-detect.v1`, returns one of the 10 codes or `unknown`). If it is a photo or detection is unsure, send the **language menu**: a numbered list in native scripts (`1 Français · 2 English · 3 العربية …`). Numbers work on every keyboard.
 3. Welcome message in that language, with the main menu: `1` explain a letter · `2` my documents · `3` change language · `0` talk to a person. The menu is shown again on any unrecognised text. Language can be changed at any time with `3` (or the word "language/langue/لغة…" catalogued in i18n).
 
 ### 4.2 Letter received → review → sent (critical path #1)
 ```
 photo ─▶ webhook ─▶ download media (Meta) ─▶ encrypt with user DEK ─▶ S3 tmp/ ─▶ letters(status=received)
       ─▶ ack to user ("received, a volunteer will check the explanation, usually within X h")
-      ─▶ job letter.analyze: decrypt → Haiku vision + prompt letter-analysis.v1 → Zod-validate JSON
+      ─▶ job letter.analyze: decrypt → Opus vision + prompt letter-analysis.v1 → Zod-validate JSON
            (1 retry with the validation error fed back; else status=failed, shown in queue)
       ─▶ status=pending_review ─▶ back-office queue (sorted: urgency, deadline, age)
 volunteer: read French version + photo, fix facts/prose ─▶ approve | reject
@@ -68,16 +68,16 @@ volunteer: read French version + photo, fix facts/prose ─▶ approve | reject
           ─▶ ask "Do you want to keep this letter in My documents? 1 yes 2 no"
   reject  ─▶ fixed message "a volunteer will contact you / come to the permanence" ─▶ status=rejected
 photo purge: deleted as soon as the user answers "2", or at most PHOTO_TTL_HOURS after sending (default 48 h);
-             answer "1" moves the blob to documents/ (type=letter).
+             answer "1" moves the blob to documents/ (type=letter). This is the only automatic deletion (brief constraint).
 ```
 - The LLM returns **one JSON** with language-neutral facts (type, deadline, urgency) once, and prose twice: `fr` for the reviewer and `target` for the beneficiary (`LetterAnalysisSchema`).
-- Reviewer edits in French; editing `fr` marks `target` stale; "Retranslate" regenerates `target` from the edited `fr` (text-only Haiku call); approve is refused while stale. **[Q2]**
+- Reviewer reads and edits the French version. If `fr` was edited, approve first regenerates `target` from `fr` with the LLM (text-only call, logged as `retranslated`), then sends. No manual retranslate step: Opus translation quality is trusted for the POC.
 - The outgoing text is never free LLM text: it is assembled from the fields by a fixed template, so the structure and the footer are guaranteed.
 
 ### 4.3 Document saved → reminder (critical path #2)
 ```
 menu 2 ─▶ "send a photo or PDF of the document" ─▶ encrypt ─▶ S3 documents/ ─▶ job document.analyze
-       ─▶ Haiku: type + expiry date (+ verbatim quote) ─▶ ask user to confirm:
+       ─▶ Opus: type + expiry date (+ verbatim quote) ─▶ ask user to confirm:
           "Récépissé, valid until 14 March 2027 (14 مارس ٢٠٢٧). 1 correct · 2 change the date"
        ─▶ 2 ─▶ user types a date (parsed leniently: 14/03/2027, 14-3-27…) ─▶ re-confirm in written-out form
        ─▶ documents row + reminders rows (d30, d7 at 10:00 Europe/Paris)
@@ -85,7 +85,8 @@ cron reminders.dispatch (every 15 min): due & scheduled rows ─▶ wa.send ─�
 date changed / document deleted ─▶ pending reminders cancelled and recreated
 ```
 - Menu 2 also lists saved documents with their expiry dates, and lets the user delete one.
-- Reminders are fixed i18n templates (no LLM), so they are sent without review. **[Q3: Meta templates]**
+- Reminders are fixed i18n templates (no LLM), so they are sent without review.
+- **24 h window:** outside WhatsApp's customer-service window, the API sends a Meta-approved *utility template* instead of free text: `explanation_ready` ("your explanation is ready, reply OK to receive it"; the reviewed text is sent when they reply) and `document_reminder` (type + written-out date). Template names/languages are configured in env; the sandbox ignores the window.
 - Reminders whose date is already past at save time are skipped; an already-expired document triggers an immediate "expired, contact the association" message.
 
 ## 5. Data model (PostgreSQL, Drizzle)
@@ -95,12 +96,13 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 | Table | Key columns |
 |---|---|
 | `beneficiaries` | id, `wa_id_hash` (HMAC-SHA256, lookup), `wa_id_enc`, language, `language_confirmed`, `conversation_state` jsonb (menu step), `wrapped_dek` (DEK encrypted by master key), created_at, last_message_at, deleted_at |
-| `messages` | id, beneficiary_id, direction (in/out), wa_message_id, kind (text/image/document/template), `body_enc`, status (queued/sent/delivered/read/failed), created_at. Kept for retention period **[Q5]** |
+| `messages` | id, beneficiary_id, direction (in/out), wa_message_id, kind (text/image/document/template), `body_enc`, status (queued/sent/delivered/read/failed), created_at |
 | `letters` | id, beneficiary_id, status, `photo_key` (nullable, nulled on purge), `analysis_enc` (LetterAnalysis JSON), `target_stale`, letter_type, urgency, deadline (plain, for sorting), low_confidence, received_at, reviewed_by, reviewed_at, sent_at |
 | `letter_events` | id, letter_id, volunteer_id, action, note, at — review audit trail |
-| `documents` | id, beneficiary_id, type, `label_enc`, expires_at, expiry_source, object_key, mime_type, size_bytes, sha256, created_at, deleted_at |
+| `documents` | id, beneficiary_id, type, `label_enc`, expires_at, expiry_source, object_key, mime_type, size_bytes, sha256, created_at, archived_at, purge_at |
 | `reminders` | id, document_id, kind (d30/d7), due_at, status, sent_at — unique (document_id, kind) |
 | `volunteers` | id, email, password_hash (argon2id), name, role (volunteer/admin), ui_language, disabled_at |
+| `volunteer_permissions` | volunteer_id, permission, granted (bool) — per-volunteer overrides on top of the role bundle (empty in the POC) |
 | `sessions` | id (random, httpOnly cookie), volunteer_id, expires_at |
 | `access_log` | volunteer_id, action (view_photo, view_document, edit…), target id, at — who looked at what |
 
@@ -111,9 +113,10 @@ Type, dates, urgency and status stay in clear so the queue can sort and filter; 
 - **Encryption at rest, per user.** Each beneficiary gets a random 256-bit data key (DEK), stored only wrapped by `MASTER_KEY` (env/secret manager). Blobs are encrypted by the API with the DEK (AES-256-GCM) **before** upload to S3, and sensitive DB columns use the same DEK. Deleting a beneficiary deletes `wrapped_dek` → all their data is cryptographically unreadable (crypto-shredding), then rows/blobs are purged.
   *Decision:* app-level envelope encryption instead of S3 SSE-C. SSE-C still sends the key to the storage provider on each request and MinIO only accepts it over TLS; app-level encryption works on any EU S3 (Scaleway, OVH, Clever Cloud) and the provider never sees plaintext. The bucket additionally uses provider-side SSE-S3 in production.
 - **Letter photos** are deleted after processing (§4.2), unless the user saves them to My documents.
-- **Third parties:** only Meta (WhatsApp transport) and the LLM provider. No analytics, no CDN, fonts self-hosted, no external calls from the back-office. **[Q1]**
-- **Back-office:** cookie session (httpOnly, SameSite=Strict, Secure), argon2id passwords, roles volunteer/admin, phone numbers masked, every photo/document view logged. **[Q4]**
-- **User rights via WhatsApp:** `9` in the menu → "delete all my data" with confirmation; executes crypto-shredding immediately.
+- **Third parties:** only Meta (WhatsApp transport) and the LLM provider. No analytics, no CDN, fonts self-hosted, no external calls from the back-office.
+- **Back-office:** cookie session (httpOnly, SameSite=Strict, Secure), argon2id passwords, phone numbers masked, every photo/document view logged.
+- **Permissions:** procedures check fine-grained permissions (`letters.review`, `documents.view_file`, `volunteers.manage`… see `contracts/auth.ts`), never roles. Roles are named bundles (`ROLE_PERMISSIONS`); `volunteer_permissions` allows per-person grants/revocations later without code changes. POC: all volunteers get the full volunteer bundle.
+- **Retention (association decision):** nothing is deleted automatically for now, except letter photos (above). When a user deletes a document, it is **archived** (hidden, reminders cancelled) and hard-deleted 30 days later by the `documents.purge` cron. "Delete all my data" (`9` in the menu) archives everything the same way; after 30 days the wrapped DEK is destroyed (crypto-shredding) and rows/blobs purged.
 - **EU hosting:** Postgres + S3 + API run in the EU (compose locally; target: Scaleway/OVH in France).
 
 ## 7. Languages, RTL and rendering
@@ -126,7 +129,8 @@ Type, dates, urgency and status stay in clear so the queue can sort and filter; 
 
 ## 8. LLM pipeline
 
-- Model: Claude Haiku via `@anthropic-ai/sdk`, vision input (image or PDF), JSON output validated with the Zod schemas from `contracts` (one repair retry).
+- **Generic `LlmProvider` interface** (`apps/api/src/llm/provider.ts`): `analyzeLetter`, `analyzeDocument`, `detectLanguage`, `translateLetterText`. Implementations: `AnthropicProvider` (default model Claude Opus, `LLM_MODEL` env) and `FakeProvider` (fixtures). Adding Mistral, a Bedrock/Vertex EU region or a self-hosted model = one new class.
+- Vision input (image or PDF), JSON output validated with the Zod schemas from `contracts` (one repair retry).
 - Prompts in `/prompts/*.vN.md`, loaded by version; the version is stored in each analysis (`promptVersion`). Changing a prompt = new file, never an in-place edit.
 - Rules enforced by the prompt **and** by code: structured JSON only; prose in the target language; no legal advice or prediction of outcome ("you will win", "you should appeal") — appeals and removal orders are flagged `urgency=high` with orientation to a jurist/association; deadlines must cite a verbatim quote; uncertainty goes into `reviewerWarnings`.
 - No conversation history, no beneficiary identity is sent to the LLM: only the image and the target language.
@@ -138,9 +142,9 @@ oRPC contract, consumed by `implement(contract)` on the server and a typed clien
 | Group | Procedures |
 |---|---|
 | `auth` | login, logout, me, setUiLanguage |
-| `letters` | list (by status, cursor), get, photo (File), edit, retranslate, approve, reject |
+| `letters` | list (by status, cursor), get, photo (File), edit, approve (auto-retranslates if French edited), reject |
 | `beneficiaries` | list (search by last digits), get (documents + letters), setLanguage |
-| `documents` | deadlines (within N days), file (File), update (type/label/expiry), delete |
+| `documents` | deadlines (within N days), file (File), update (type/label/expiry), archive |
 | `sandbox` | send (text and/or file as a fake phone), thread, runReminders (as of a date), reset — only mounted when `WHATSAPP_MODE=sandbox` |
 | `system` | health |
 
@@ -165,6 +169,10 @@ The Meta webhook is the one HTTP route outside oRPC (format and signature impose
 | D6 | Webhook as plain HTTP route with contract-defined Zod schema | Meta imposes format + raw-body signature |
 | D7 | Back-office UI in fr + en + ar first, WhatsApp catalogs in all 10 | Volunteers are francophone; ar proves RTL UI; beneficiary-facing text is what must be in all languages. Machine-drafted translations flagged for native review |
 
-## 12. Open questions
+## 12. Answers from the association (2026-11-06)
 
-See the thread. Defaults used until answered: Q1 Anthropic API direct for the POC behind a provider interface; Q2 review in French + retranslate; Q3 sandbox ignores the 24 h window, Meta template names configurable; Q4 volunteers see metadata, file content viewable by all volunteers with access log; Q5 messages and analyses kept 90 days, documents until deleted or 12 months after last contact.
+1. LLM: generic interface; Anthropic API for the POC, other models later.
+2. Translation: use Claude Opus, trust its translation; no manual retranslate gate.
+3. 24 h window: Meta templates as proposed.
+4. Access: all volunteers see everything for now (logged); fine-grained permissions prepared.
+5. Retention: no automatic deletion for now; user deletions archived 30 days, then deleted.

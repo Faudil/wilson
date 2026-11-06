@@ -38,6 +38,9 @@ export const DocumentSchema = z.object({
   mimeType: z.string(),
   sizeBytes: z.number().int().nonnegative(),
   createdAt: TimestampSchema,
+  /** Set when the beneficiary or a volunteer deleted it. Blob + row are purged at `purgeAt` (archivedAt + 30 days). */
+  archivedAt: TimestampSchema.nullable(),
+  purgeAt: TimestampSchema.nullable(),
   reminders: z.array(ReminderSchema),
 });
 export type DocumentDto = z.infer<typeof DocumentSchema>;

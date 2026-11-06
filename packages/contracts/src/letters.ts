@@ -106,8 +106,8 @@ export const LetterDetailSchema = LetterSummarySchema.extend({
   /** Same message rendered from `analysis.fr`, so a French-speaking volunteer can check it. */
   outgoingTextFr: z.string().nullable(),
   hasPhoto: z.boolean(),
-  /** True when the reviewer edited French text and the target text is out of date. */
-  targetStale: z.boolean(),
+  /** True when the reviewer edited the French prose: on approve, `target` is regenerated from `fr` by the LLM before sending. */
+  frEdited: z.boolean(),
   history: z.array(
     z.object({
       at: TimestampSchema,
@@ -125,7 +125,7 @@ export const LetterEditSchema = z.object({
   letterType: LetterTypeSchema.optional(),
   deadline: LetterAnalysisSchema.shape.deadline.optional(),
   urgency: UrgencySchema.optional(),
-  /** …and prose in either language. Editing `fr` marks `target` stale until retranslated. */
+  /** …and prose in either language. Editing `fr` sets `frEdited`; the translation is redone automatically on approve. */
   fr: LetterTextSchema.optional(),
   target: LetterTextSchema.optional(),
 });
