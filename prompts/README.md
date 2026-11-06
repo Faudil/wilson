@@ -8,7 +8,7 @@ Versioned LLM prompts for "Mon courrier". File name: `<name>.v<N>.md`. The loade
 
 ## Placeholders
 
-`{{today}}` (YYYY-MM-DD, Europe/Paris), `{{targetLanguageName}}` (English name, e.g. "Arabic"), `{{targetLanguageCode}}`, `{{languageList}}` (supported codes), plus `{{text}}` (language-detect) and `{{frJson}}` (letter-translate). Rendering fails if a placeholder in the file has no value.
+`{{today}}` (YYYY-MM-DD, Europe/Paris), `{{targetLanguageName}}` (English name, e.g. "Arabic"), `{{targetLanguageCode}}`, `{{languageList}}` (supported codes), plus `{{text}}` (language-detect) and `{{frJson}}` (letter-translate), `{{inputJson}}` (letter-orientation). Rendering fails if a placeholder in the file has no value.
 
 ## Files
 
@@ -16,6 +16,7 @@ Versioned LLM prompts for "Mon courrier". File name: `<name>.v<N>.md`. The loade
 - `document-analysis.v1.md` - vision: classify a personal document and read its expiry date.
 - `language-detect.v1.md` - text: detect the language of a message.
 - `letter-translate.v1.md` - text: translate reviewer-edited French prose.
+- `letter-orientation.v1.md` - text (RAG): rewrite the "who to turn to" lines from retrieved snippets (association first, nothing invented, never legal advice); returns `{fr, target, usedIds}`.
 
 ## Non-negotiable rules (all letter prompts)
 

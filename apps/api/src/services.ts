@@ -1,10 +1,13 @@
 import { BeneficiariesServiceImpl } from "./beneficiaries/serviceImpl.js";
 import type { Deps } from "./deps.js";
 import { DocumentsServiceImpl } from "./documents/serviceImpl.js";
+import { createKnowledgeService } from "./knowledge/service.js";
+import type { KnowledgeService } from "./knowledge/types.js";
 
 export interface Services {
   beneficiaries: BeneficiariesServiceImpl;
   documents: DocumentsServiceImpl;
+  knowledge: KnowledgeService;
 }
 
 /** What the services need: Deps without the transport (the transport itself needs the beneficiaries service). */
@@ -17,7 +20,7 @@ export function getServices(deps: ServiceDeps): Services {
   let s = cache.get(deps);
   if (!s) {
     const beneficiaries = new BeneficiariesServiceImpl(deps);
-    s = { beneficiaries, documents: new DocumentsServiceImpl(deps, beneficiaries) };
+    s = { beneficiaries, documents: new DocumentsServiceImpl(deps, beneficiaries), knowledge: createKnowledgeService(deps) };
     cache.set(deps, s);
   }
   return s;

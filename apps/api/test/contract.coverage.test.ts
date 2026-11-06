@@ -43,6 +43,9 @@ const INPUTS: Record<string, unknown> = {
   "sandbox.thread": { phone },
   "sandbox.runReminders": { date: "2026-11-06" },
   "sandbox.reset": { phone },
+  "knowledge.sources": undefined,
+  "knowledge.search": { query: "titre de séjour", limit: 3 },
+  "knowledge.sync": { sourceId: "association" },
   "system.health": undefined,
 };
 /** The permission each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
@@ -54,6 +57,7 @@ const REQUIRES: Record<string, Permission | null> = {
   "documents.deadlines": "documents.view_metadata", "documents.file": "documents.view_file",
   "documents.update": "documents.edit", "documents.archive": "documents.edit",
   "sandbox.send": "sandbox.use", "sandbox.thread": "sandbox.use", "sandbox.runReminders": "sandbox.use", "sandbox.reset": "sandbox.use",
+  "knowledge.sources": "knowledge.view", "knowledge.search": "knowledge.view", "knowledge.sync": "knowledge.manage",
 };
 const PUBLIC = new Set(["auth.login", "system.health"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */
@@ -85,6 +89,8 @@ describe("contract coverage", () => {
     for (const perm of needed) {
       const v = await createVolunteer(t.deps);
       await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: perm, granted: false });
+      // knowledge.manage is admin-only by role: grant it per-volunteer so every other procedure starts allowed.
+      if (perm !== "knowledge.manage") await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: "knowledge.manage", granted: true });
       const { client } = makeClient(t.deps);
       await client.auth.login({ email: v.email, password: v.password });
       for (const [proc, req] of Object.entries(REQUIRES)) {

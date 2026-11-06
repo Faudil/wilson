@@ -136,6 +136,22 @@ Type, dates, urgency and status stay in clear so the queue can sort and filter; 
 - Rules enforced by the prompt **and** by code: structured JSON only; prose in the target language; no legal advice or prediction of outcome ("you will win", "you should appeal") — appeals and removal orders are flagged `urgency=high` with orientation to a jurist/association; deadlines must cite a verbatim quote; uncertainty goes into `reviewerWarnings`.
 - No conversation history, no beneficiary identity is sent to the LLM: only the image and the target language.
 
+## 8b. Knowledge base (RAG) for orientation
+
+Goal: the "who to turn to" lines cite real, local, up-to-date offices and procedures instead of generic advice.
+
+| Source | Licence | Content | Default |
+|---|---|---|---|
+| Service-Public.fr fiches pratiques (DILA, data.gouv.fr XML zip, daily) | Licence Ouverte 2.0 | Procedures: titres de séjour, asile, CAF, AME, logement, impôts, aide juridictionnelle… (allowlist in `knowledge/sources/servicePublicTopics.ts`) | on |
+| Annuaire de l'administration (DILA, Opendatasoft API) | Licence Ouverte 2.0 | Local offices for `KNOWLEDGE_DEPARTMENTS`: préfecture, CAF, CPAM, Point-justice, France services… with address, phone, hours | on |
+| Association notes (`knowledge/association/*.md`) | internal | The association's own permanences, partners, hours | on |
+| Watizat guides (PDF dropped in `knowledge/watizat/`) | "tous droits réservés" | City guides for exiled people | **off until Watizat grants permission** (`KNOWLEDGE_ENABLE=watizat`) |
+| data·inclusion, Refugies.info | access on request / licence unstated | — | not wired yet |
+
+- **Storage & search:** `knowledge_chunks` table (public content only, never beneficiary data) with a generated French `tsvector` + GIN index; search = French full-text (`to_tsquery` OR of keywords, `ts_rank_cd`), contacts filtered to the département. Works identically on Postgres and PGlite. No embedding model and no external service, so nothing leaves the server. Embeddings (local model + pgvector) can be added behind `KnowledgeService.search` later.
+- **Sync:** weekly cron + first start + `pnpm knowledge:sync [source]` + "Synchroniser" button (admin). Each sync upserts by `(source, external_id)` and deletes stale chunks.
+- **Orientation step:** after `analyzeLetter`, query = French title + summary + issuer + per-type keywords → top procedures + local contacts → `llm.orientLetter` (prompt `letter-orientation.v1`) rewrites orientation in fr + target using only those snippets (association always first; never invents an address; no legal advice) → `analysis.sources` shown to the reviewer. Any failure keeps the original orientation and adds a reviewer warning.
+
 ## 9. API contract overview (`packages/contracts`)
 
 oRPC contract, consumed by `implement(contract)` on the server and a typed client in the back-office. Every procedure requires a volunteer session except `auth.login` and `system.health`.
@@ -147,6 +163,7 @@ oRPC contract, consumed by `implement(contract)` on the server and a typed clien
 | `beneficiaries` | list (search by last digits), get (documents + letters), setLanguage |
 | `documents` | deadlines (within N days), file (File), update (type/label/expiry), archive |
 | `sandbox` | send (text and/or file as a fake phone), thread, runReminders (as of a date), reset — only mounted when `WHATSAPP_MODE=sandbox` |
+| `knowledge` | sources, search (same retrieval as the orientation step), sync (admin) |
 | `system` | health |
 
 The Meta webhook is the one HTTP route outside oRPC (format and signature imposed by Meta); its payload is still defined in `contracts/whatsapp.ts` and validated with Zod.

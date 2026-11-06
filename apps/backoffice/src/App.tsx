@@ -11,6 +11,7 @@ import { SessionContext, type Session } from "./lib/session";
 import { BeneficiaryDetail, BeneficiaryList } from "./screens/Beneficiaries";
 import { Deadlines } from "./screens/Deadlines";
 import { LanguageTest } from "./screens/LanguageTest";
+import { Knowledge } from "./screens/Knowledge";
 import { LetterReview } from "./screens/LetterReview";
 import { Login } from "./screens/Login";
 import { Queue } from "./screens/Queue";
@@ -72,6 +73,7 @@ const NAV: { key: string; label: MessageKey; permission: Permission | null; sand
   { key: "queue", label: "nav.queue", permission: "letters.review" },
   { key: "beneficiaries", label: "nav.beneficiaries", permission: "beneficiaries.view" },
   { key: "deadlines", label: "nav.deadlines", permission: "documents.view_metadata" },
+  { key: "knowledge", label: "nav.knowledge", permission: "knowledge.view" },
   { key: "languages", label: "nav.languages", permission: null },
   { key: "sandbox", label: "nav.sandbox", permission: "sandbox.use", sandboxOnly: true },
 ];
@@ -150,6 +152,7 @@ export function App() {
   else if (section === "beneficiaries" && arg && allowed("beneficiaries")) screen = <BeneficiaryDetail id={arg} />;
   else if (section === "beneficiaries" && allowed("beneficiaries")) screen = <BeneficiaryList />;
   else if (section === "deadlines" && allowed("deadlines")) screen = <Deadlines />;
+  else if (section === "knowledge" && allowed("knowledge")) screen = <Knowledge />;
   else if (section === "languages") screen = <LanguageTest />;
   else if (section === "sandbox" && allowed("sandbox")) screen = <Sandbox />;
   else if (allowed("queue")) screen = <Queue />;

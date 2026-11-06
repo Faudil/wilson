@@ -8,7 +8,9 @@ import type { BeneficiariesService } from "../beneficiaries/service.js";
 import { letterEvents, letters, volunteers } from "../db/schema.js";
 import type { Deps } from "../deps.js";
 import { JOBS } from "../jobs/names.js";
+import type { KnowledgeService } from "../knowledge/types.js";
 import { LlmError } from "../llm/provider.js";
+import { buildRagQuery } from "./ragQuery.js";
 import { footerFor, enqueueText } from "../whatsapp/send.js";
 import { todayIn } from "../whatsapp/context.js";
 
@@ -53,7 +55,13 @@ export interface LettersService {
 
 type LetterRow = typeof letters.$inferSelect;
 
-export function createLettersService(deps: Deps, beneficiaries: BeneficiariesService): LettersService {
+export const ORIENTATION_WARNING = "Orientation non enrichie (base de connaissances indisponible)";
+
+/**
+ * `knowledge` is optional: when absent (or RAG_ENABLED=false) the orientation step is skipped and the analysis keeps
+ * the orientation written by analyzeLetter.
+ */
+export function createLettersService(deps: Deps, beneficiaries: BeneficiariesService, knowledge?: KnowledgeService): LettersService {
   const { db, crypto, blobs, llm, config } = deps;
   const today = () => todayIn(deps.now(), config.TIMEZONE);
   const photoKeyOf = (id: string) => `tmp/letters/${id}`;
@@ -79,6 +87,37 @@ export function createLettersService(deps: Deps, beneficiaries: BeneficiariesSer
     return crypto.encryptJson(await beneficiaries.getDek(beneficiaryId), a);
   }
   const association = { name: config.ASSOCIATION_NAME, contact: config.ASSOCIATION_CONTACT };
+
+  /** RAG orientation. Never throws: on any failure the letter keeps its original orientation + a reviewer warning. */
+  async function enrichOrientation(letterId: string, a: LetterAnalysis, language: LanguageCode): Promise<number | null> {
+    if (!knowledge || !config.RAG_ENABLED) return null;
+    try {
+      const department = config.KNOWLEDGE_DEPARTMENTS.split(",")[0]?.trim() || undefined;
+      const query = buildRagQuery(a);
+      const [procedures, contacts] = await Promise.all([
+        knowledge.search({ query, department, kinds: ["procedure"], limit: 4 }),
+        knowledge.search({ query, department, kinds: ["contact"], limit: 4 }),
+      ]);
+      const ids = [...new Set([...contacts, ...procedures].map((h) => h.id))];
+      const chunks = ids.length ? await knowledge.getChunks(ids) : [];
+      if (!chunks.length) return 0;
+      const out = await llm.orientLetter({
+        analysis: a,
+        targetLanguage: language,
+        association,
+        snippets: chunks.map((c) => ({ id: c.id, title: c.title, text: c.text, url: c.url })),
+      });
+      const used = out.usedIds.flatMap((id) => chunks.filter((c) => c.id === id));
+      a.fr = { ...a.fr, orientation: out.fr };
+      a.target = { ...a.target, orientation: out.target };
+      a.sources = used.slice(0, 8).map((c) => ({ chunkId: c.id, sourceId: c.sourceId, title: c.title, url: c.url }));
+      return a.sources.length;
+    } catch (e) {
+      console.error(`[letters] orientation step failed for ${letterId}: ${e instanceof Error ? e.message : String(e)}`);
+      if (!a.reviewerWarnings.includes(ORIENTATION_WARNING)) a.reviewerWarnings = [...a.reviewerWarnings, ORIENTATION_WARNING];
+      return null;
+    }
+  }
   const render = (lang: LanguageCode, a: LetterAnalysis, which: "fr" | "target") =>
     renderLetterReply({ lang, text: a[which], deadline: a.deadline, urgency: a.urgency, today: today(), association });
 
@@ -152,6 +191,7 @@ export function createLettersService(deps: Deps, beneficiaries: BeneficiariesSer
         if (e instanceof LlmError) return fail(e.message.slice(0, 300));
         throw e; // transient (storage, network): let the queue retry
       }
+      const nSources = await enrichOrientation(letterId, analysis, b.language);
       await db.update(letters).set({
         analysisEnc: await encryptAnalysis(r.beneficiaryId, analysis),
         letterType: analysis.letterType,
@@ -160,7 +200,7 @@ export function createLettersService(deps: Deps, beneficiaries: BeneficiariesSer
         lowConfidence: analysis.confidence < 0.6,
         status: "pending_review",
       }).where(eq(letters.id, letterId));
-      await event(letterId, "analyzed");
+      await event(letterId, "analyzed", null, nSources !== null ? `orientation enrichie: ${nSources} sources` : null);
     },
 
     async list({ cursor, limit, status }) {

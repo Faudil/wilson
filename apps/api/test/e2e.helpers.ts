@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import type { ContractRouterClient } from "@orpc/contract";
 import type { contract } from "@wilson/contracts";
 import { beneficiaries } from "../src/db/schema.js";
+import type { KnowledgeService } from "../src/knowledge/types.js";
 import { registerWorkers } from "../src/jobs/workers.js";
 import { createLettersService } from "../src/letters/service.js";
 import { FakeProvider, resolveSamplesDir } from "../src/llm/fake.js";
@@ -37,13 +38,13 @@ export const sampleFile = (kind: "letters" | "documents", name: string): File =>
 };
 
 /** Full stack as in main.ts (real services + workers + router), but FakeProvider, SandboxTransport, InlineQueue, fixed clock. */
-export async function makeE2E(opts: { now?: string; config?: Record<string, string | undefined> } = {}): Promise<E2E> {
+export async function makeE2E(opts: { now?: string; config?: Record<string, string | undefined>; knowledge?: KnowledgeService } = {}): Promise<E2E> {
   const ctx = await makeTestDeps({ now: opts.now ?? "2026-11-06T12:00:00Z", config: opts.config });
   const fake = new FakeProvider();
   const ben = ctx.services.beneficiaries;
   const wa = new SandboxTransport({ db: ctx.deps.db, crypto: ctx.deps.crypto, blobs: ctx.deps.blobs, beneficiaries: ben });
   const deps = { ...ctx.deps, llm: fake, wa };
-  const letters = createLettersService(deps, ben);
+  const letters = createLettersService(deps, ben, opts.knowledge);
   const wdeps: WaDeps = { ...deps, beneficiaries: ben, documents: ctx.services.documents, letters };
   adoptServices(ctx.deps, deps, wdeps);
   registerWaDeps(wdeps);

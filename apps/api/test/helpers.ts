@@ -51,6 +51,9 @@ export class StubLlm implements LlmProvider {
   async translateLetterText(input: { fr: import("@wilson/contracts").LetterText }) {
     return input.fr;
   }
+  async orientLetter(input: { analysis: import("@wilson/contracts").LetterAnalysis }) {
+    return { fr: input.analysis.fr.orientation, target: input.analysis.target.orientation, usedIds: [] as string[] };
+  }
 }
 
 /** Transport stub recording what would have been sent. */

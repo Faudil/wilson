@@ -156,17 +156,20 @@ a {
   background: var(--surface);
   border-block-start: 1px solid var(--line);
   padding-block-end: env(safe-area-inset-bottom);
+  /* 6+ sections on a phone: scroll sideways instead of squeezing labels together. */
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 .tabbar a,
 .tabbar button {
-  flex: 1 1 0;
-  min-inline-size: 0;
+  flex: 1 0 auto;
+  min-inline-size: 76px;
   min-block-size: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding-inline: 4px;
+  padding-inline: 10px;
   font-size: 0.82rem;
   line-height: 1.2;
   color: var(--muted);
@@ -259,6 +262,14 @@ a {
   font-weight: 600;
   background: #e9edf3;
   color: var(--ink);
+}
+.badge-ok {
+  background: #dff3e7;
+  color: #145a33;
+}
+.badge-muted {
+  background: #e9edf3;
+  color: var(--muted);
 }
 .badge-lang {
   background: #e3edff;

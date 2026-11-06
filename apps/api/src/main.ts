@@ -14,6 +14,7 @@ import { registerWorkers } from "./jobs/workers.js";
 import { createLettersService } from "./letters/service.js";
 import { createLlmProvider } from "./llm/index.js";
 import { createHttpServer } from "./server.js";
+import { enqueueInitialSync } from "./knowledge/service.js";
 import { adoptServices, getServices } from "./services.js";
 import { S3BlobStore } from "./storage/s3.js";
 import { createTransport, registerWaDeps, type WaDeps } from "./whatsapp/index.js";
@@ -49,14 +50,16 @@ async function main(): Promise<void> {
   if (process.env.SEED_ADMIN_EMAIL) console.log("seed:", await seed(db));
 
   const base = { config, db, crypto: createCrypto(config), blobs, llm: createLlmProvider(config), jobs: queue, now: () => new Date() };
-  const { beneficiaries, documents } = getServices(base);
+  const { beneficiaries, documents, knowledge } = getServices(base);
   const deps: Deps = { ...base, wa: createTransport({ ...base, beneficiaries }) };
-  const letters = createLettersService(deps, beneficiaries);
+  const letters = createLettersService(deps, beneficiaries, knowledge);
   const waDeps: WaDeps = { ...deps, beneficiaries, documents, letters };
   adoptServices(base, deps, waDeps);
   registerWaDeps(waDeps);
 
   await registerWorkers(waDeps, queue);
+  // First start: index the knowledge base in the background (weekly refresh afterwards).
+  await enqueueInitialSync(knowledge, queue, config).catch((err) => console.error("[knowledge] initial sync not queued:", err));
 
   const server = createHttpServer(waDeps);
   server.listen(config.PORT, () => console.log(`api listening on :${config.PORT} (runtime=${config.RUNTIME}, whatsapp=${config.WHATSAPP_MODE}, llm=${config.LLM_MODE})`));

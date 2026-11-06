@@ -61,6 +61,12 @@ function stripFence(text: string): string {
   return t;
 }
 
+const OrientationOutSchema = z.object({
+  fr: z.array(z.string().min(1).max(400)).min(1).max(4),
+  target: z.array(z.string().min(1).max(400)).min(1).max(4),
+  usedIds: z.array(z.string()),
+});
+
 export class AnthropicProvider implements LlmProvider {
   readonly name = "anthropic";
   private readonly client: AnthropicLike;
@@ -170,5 +176,38 @@ export class AnthropicProvider implements LlmProvider {
     }
     return out;
   }
-}
 
+  async orientLetter(input: {
+    analysis: LetterAnalysis;
+    targetLanguage: LanguageCode;
+    association: { name: string; contact: string };
+    snippets: { id: string; title: string; text: string; url: string | null }[];
+  }): Promise<{ fr: string[]; target: string[]; usedIds: string[] }> {
+    const { analysis: a } = input;
+    const inputJson = JSON.stringify(
+      {
+        analysis: {
+          letterType: a.letterType,
+          issuer: a.issuer,
+          title: a.fr.title,
+          summary: a.fr.summary,
+          actions: a.fr.actions,
+          currentOrientation: a.fr.orientation,
+        },
+        association: input.association,
+        snippets: input.snippets.map((s) => ({ id: s.id, title: s.title, url: s.url, text: s.text })),
+      },
+      null,
+      2,
+    );
+    const prompt = renderPrompt("letter-orientation", {
+      targetLanguageName: languageNameEn(input.targetLanguage),
+      targetLanguageCode: input.targetLanguage,
+      inputJson,
+    });
+    const out = await this.callJson([{ type: "text", text: prompt }], OrientationOutSchema);
+    if (out.fr.length !== out.target.length) throw new LlmError("Orientation: fr and target have different lengths");
+    const known = new Set(input.snippets.map((s) => s.id));
+    return { fr: out.fr, target: out.target, usedIds: [...new Set(out.usedIds.filter((id) => known.has(id)))] };
+  }
+}

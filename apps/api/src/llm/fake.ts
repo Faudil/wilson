@@ -135,6 +135,28 @@ export class FakeProvider implements LlmProvider {
   async translateLetterText(input: { fr: LetterText; targetLanguage: LanguageCode }): Promise<LetterText> {
     return input.targetLanguage === "fr" ? input.fr : tagText(input.fr, input.targetLanguage);
   }
+
+  async orientLetter(input: {
+    analysis: LetterAnalysis;
+    targetLanguage: LanguageCode;
+    association: { name: string; contact: string };
+    snippets: { id: string; title: string; text: string; url: string | null }[];
+  }): Promise<{ fr: string[]; target: string[]; usedIds: string[] }> {
+    const lang = input.targetLanguage;
+    const fr = [...input.analysis.fr.orientation];
+    const target = [...input.analysis.target.orientation];
+    const top = input.snippets[0];
+    if (!top) return { fr, target, usedIds: [] };
+    const firstLine = top.text.split("\n").find((l) => l.trim().length > 0)?.trim() ?? "";
+    const line = (firstLine ? `${top.title} : ${firstLine}` : top.title).slice(0, 400);
+    const kept = fr.slice(0, 1);
+    const keptTarget = target.slice(0, 1);
+    return {
+      fr: [...kept, line],
+      target: [...keptTarget, lang === "fr" || lang === "en" ? line : tag(lang, line).slice(0, 400)],
+      usedIds: [top.id],
+    };
+  }
 }
 
 const WORDS: Record<"fr" | "en" | "so", string[]> = {

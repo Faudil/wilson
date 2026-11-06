@@ -364,6 +364,29 @@ function Review({ detail }: { detail: LetterDetail }) {
         </div>
       )}
 
+      {analysis?.sources?.length ? (
+        <div className="card">
+          <h2>{t("letter.sources")}</h2>
+          <p className="muted small">{t("letter.sourcesNote")}</p>
+          <ul>
+            {analysis.sources.map((s) => (
+              <li key={s.chunkId}>
+                <span lang="fr" dir="ltr">
+                  {s.url ? (
+                    <a href={s.url} target="_blank" rel="noopener noreferrer">
+                      {s.title}
+                    </a>
+                  ) : (
+                    s.title
+                  )}
+                </span>
+                <span className="muted small"> · {t(`knowledge.source.${s.sourceId}` as MessageKey)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       <div className="card">
         <h2>{t("letter.history")}</h2>
         <ol className="history">

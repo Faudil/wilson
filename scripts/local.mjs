@@ -5,9 +5,10 @@
 // Back-office: http://localhost:5173 · data stored (encrypted) in ./.data · config in ./.env.local
 import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readEnvFile } from "./env.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const envFile = resolve(root, ".env.local");
@@ -36,11 +37,7 @@ if (!existsSync(envFile)) {
   console.log("Created .env.local with fresh encryption keys.");
 }
 
-const env = { ...process.env };
-for (const line of readFileSync(envFile, "utf8").split(/\r?\n/)) {
-  const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
-  if (m) env[m[1]] = m[2];
-}
+const env = { ...process.env, ...readEnvFile(envFile) };
 env.RUNTIME = "local";
 env.NODE_ENV = "development";
 

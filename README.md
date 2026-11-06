@@ -85,6 +85,20 @@ Le back-office fonctionne sur téléphone.
 - **Échéances** : documents qui expirent dans les 60 prochains jours.
 - **Test des langues** : vérifie que chaque écriture s'affiche correctement sur votre téléphone.
 
+
+## 2b. Base de connaissances (« à qui s'adresser »)
+
+Pour que les réponses orientent vers de **vraies adresses locales**, l'outil s'appuie sur des sources gratuites et réutilisables :
+
+- **Fiches Service-Public.fr** (licence ouverte) : démarches titre de séjour, asile, CAF, AME, logement, impôts…
+- **Annuaire de l'administration** (licence ouverte) : préfecture, CAF, CPAM, Point-justice, France services… du département choisi (`KNOWLEDGE_DEPARTMENTS`, par défaut `75`).
+- **Vos propres notes** : fichiers dans `knowledge/association/` (voir le README de ce dossier). C'est le plus utile : vos permanences, horaires, partenaires.
+- **Watizat** : désactivé. Leurs guides sont « tous droits réservés » : il faut **demander l'autorisation à Watizat**. Ensuite, déposer le PDF dans `knowledge/watizat/` et mettre `KNOWLEDGE_ENABLE=watizat`.
+
+La mise à jour se fait automatiquement chaque semaine (et au premier démarrage), ou avec `pnpm knowledge:sync`, ou le bouton « Synchroniser » de l'écran **Connaissances** (admin). Cet écran permet aussi de tester la recherche. Dans chaque courrier à relire, l'encadré **Sources** montre sur quoi l'orientation s'appuie : vérifiez les adresses avant de valider.
+
+La recherche se fait dans notre propre base, sans service extérieur : aucune donnée des personnes n'est envoyée nulle part pour cela.
+
 ---
 
 ## 3. RGPD — ce qui est stocké, combien de temps, qui y accède
@@ -116,4 +130,5 @@ Le back-office fonctionne sur téléphone.
 - **Suppression** : une personne qui a demandé la suppression de ses données ne reçoit plus de réponse pendant les 30 jours d'archivage. La suppression d'un seul document depuis WhatsApp n'est pas encore disponible (possible depuis le back-office).
 - **Ourdou** affiché en Naskh, pas en Nastaliq.
 - **Sauvegardes** : non configurées. **Perdre `MASTER_KEY` = perdre toutes les données.** La conserver hors du serveur (coffre-fort de mots de passe de l'association).
+- **Base de connaissances** : le téléchargement réel des fiches Service-Public et de l'annuaire n'a pas encore été testé (réseau bloqué pendant le développement) ; l'extraction de texte des PDF Watizat est approximative.
 - **Pas encore audité** en sécurité ; ne pas utiliser avec de vraies personnes avant revue.

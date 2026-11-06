@@ -10,7 +10,8 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "dev": "pnpm -r --parallel dev",
-    "local": "node scripts/local.mjs"
+    "local": "node scripts/local.mjs",
+    "knowledge:sync": "node scripts/knowledge-sync.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3",

@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** "false", "0", "no", "off" (any case) → false; anything else non-empty → true. z.coerce.boolean() would make "false" true. */
+const boolEnv = z.preprocess((v) => (typeof v === "string" ? !["false", "0", "no", "off", ""].includes(v.trim().toLowerCase()) : v), z.boolean());
+
 /** All runtime configuration. Parsed once at startup; the process exits on invalid config. */
 const EnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -25,7 +28,7 @@ const EnvSchema = z.object({
   S3_BUCKET: z.string().default("wilson"),
   S3_ACCESS_KEY: z.string().optional(),
   S3_SECRET_KEY: z.string().optional(),
-  S3_FORCE_PATH_STYLE: z.coerce.boolean().default(true),
+  S3_FORCE_PATH_STYLE: boolEnv.default(true),
 
   WHATSAPP_MODE: z.enum(["sandbox", "meta"]).default("sandbox"),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
@@ -49,8 +52,12 @@ const EnvSchema = z.object({
   KNOWLEDGE_DIR: z.string().default("knowledge"),
   /** Comma-separated source ids to enable on top of the defaults, e.g. "watizat" once permission is granted. */
   KNOWLEDGE_ENABLE: z.string().default(""),
+  /** Override of the Service-Public.fr fiches archive (zip of XML) download URL. */
+  SERVICE_PUBLIC_ZIP_URL: z.string().optional(),
+  /** Annuaire de l'administration: pivot types loaded per département (comma-separated `type_service_local`). */
+  ANNUAIRE_TYPES: z.string().default("prefecture,sous_pref,caf,cpam,point_justice,maison_justice,france_services,ofii,pole_emploi,france_travail,sip,mairie"),
   /** Turn the RAG orientation step off (analysis only). */
-  RAG_ENABLED: z.coerce.boolean().default(true),
+  RAG_ENABLED: boolEnv.default(true),
   PHOTO_TTL_HOURS: z.coerce.number().default(48),
   ARCHIVE_RETENTION_DAYS: z.coerce.number().default(30),
   TIMEZONE: z.string().default("Europe/Paris"),

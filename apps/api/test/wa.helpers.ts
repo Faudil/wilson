@@ -49,6 +49,9 @@ export class TestLlm implements LlmProvider {
     this.translateCalls++;
     return { ...input.fr, title: `RETRANSLATED ${input.fr.title}` };
   }
+  async orientLetter(input: { analysis: LetterAnalysis }) {
+    return { fr: input.analysis.fr.orientation, target: input.analysis.target.orientation, usedIds: [] as string[] };
+  }
 }
 
 /** Meta-mode transport double. */

@@ -1,0 +1,47 @@
+{
+  "total_count": 4,
+  "results": [
+    {
+      "id": "b1f3a0d2-0001",
+      "nom": "Préfecture de police de Paris",
+      "code_insee_commune": "75056",
+      "pivot": "[{\"type_service_local\": \"prefecture\", \"code_insee_commune\": [\"75056\"]}]",
+      "adresse": "[{\"type_adresse\": \"Adresse\", \"complement1\": \"\", \"complement2\": \"\", \"numero_voie\": \"9 Boulevard du Palais\", \"service_distribution\": \"\", \"code_postal\": \"75004\", \"nom_commune\": \"Paris\", \"pays\": \"\", \"longitude\": \"2.34\", \"latitude\": \"48.85\", \"accessibilite\": \"ACC\", \"note_accessibilite\": \"\"}]",
+      "telephone": "[{\"valeur\": \"34 30\", \"description\": \"Standard\"}]",
+      "site_internet": "[{\"libelle\": \"\", \"valeur\": \"https://www.prefecturedepolice.interieur.gouv.fr\"}]",
+      "plage_ouverture": "[{\"nom_jour_debut\": \"Lundi\", \"nom_jour_fin\": \"Vendredi\", \"valeur_heure_debut_1\": \"08:30:00\", \"valeur_heure_fin_1\": \"12:30:00\", \"valeur_heure_debut_2\": \"13:30:00\", \"valeur_heure_fin_2\": \"17:00:00\", \"commentaire\": \"\"}]",
+      "url_service_public": "https://lannuaire.service-public.fr/ile-de-france/paris-75/prefecture-police-paris",
+      "date_modification": "2025-10-02"
+    },
+    {
+      "id": "b1f3a0d2-0002",
+      "nom": "Point-justice de Paris 10e",
+      "code_insee_commune": "75110",
+      "pivot": "[{\"type_service_local\": \"point_justice\", \"code_insee_commune\": [\"75110\"]}]",
+      "adresse": "[{\"type_adresse\": \"Adresse\", \"numero_voie\": \"72 rue du Faubourg Saint-Martin\", \"code_postal\": \"75010\", \"nom_commune\": \"Paris\"}]",
+      "telephone": "[{\"valeur\": \"01 40 00 00 00\", \"description\": \"\"}]",
+      "site_internet": "[]",
+      "plage_ouverture": "[{\"nom_jour_debut\": \"Mardi\", \"nom_jour_fin\": \"Mardi\", \"valeur_heure_debut_1\": \"09:00:00\", \"valeur_heure_fin_1\": \"12:00:00\", \"valeur_heure_debut_2\": \"\", \"valeur_heure_fin_2\": \"\", \"commentaire\": \"sur rendez-vous\"}]"
+    },
+    {
+      "id": "b1f3a0d2-0003",
+      "nom": "Caisse d'allocations familiales de Paris",
+      "code_insee_commune": "75056",
+      "pivot": [{"type_service_local": "caf"}],
+      "adresse": [{"type_adresse": "Adresse", "numero_voie": "18 rue Viala", "code_postal": "75015", "nom_commune": "Paris"}],
+      "telephone": [{"valeur": "32 30", "description": ""}],
+      "site_internet": [{"libelle": "", "valeur": "https://www.caf.fr"}],
+      "plage_ouverture": null
+    },
+    {
+      "id": "b1f3a0d2-0004",
+      "nom": "Préfecture du Rhône",
+      "code_insee_commune": "69123",
+      "pivot": "[{\"type_service_local\": \"prefecture\"}]",
+      "adresse": "[{\"type_adresse\": \"Adresse\", \"numero_voie\": \"106 rue Pierre Corneille\", \"code_postal\": \"69003\", \"nom_commune\": \"Lyon\"}]",
+      "telephone": "[]",
+      "site_internet": "[]",
+      "plage_ouverture": "[]"
+    }
+  ]
+}
