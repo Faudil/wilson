@@ -49,6 +49,15 @@ export class TestLlm implements LlmProvider {
     this.translateCalls++;
     return { ...input.fr, title: `RETRANSLATED ${input.fr.title}` };
   }
+  async planChat() {
+    return { intent: "info" as const, frenchQuery: "", needsHuman: false };
+  }
+  async chatReply() {
+    return { text: "stub", textFr: "stub", usedIds: [] as string[] };
+  }
+  async translateText(input: { text: string }) {
+    return input.text;
+  }
   async orientLetter(input: { analysis: LetterAnalysis }) {
     return { fr: input.analysis.fr.orientation, target: input.analysis.target.orientation, usedIds: [] as string[] };
   }

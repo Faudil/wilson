@@ -152,6 +152,12 @@ Goal: the "who to turn to" lines cite real, local, up-to-date offices and proced
 - **Sync:** weekly cron + first start + `pnpm knowledge:sync [source]` + "Synchroniser" button (admin). Each sync upserts by `(source, external_id)` and deletes stale chunks.
 - **Orientation step:** after `analyzeLetter`, query = French title + summary + issuer + per-type keywords → top procedures + local contacts → `llm.orientLetter` (prompt `letter-orientation.v1`) rewrites orientation in fr + target using only those snippets (association always first; never invents an address; no legal advice) → `analysis.sources` shown to the reviewer. Any failure keeps the original orientation and adds a reviewer warning.
 
+## 8c. Chatbot
+
+- Entry: main menu `4`, or any free text (not a menu number) in the main menu / chat / while waiting for a photo or file. Voice notes → "please write".
+- `ChatService.handleMessage`: store inbound (+ French translation for volunteers) → `llm.planChat` (intent + French search query, last `CHAT_HISTORY_TURNS` turns of text only) → by intent: `urgent` fixed emergency text + needs_human; `human`/`legal` handoff (no answer on substance) + needs_human; `letter`/`document` redirect to the flows; `info`/`smalltalk`/`out_of_scope` → knowledge search → `llm.chatReply` (answer in the user's language + French, from snippets only) → `CHAT_MODE=review` (default): draft for volunteers, user told an answer is coming; `auto`: sent at once. Footer always appended.
+- Volunteers (Conversations screen, `conversations.*`): approve/edit/reject drafts, reply in French (auto-translated), close handoffs. Every action logged.
+
 ## 9. API contract overview (`packages/contracts`)
 
 oRPC contract, consumed by `implement(contract)` on the server and a typed client in the back-office. Every procedure requires a volunteer session except `auth.login` and `system.health`.
@@ -164,6 +170,7 @@ oRPC contract, consumed by `implement(contract)` on the server and a typed clien
 | `documents` | deadlines (within N days), file (File), update (type/label/expiry), archive |
 | `sandbox` | send (text and/or file as a fake phone), thread, runReminders (as of a date), reset — only mounted when `WHATSAPP_MODE=sandbox` |
 | `knowledge` | sources, search (same retrieval as the orientation step), sync (admin) |
+| `conversations` | list (attention / all), get, approveDraft, rejectDraft, reply (French → translated), resolve |
 | `system` | health |
 
 The Meta webhook is the one HTTP route outside oRPC (format and signature imposed by Meta); its payload is still defined in `contracts/whatsapp.ts` and validated with Zod.

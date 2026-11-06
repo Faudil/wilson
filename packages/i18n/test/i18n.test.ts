@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { LANGUAGE_CODES, DocumentTypeSchema } from "@wilson/contracts";
+import { LANGUAGES, LANGUAGE_CODES, DocumentTypeSchema } from "@wilson/contracts";
 import {
   CATALOGS,
+  dirOf,
   documentTypeName,
   formatDate,
   isolate,
@@ -16,8 +17,8 @@ const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1
 const keys = Object.keys(CATALOGS.fr) as WaKey[];
 
 describe("catalogs", () => {
-  it("has 10 languages and the same keys everywhere", () => {
-    expect(LANGUAGE_CODES).toHaveLength(10);
+  it("has 28 languages and the same keys everywhere", () => {
+    expect(LANGUAGE_CODES).toHaveLength(28);
     for (const l of LANGUAGE_CODES) expect(Object.keys(CATALOGS[l]).sort()).toEqual([...keys].sort());
   });
   it("every key non-empty with placeholders identical to fr", () => {
@@ -28,9 +29,24 @@ describe("catalogs", () => {
         expect(placeholders(v), `${l}.${k}`).toEqual(placeholders(CATALOGS.fr[k]));
       }
   });
-  it("language_menu is identical and lists 10 languages", () => {
+  it("language_menu is identical and lists 28 languages, one per line", () => {
     for (const l of LANGUAGE_CODES) expect(CATALOGS[l].language_menu).toBe(CATALOGS.fr.language_menu);
-    expect(CATALOGS.fr.language_menu.split("\n")).toHaveLength(10);
+    const lines = CATALOGS.fr.language_menu.split("\n");
+    expect(lines).toHaveLength(28);
+    expect(lines.map((x) => Number(x.split(" - ")[0]))).toEqual(Array.from({ length: 28 }, (_, i) => i + 1));
+    lines.forEach((x, i) => expect(x).toBe(`${i + 1} - ${LANGUAGES[LANGUAGE_CODES[i]!].nativeName}`));
+  });
+  it("main_menu offers option 4 and chat_urgent lists emergency numbers", () => {
+    for (const l of LANGUAGE_CODES) {
+      expect(CATALOGS[l].main_menu, l).toMatch(/\n4 - /);
+      for (const n of ["115", "15", "17", "112", "119", "114"]) expect(CATALOGS[l].chat_urgent, `${l} ${n}`).toMatch(new RegExp(`(^|\\D)${n}(\\D|$)`));
+    }
+  });
+  it("sorani and kurmanji use their own orthography", () => {
+    const ckb = Object.values(CATALOGS.ckb).join("");
+    for (const ch of "ڕڵۆێە") expect(ckb, ch).toContain(ch);
+    const ku = Object.values(CATALOGS.ku).join("");
+    for (const ch of "êîûçş") expect(ku, ch).toContain(ch);
   });
   it("footer mentions legal advice placeholders", () => {
     for (const l of LANGUAGE_CODES) expect(placeholders(CATALOGS[l].footer)).toEqual(["contact", "name"]);
@@ -64,6 +80,25 @@ describe("formatDate", () => {
       expect(s).not.toMatch(/۱۴۰۵|AP/); // Persian calendar must not leak
     }
   });
+  it("no English month or weekday names except in en", () => {
+    for (const l of LANGUAGE_CODES) {
+      if (l === "en") continue;
+      for (const weekday of [false, true])
+        expect(formatDate("2027-03-14", l, { weekday }), l).not.toMatch(/March|Sunday|Mar\b/);
+    }
+  });
+  it("hand-made tables: ht, ku, ckb, sw", () => {
+    expect(formatDate("2027-03-14", "ht")).toBe("14 mas 2027");
+    expect(formatDate("2027-03-14", "ht", { weekday: true })).toBe("dimanch 14 mas 2027");
+    expect(formatDate("2027-03-14", "ku")).toBe("14 Adar 2027");
+    expect(formatDate("2027-03-14", "sw", { weekday: true })).toBe("Jumapili 14 Machi 2027");
+  });
+  it("ckb and bn show native digits plus Western form", () => {
+    expect(formatDate("2027-03-14", "ckb")).toBe("١٤ ئازار ٢٠٢٧ (14 ئازار 2027)");
+    expect(formatDate("2027-03-14", "bn")).toMatch(/১৪.*\(.*14.*2027\)/);
+    for (const l of ["ru", "es", "pt", "tr", "ka", "ta", "hy", "sq", "ro", "wo", "ff", "bm", "ln"] as const)
+      expect(formatDate("2027-03-14", l), l).not.toMatch(/[٠-٩۰-۹০-৯]/);
+  });
   it("ar has both digit systems", () => {
     const s = formatDate("2027-03-14", "ar");
     expect(s).toContain("١٤");
@@ -93,7 +128,7 @@ describe("formatDate", () => {
     expect(formatDate("2027-03-14", "ti")).toBe("14 መጋቢት 2027");
     expect(formatDate("2027-03-14", "am")).toBe("14 ማርች 2027");
   });
-  it("all 10 languages format without throwing", () => {
+  it("all languages format without throwing", () => {
     for (const l of LANGUAGE_CODES) expect(formatDate("2027-03-14", l).length).toBeGreaterThan(5);
   });
   it("rejects invalid input", () => {
@@ -134,11 +169,52 @@ describe("languageFromMenuChoice", () => {
     expect(languageFromMenuChoice("1")).toBe("fr");
     expect(languageFromMenuChoice("١٠")).toBe("am");
     expect(languageFromMenuChoice("3")).toBe("ar");
-    expect(languageFromMenuChoice("11")).toBeNull();
+    expect(languageFromMenuChoice("11")).toBe("ru");
+    expect(languageFromMenuChoice("29")).toBeNull();
     expect(languageFromMenuChoice("0")).toBeNull();
     expect(languageFromMenuChoice("Soomaali")).toBe("so");
     expect(languageFromMenuChoice("دری")).toBe("fa");
     expect(languageFromMenuChoice("bonjour")).toBeNull();
+  });
+  it("accepts 1..28 in all digit systems, ISO codes and names (case-insensitive)", () => {
+    expect(languageFromMenuChoice("28")).toBe("sw");
+    expect(languageFromMenuChoice("۲۸")).toBe("sw");
+    expect(languageFromMenuChoice("٢٨")).toBe("sw");
+    expect(languageFromMenuChoice("২৮")).toBe("sw");
+    expect(languageFromMenuChoice("১৭")).toBe("bn");
+    expect(languageFromMenuChoice("kurdî")).toBe("ku");
+    expect(languageFromMenuChoice("KURDI")).toBe("ku");
+    expect(languageFromMenuChoice("wolof")).toBe("wo");
+    expect(languageFromMenuChoice("ckb")).toBe("ckb");
+    expect(languageFromMenuChoice("کوردی (سۆرانی)")).toBe("ckb");
+    expect(languageFromMenuChoice("Kreyòl Ayisyen")).toBe("ht");
+    expect(languageFromMenuChoice("ქართული")).toBe("ka");
+    for (const [i, c] of LANGUAGE_CODES.entries()) {
+      expect(languageFromMenuChoice(String(i + 1))).toBe(c);
+      expect(languageFromMenuChoice(LANGUAGES[c].nativeName.toUpperCase())).toBe(c);
+    }
+  });
+});
+
+describe("ckb is RTL like ar", () => {
+  it("dirOf and RLM line starts", () => {
+    expect(dirOf("ckb")).toBe("rtl");
+    const t = waText("ckb", "chat_urgent", { name: "Asso", contact: "+33 1 23" });
+    expect(t).toContain("⁨Asso⁩");
+    for (const line of t.split("\n").filter(Boolean)) expect(line.startsWith("‏")).toBe(true);
+    expect(waText("ku", "human_contact", { name: "A", contact: "B" }).startsWith("‏")).toBe(false);
+  });
+  it("renderLetterReply isolates Latin runs", () => {
+    const out = renderLetterReply({
+      lang: "ckb",
+      text: { title: "نامە", summary: "بچۆ بۆ 12 rue de la Paix", actions: ["بچۆ بۆ 12 rue de la Paix, 75011 Paris"], orientation: ["پەیوەندی بکە"] },
+      deadline: null,
+      urgency: "low",
+      today: "2027-03-02",
+      association: { name: "Asso", contact: "+33 1 23" },
+    });
+    expect(out).toContain("⁨12 rue de la Paix, 75011 Paris⁩");
+    for (const line of out.split("\n").filter(Boolean)) expect(line.startsWith("‏")).toBe(true);
   });
 });
 

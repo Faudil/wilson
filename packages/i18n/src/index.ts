@@ -14,9 +14,27 @@ import { uk } from "./catalogs/uk.js";
 import { ti } from "./catalogs/ti.js";
 import { so } from "./catalogs/so.js";
 import { am } from "./catalogs/am.js";
+import { ru } from "./catalogs/ru.js";
+import { es } from "./catalogs/es.js";
+import { pt } from "./catalogs/pt.js";
+import { tr } from "./catalogs/tr.js";
+import { ku } from "./catalogs/ku.js";
+import { ckb } from "./catalogs/ckb.js";
+import { bn } from "./catalogs/bn.js";
+import { ta } from "./catalogs/ta.js";
+import { ka } from "./catalogs/ka.js";
+import { hy } from "./catalogs/hy.js";
+import { sq } from "./catalogs/sq.js";
+import { ro } from "./catalogs/ro.js";
+import { ht } from "./catalogs/ht.js";
+import { wo } from "./catalogs/wo.js";
+import { ff } from "./catalogs/ff.js";
+import { bm } from "./catalogs/bm.js";
+import { ln } from "./catalogs/ln.js";
+import { sw } from "./catalogs/sw.js";
 import { DOCUMENT_TYPE_NAMES } from "./doctypes.js";
 
-/** Every WhatsApp message the bot can send. Each key exists in all 10 catalogs (test-enforced). */
+/** Every WhatsApp message the bot can send. Each key exists in all 28 catalogs (test-enforced). */
 export type WaKey =
   | "language_menu" // numbered list of languages in native scripts (same text in every catalog)
   | "language_set" // {language}
@@ -66,7 +84,10 @@ export type Params = Record<string, string | number>;
 
 export { LANGUAGE_MENU } from "./menu.js";
 
-export const CATALOGS: Record<LanguageCode, Record<WaKey, string>> = { fr, en, ar, fa, ps, ur, uk, ti, so, am };
+export const CATALOGS: Record<LanguageCode, Record<WaKey, string>> = {
+  fr, en, ar, fa, ps, ur, uk, ti, so, am,
+  ru, es, pt, tr, ku, ckb, bn, ta, ka, hy, sq, ro, ht, wo, ff, bm, ln, sw,
+};
 
 const FSI = "⁨";
 const PDI = "⁩";
@@ -127,7 +148,7 @@ function utcDate(iso: string): Date {
 }
 
 /** Locales whose native digits we show (ICU default may differ: Node 22 gives latn for "ar"). */
-const NATIVE_DIGITS: Partial<Record<LanguageCode, string>> = { ar: "arab", fa: "arabext", ps: "arabext" };
+const NATIVE_DIGITS: Partial<Record<LanguageCode, string>> = { ar: "arab", fa: "arabext", ps: "arabext", ckb: "arab", bn: "beng" };
 
 const fmtCache = new Map<string, Intl.DateTimeFormat>();
 function dtf(locale: string, weekday: boolean, numberingSystem: string): Intl.DateTimeFormat {
@@ -150,8 +171,8 @@ function dtf(locale: string, weekday: boolean, numberingSystem: string): Intl.Da
 }
 
 /**
- * Chromium lacks CLDR data for ti and so (and am differs between engines): month and weekday names are built in so
- * Node and browsers print the same text. Order is fixed: [weekday] day month year. Weekday index 0 = Sunday.
+ * Chromium lacks CLDR data for ti and so (and am differs between engines), and ICU data is thin or inconsistent for
+ * hy, ka, sq, ta, ht, wo, ff, bm, ln, sw, ku and ckb: month and weekday names are built in so Node and browsers print the same text. Order is fixed: [weekday] day month year. Weekday index 0 = Sunday.
  */
 const NAME_TABLES: Partial<Record<LanguageCode, { months: string[]; days: string[] }>> = {
   am: {
@@ -166,12 +187,66 @@ const NAME_TABLES: Partial<Record<LanguageCode, { months: string[]; days: string
     months: "Janaayo Febraayo Maarso Abriil May Juun Luuliyo Ogost Sebtembar Oktoobar Nofembar Desembar".split(" "),
     days: "Axad Isniin Salaasa Arbaco Khamiis Jimce Sabti".split(" "),
   },
+  ka: {
+    months: "იანვარი თებერვალი მარტი აპრილი მაისი ივნისი ივლისი აგვისტო სექტემბერი ოქტომბერი ნოემბერი დეკემბერი".split(" "),
+    days: "კვირა ორშაბათი სამშაბათი ოთხშაბათი ხუთშაბათი პარასკევი შაბათი".split(" "),
+  },
+  sq: {
+    months: "janar shkurt mars prill maj qershor korrik gusht shtator tetor nëntor dhjetor".split(" "),
+    days: ["e diel", "e hënë", "e martë", "e mërkurë", "e enjte", "e premte", "e shtunë"],
+  },
+  ta: {
+    months: "ஜனவரி பிப்ரவரி மார்ச் ஏப்ரல் மே ஜூன் ஜூலை ஆகஸ்ட் செப்டம்பர் அக்டோபர் நவம்பர் டிசம்பர்".split(" "),
+    days: "ஞாயிறு திங்கள் செவ்வாய் புதன் வியாழன் வெள்ளி சனி".split(" "),
+  },
+  hy: {
+    months: "հունվարի փետրվարի մարտի ապրիլի մայիսի հունիսի հուլիսի օգոստոսի սեպտեմբերի հոկտեմբերի նոյեմբերի դեկտեմբերի".split(" "),
+    days: "կիրակի երկուշաբթի երեքշաբթի չորեքշաբթի հինգշաբթի ուրբաթ շաբաթ".split(" "),
+  },
+  ht: {
+    months: "janvye fevriye mas avril me jen jiyè out septanm oktòb novanm desanm".split(" "),
+    days: "dimanch lendi madi mèkredi jedi vandredi samdi".split(" "),
+  },
+  wo: {
+    months: "Samwiyee Fewriyee Mars Awril Me Suwe Sulet Ut Settembar Oktoobar Nowembar Desembar".split(" "),
+    days: "Dibéer Altine Talaata Àllarba Alxamis Àjjuma Gaawu".split(" "),
+  },
+  ff: {
+    months: "siilo colte mbooy seeɗto duujal korse morso juko siilto yarkomaa jolal bowte".split(" "),
+    days: "dewo aaɓnde mawbaare njeslaare naasaande mawnde hoore-biir".split(" "),
+  },
+  bm: {
+    months: "zanwuyekalo feburuyekalo marisikalo awirilikalo mɛkalo zuwɛnkalo zuluyekalo utikalo sɛtanburukalo ɔkutɔburukalo nowanburukalo desanburukalo".split(" "),
+    days: "kari ntɛnɛn tarata araba alamisa juma sibiri".split(" "),
+  },
+  ln: {
+    months: ["sánzá ya yambo", "sánzá ya míbalé", "sánzá ya mísáto", "sánzá ya mínei", "sánzá ya mítáno", "sánzá ya motóba", "sánzá ya nsambo", "sánzá ya mwambe", "sánzá ya libwa", "sánzá ya zómi", "sánzá ya zómi na mɔ̌kɔ́", "sánzá ya zómi na míbalé"],
+    days: ["eyenga", "mokɔlɔ mwa yambo", "mokɔlɔ mwa míbalé", "mokɔlɔ mwa mísáto", "mokɔlɔ ya mínéi", "mokɔlɔ ya mítáno", "mpɔ́sɔ"],
+  },
+  sw: {
+    months: "Januari Februari Machi Aprili Mei Juni Julai Agosti Septemba Oktoba Novemba Desemba".split(" "),
+    days: "Jumapili Jumatatu Jumanne Jumatano Alhamisi Ijumaa Jumamosi".split(" "),
+  },
+  ku: {
+    months: "Çile Sibat Adar Nîsan Gulan Hezîran Tîrmeh Tebax Îlon Cotmeh Mijdar Kanûn".split(" "),
+    days: "yekşem duşem sêşem çarşem pêncşem în şemî".split(" "),
+  },
+  ckb: {
+    months: ["کانوونی دووەم", "شوبات", "ئازار", "نیسان", "ئایار", "حوزەیران", "تەممووز", "ئاب", "ئەیلوول", "تشرینی یەکەم", "تشرینی دووەم", "کانوونی یەکەم"],
+    days: "یەکشەممە دووشەممە سێشەممە چوارشەممە پێنجشەممە هەینی شەممە".split(" "),
+  },
 };
+
+const DIGIT_ZERO: Record<string, number> = { arab: 0x0660, arabext: 0x06f0, beng: 0x09e6 };
+function withDigits(s: string, numberingSystem: string): string {
+  const z = DIGIT_ZERO[numberingSystem];
+  return z === undefined ? s : s.replace(/\d/g, (c) => String.fromCharCode(z + Number(c)));
+}
 
 function formatOne(date: Date, lang: LanguageCode, weekday: boolean, numberingSystem: string): string {
   const table = NAME_TABLES[lang];
   if (table) {
-    const parts = [String(date.getUTCDate()), table.months[date.getUTCMonth()]!, String(date.getUTCFullYear())];
+    const parts = [withDigits(String(date.getUTCDate()), numberingSystem), table.months[date.getUTCMonth()]!, withDigits(String(date.getUTCFullYear()), numberingSystem)];
     return (weekday ? [table.days[date.getUTCDay()]!, ...parts] : parts).join(" ");
   }
   const f = dtf(LANGUAGES[lang].intlLocale, weekday, numberingSystem);
@@ -194,7 +269,7 @@ export function formatDate(iso: string, lang: LanguageCode, opts: { weekday?: bo
 }
 
 function normaliseDigits(s: string): string {
-  return s.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660)).replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x06f0));
+  return s.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660)).replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x06f0)).replace(/[০-৯]/g, (c) => String(c.charCodeAt(0) - 0x09e6));
 }
 
 export function parseUserDate(input: string): string | null {
@@ -213,16 +288,26 @@ export function documentTypeName(type: DocumentType, lang: LanguageCode): string
   return DOCUMENT_TYPE_NAMES[lang][type];
 }
 
-/** "1".."10" (Latin, Arabic-Indic or Persian digits), a language code, or a native name. */
+/** Lowercase, accent-insensitive key ("Français" -> "francais"). */
+function fold(x: string): string {
+  return x.toLocaleLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
+}
+
+/** "1".."28" (Western, Arabic-Indic, Persian or Bengali digits), an ISO code, or a native name (case/accent-insensitive). */
 export function languageFromMenuChoice(input: string): LanguageCode | null {
-  const s = normaliseDigits(input).replace(/[‎‏⁦-⁩]/g, "").trim().replace(/[.)\-]+$/, "").trim();
+  const raw = normaliseDigits(input).replace(/[\u200e\u200f\u2066-\u2069]/g, "").trim();
+  const s = raw.replace(/[.)\-]+$/, "").trim();
   if (/^\d{1,2}$/.test(s)) {
     const n = Number(s);
     return n >= 1 && n <= LANGUAGE_CODES.length ? LANGUAGE_CODES[n - 1]! : null;
   }
   const low = s.toLocaleLowerCase();
+  const key = fold(s);
+  const rawKey = fold(raw);
   for (const c of LANGUAGE_CODES) {
-    if (low === c || low === LANGUAGES[c].nativeName.toLocaleLowerCase()) return c;
+    const name = LANGUAGES[c].nativeName;
+    const short = name.replace(/\s*\(.*\)\s*$/, ""); // "Kurdî (Kurmancî)" -> "Kurdî"
+    if (low === c || key === fold(name) || rawKey === fold(name) || key === fold(short)) return c;
   }
   return null;
 }

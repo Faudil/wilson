@@ -1,5 +1,5 @@
 /**
- * Verifies that the bundled fonts really contain the letters we need (Pashto/Dari/Persian, Ethiopic).
+ * Verifies that the bundled fonts really contain the letters we need (Pashto/Dari/Persian, Sorani, Ethiopic, Bengali, Tamil, Georgian, Armenian, African Latin letters).
  * Parses the .woff files from @fontsource directly (zlib tables + cmap formats 4 and 12), no dependency.
  * Run: pnpm --filter @wilson/backoffice check:fonts   (exit code 1 if any required glyph is missing)
  */
@@ -75,6 +75,12 @@ const PASHTO_DARI = "ټډړږښګڼگچپژۀ";
 const TIGRINYA = "ትግርኛ ቅድሚ መጋቢት ንፕረፈክቱር መልሲ ክትህቡን ኣለኩም";
 const AMHARIC = "አማርኛ ከመጋቢት ቀን በፊት ለፕሪፌክቱሩ መልስ መስጠት አለብዎት";
 
+const SORANI = "ڕڵۆێەکیئ ئەم نامەیە لە پارێزگاوە هاتووە ٠١٢٣٤٥٦٧٨٩";
+const BENGALI = "বাংলা আপনাকে ১৪ মার্চ ২০২৭-এর আগে প্রিফেকচারকে উত্তর দিতে হবে ঠিকানা";
+const TAMIL = "தமிழ் 14 மார்ச் 2027க்கு முன் நீங்கள் மாகாண அலுவலகத்துக்குப் பதிலளித்து ஆவணங்களை அனுப்ப வேண்டும் முகவரி";
+const GEORGIAN = "ქართული თქვენ უნდა უპასუხოთ პრეფექტურას 2027 წლის 14 მარტამდე დოკუმენტები მისამართი";
+const ARMENIAN = "Հայերեն Դուք պետք է մինչև 2027 թվականի մարտի 14-ը պատասխանեք պրեֆեկտուրային փաստաթղթերը Հասցե և ու ՈՒ";
+
 type Check = { font: string; file: string; label: string; chars: string; required: boolean };
 const checks: Check[] = [
   { font: "Vazirmatn", file: fontFile("vazirmatn", "arabic"), label: "ps/fa letters", chars: PASHTO_DARI, required: true },
@@ -82,6 +88,16 @@ const checks: Check[] = [
   { font: "Noto Naskh Arabic", file: fontFile("noto-naskh-arabic", "arabic"), label: "ps/fa letters", chars: PASHTO_DARI, required: false },
   { font: "Noto Sans Ethiopic", file: fontFile("noto-sans-ethiopic", "ethiopic"), label: "ti sample", chars: TIGRINYA, required: true },
   { font: "Noto Sans Ethiopic", file: fontFile("noto-sans-ethiopic", "ethiopic"), label: "am sample", chars: AMHARIC, required: true },
+  { font: "Noto Sans Bengali", file: fontFile("noto-sans-bengali", "bengali"), label: "bn sample", chars: BENGALI.replace(/[ -~]/g, ""), required: true },
+  { font: "Noto Sans Tamil", file: fontFile("noto-sans-tamil", "tamil"), label: "ta sample", chars: TAMIL.replace(/[ -~]/g, ""), required: true },
+  { font: "Noto Sans Georgian", file: fontFile("noto-sans-georgian", "georgian"), label: "ka sample", chars: GEORGIAN.replace(/[ -~]/g, ""), required: true },
+  { font: "Noto Sans Armenian", file: fontFile("noto-sans-armenian", "armenian"), label: "hy sample", chars: ARMENIAN.replace(/[ -~]/g, ""), required: true },
+  { font: "Noto Sans Arabic", file: fontFile("noto-sans-arabic", "arabic"), label: "ckb letters", chars: SORANI, required: true },
+  { font: "Noto Naskh Arabic", file: fontFile("noto-naskh-arabic", "arabic"), label: "ckb letters", chars: SORANI, required: false },
+  { font: "Vazirmatn", file: fontFile("vazirmatn", "arabic"), label: "ckb letters", chars: SORANI, required: false },
+  { font: "Noto Sans latin-ext", file: fontFile("noto-sans", "latin-ext"), label: "ɓ ɗ ŋ ƴ ɛ ɔ ɲ", chars: "ɓɗŋƴɛɔɲƁƊŊƳƐƆƝ", required: true },
+  { font: "Noto Sans latin", file: fontFile("noto-sans", "latin"), label: "accents (é ó ë ñ è ò ê î û ç â)", chars: "ÑñÉéÓóËëèòÈÒêîûÊÎÛÇçâÂ", required: true },
+  { font: "Noto Sans latin-ext", file: fontFile("noto-sans", "latin-ext"), label: "ş ă ș ț ğ", chars: "şŞăĂșțȘȚğĞ", required: true },
 ];
 
 let failed = false;

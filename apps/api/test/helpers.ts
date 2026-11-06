@@ -51,6 +51,15 @@ export class StubLlm implements LlmProvider {
   async translateLetterText(input: { fr: import("@wilson/contracts").LetterText }) {
     return input.fr;
   }
+  async planChat() {
+    return { intent: "info" as const, frenchQuery: "", needsHuman: false };
+  }
+  async chatReply() {
+    return { text: "stub", textFr: "stub", usedIds: [] as string[] };
+  }
+  async translateText(input: { text: string }) {
+    return input.text;
+  }
   async orientLetter(input: { analysis: import("@wilson/contracts").LetterAnalysis }) {
     return { fr: input.analysis.fr.orientation, target: input.analysis.target.orientation, usedIds: [] as string[] };
   }

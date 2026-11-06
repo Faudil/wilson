@@ -5,5 +5,6 @@ export const systemRouter = {
     ok: true,
     mode: context.deps.config.WHATSAPP_MODE,
     llm: context.deps.config.LLM_MODE,
+    chat: context.deps.config.CHAT_MODE,
   })),
 };

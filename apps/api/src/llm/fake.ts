@@ -6,12 +6,13 @@ import {
   DocumentAnalysisSchema,
   LetterAnalysisSchema,
   LetterTextSchema,
+  type ChatIntent,
   type DocumentAnalysis,
   type LanguageCode,
   type LetterAnalysis,
   type LetterText,
 } from "@wilson/contracts";
-import type { LlmFile, LlmProvider } from "./provider.js";
+import type { ChatTurn, LlmFile, LlmProvider } from "./provider.js";
 
 /** Find the repo's /samples directory: $SAMPLES_DIR, else walk up from this file and from cwd. */
 export function resolveSamplesDir(): string {
@@ -157,7 +158,51 @@ export class FakeProvider implements LlmProvider {
       usedIds: [top.id],
     };
   }
+
+  async planChat(input: { history: ChatTurn[]; language: LanguageCode }): Promise<{ intent: ChatIntent; frenchQuery: string; needsHuman: boolean }> {
+    const last = [...input.history].reverse().find((t) => t.role === "beneficiary")?.text ?? "";
+    const intent = fakeIntent(last);
+    const frenchQuery = ["info", "legal", "urgent"].includes(intent)
+      ? last.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w)).slice(0, 8).join(" ")
+      : "";
+    return { intent, frenchQuery, needsHuman: intent === "legal" || intent === "urgent" || intent === "human" };
+  }
+
+  async chatReply(input: {
+    history: ChatTurn[];
+    language: LanguageCode;
+    intent: ChatIntent;
+    association: { name: string; contact: string };
+    snippets: { id: string; title: string; text: string; url: string | null }[];
+    today: string;
+  }): Promise<{ text: string; textFr: string; usedIds: string[] }> {
+    const top = input.snippets[0];
+    const textFr = top
+      ? `${top.title}. Pour en savoir plus, contactez ${input.association.name}.`
+      : `Je n'ai pas cette information. Contactez ${input.association.name} : un bénévole vous répondra.`;
+    return { text: input.language === "fr" ? textFr : tag(input.language, textFr), textFr, usedIds: top ? [top.id] : [] };
+  }
+
+  async translateText(input: { text: string; from: LanguageCode | "auto"; to: LanguageCode }): Promise<string> {
+    return input.from === input.to ? input.text : tag(input.to, input.text);
+  }
 }
+
+const INTENT_PATTERNS: [ChatIntent, RegExp][] = [
+  ["urgent", /urgence|urgent|danger|dormir dehors|à la rue|malade|police|emergency|violence|ambulance/i],
+  ["legal", /avocat|recours|appeal|juge|oqtf|tribunal|lawyer|cnda|contester/i],
+  ["human", /parler à quelqu|parler a quelqu|human|personne|bénévole|benevole|volunteer|speak to someone/i],
+  ["letter", /lettre|courrier|letter|convocation/i],
+  ["document", /mes documents|my documents|document/i],
+  ["smalltalk", /^(bonjour|bonsoir|salut|merci|hello|hi|thanks|thank you)[\s!.]*$/i],
+];
+
+export function fakeIntent(text: string): ChatIntent {
+  for (const [intent, re] of INTENT_PATTERNS) if (re.test(text)) return intent;
+  return "info";
+}
+
+const STOP = new Set(["le", "la", "les", "un", "une", "des", "de", "du", "et", "je", "tu", "il", "pour", "dans", "est", "que", "qui", "the", "and", "how", "what", "where", "ou", "où", "comment", "quel", "quelle"]);
 
 const WORDS: Record<"fr" | "en" | "so", string[]> = {
   fr: ["bonjour", "bonsoir", "salut", "merci", "courrier", "lettre", "je ", "j'ai", "une ", "des ", "les ", "aide", "svp", "madame", "monsieur"],

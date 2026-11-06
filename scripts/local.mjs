@@ -48,13 +48,15 @@ if (!existsSync(resolve(root, "node_modules"))) {
 }
 
 const run = (name, args) => {
-  const child = spawn("pnpm", args, { cwd: root, env, stdio: ["ignore", "pipe", "pipe"], shell: true });
+  // detached on POSIX = own process group, so stop() can kill pnpm *and* the node server it started.
+  const child = spawn("pnpm", args, { cwd: root, env, stdio: ["ignore", "pipe", "pipe"], shell: true, detached: process.platform !== "win32" });
   const prefix = (chunk) => chunk.toString().split(/\r?\n/).filter(Boolean).map((l) => `[${name}] ${l}`).join("\n");
   child.stdout.on("data", (c) => console.log(prefix(c)));
   child.stderr.on("data", (c) => console.error(prefix(c)));
   child.on("exit", (code) => {
     console.log(`[${name}] stopped (${code})`);
-    process.exit(code ?? 0);
+    stop();
+    setTimeout(() => process.exit(code ?? 0), process.platform === "win32" ? 6000 : 500);
   });
   return child;
 };
@@ -63,7 +65,21 @@ const children = [
   run("api", ["--filter", "@wilson/api", "start"]),
   run("web", ["--filter", "@wilson/backoffice", "dev", "--", "--port", "5173", "--strictPort"]),
 ];
-const stop = () => children.forEach((c) => c.kill());
+// Kill the whole process tree (shell → pnpm → node), otherwise the API keeps port 3000 busy after Ctrl+C.
+const killTree = (c) => {
+  if (!c.pid) return;
+  // Windows: Ctrl+C already reaches every process of the console; give the API time to close the database
+  // cleanly, then force-kill whatever is left.
+  if (process.platform === "win32") setTimeout(() => spawnSync("taskkill", ["/pid", String(c.pid), "/T", "/F"], { stdio: "ignore" }), 5000);
+  else {
+    try {
+      process.kill(-c.pid, "SIGTERM");
+    } catch {
+      c.kill("SIGTERM");
+    }
+  }
+};
+const stop = () => children.forEach(killTree);
 process.on("SIGINT", stop);
 process.on("SIGTERM", stop);
 

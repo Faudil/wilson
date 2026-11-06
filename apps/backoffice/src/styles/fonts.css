@@ -126,3 +126,109 @@
   src: url("../../node_modules/@fontsource/noto-sans-ethiopic/files/noto-sans-ethiopic-ethiopic-700-normal.woff2") format("woff2");
   unicode-range: U+1200-1399,U+2D80-2DDE,U+AB01-AB2E;
 }
+
+/* — added 2026-11: Bengali, Tamil, Georgian, Armenian (one subset each; Latin digits and punctuation come from Noto Sans) — */
+
+@font-face {
+  font-family: "Noto Sans Bengali";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource/noto-sans-bengali/files/noto-sans-bengali-bengali-400-normal.woff2") format("woff2");
+  unicode-range: U+0951-0952,U+0964-0965,U+0980-09FE,U+1CD0,U+1CD2,U+1CD5-1CD6,U+1CD8,U+1CE1,U+1CEA,U+1CED,U+1CF2,U+1CF5-1CF7,U+200C-200D,U+20B9,U+25CC,U+A8F1;
+}
+
+@font-face {
+  font-family: "Noto Sans Bengali";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource/noto-sans-bengali/files/noto-sans-bengali-bengali-700-normal.woff2") format("woff2");
+  unicode-range: U+0951-0952,U+0964-0965,U+0980-09FE,U+1CD0,U+1CD2,U+1CD5-1CD6,U+1CD8,U+1CE1,U+1CEA,U+1CED,U+1CF2,U+1CF5-1CF7,U+200C-200D,U+20B9,U+25CC,U+A8F1;
+}
+
+@font-face {
+  font-family: "Noto Sans Tamil";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource/noto-sans-tamil/files/noto-sans-tamil-tamil-400-normal.woff2") format("woff2");
+  unicode-range: U+0964-0965,U+0B82-0BFA,U+200C-200D,U+20B9,U+25CC;
+}
+
+@font-face {
+  font-family: "Noto Sans Tamil";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource/noto-sans-tamil/files/noto-sans-tamil-tamil-700-normal.woff2") format("woff2");
+  unicode-range: U+0964-0965,U+0B82-0BFA,U+200C-200D,U+20B9,U+25CC;
+}
+
+@font-face {
+  font-family: "Noto Sans Georgian";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource/noto-sans-georgian/files/noto-sans-georgian-georgian-400-normal.woff2") format("woff2");
+  unicode-range: U+0589,U+10A0-10FF,U+1C90-1CBA,U+1CBD-1CBF,U+205A,U+2D00-2D2F,U+2E31;
+}
+
+@font-face {
+  font-family: "Noto Sans Georgian";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource/noto-sans-georgian/files/noto-sans-georgian-georgian-700-normal.woff2") format("woff2");
+  unicode-range: U+0589,U+10A0-10FF,U+1C90-1CBA,U+1CBD-1CBF,U+205A,U+2D00-2D2F,U+2E31;
+}
+
+@font-face {
+  font-family: "Noto Sans Armenian";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource/noto-sans-armenian/files/noto-sans-armenian-armenian-400-normal.woff2") format("woff2");
+  unicode-range: U+0308,U+0530-058F,U+2010,U+2024,U+25CC,U+FB13-FB17;
+}
+
+@font-face {
+  font-family: "Noto Sans Armenian";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource/noto-sans-armenian/files/noto-sans-armenian-armenian-700-normal.woff2") format("woff2");
+  unicode-range: U+0308,U+0530-058F,U+2010,U+2024,U+25CC,U+FB13-FB17;
+}
+
+/* Font per language for the scripts added in 2026-11. Each stack lists all bundled scripts so no character falls to tofu. */
+:lang(bn) {
+  --font: "Noto Sans Bengali", "Noto Sans", "Noto Sans Arabic", "Vazirmatn", "Noto Sans Ethiopic", "Noto Sans Bengali", "Noto Sans Tamil", "Noto Sans Georgian", "Noto Sans Armenian", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font);
+}
+:lang(ta) {
+  --font: "Noto Sans Tamil", "Noto Sans", "Noto Sans Arabic", "Vazirmatn", "Noto Sans Ethiopic", "Noto Sans Bengali", "Noto Sans Tamil", "Noto Sans Georgian", "Noto Sans Armenian", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font);
+}
+:lang(ka) {
+  --font: "Noto Sans Georgian", "Noto Sans", "Noto Sans Arabic", "Vazirmatn", "Noto Sans Ethiopic", "Noto Sans Bengali", "Noto Sans Tamil", "Noto Sans Georgian", "Noto Sans Armenian", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font);
+}
+:lang(hy) {
+  --font: "Noto Sans Armenian", "Noto Sans", "Noto Sans Arabic", "Vazirmatn", "Noto Sans Ethiopic", "Noto Sans Bengali", "Noto Sans Tamil", "Noto Sans Georgian", "Noto Sans Armenian", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font);
+}
+:lang(ckb) {
+  --font: "Noto Sans Arabic", "Vazirmatn", "Noto Sans", "Noto Sans Arabic", "Vazirmatn", "Noto Sans Ethiopic", "Noto Sans Bengali", "Noto Sans Tamil", "Noto Sans Georgian", "Noto Sans Armenian", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font);
+}
+.long-text:lang(ckb) {
+  --font: "Noto Naskh Arabic", "Noto Sans Arabic", "Vazirmatn", "Noto Sans", "Noto Sans Arabic", "Vazirmatn", "Noto Sans Ethiopic", "Noto Sans Bengali", "Noto Sans Tamil", "Noto Sans Georgian", "Noto Sans Armenian", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font);
+  line-height: 1.9;
+}
+/* Armenian and Georgian have no italic or faux-bold needs; Tamil and Bengali carry tall marks, so give them room. */
+.long-text:lang(bn),
+.long-text:lang(ta) {
+  line-height: 1.8;
+}

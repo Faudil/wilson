@@ -46,6 +46,12 @@ const INPUTS: Record<string, unknown> = {
   "knowledge.sources": undefined,
   "knowledge.search": { query: "titre de séjour", limit: 3 },
   "knowledge.sync": { sourceId: "association" },
+  "conversations.list": { limit: 5, filter: "all" },
+  "conversations.get": { beneficiaryId: id },
+  "conversations.approveDraft": { messageId: id },
+  "conversations.rejectDraft": { messageId: id },
+  "conversations.reply": { beneficiaryId: id, textFr: "Bonjour" },
+  "conversations.resolve": { beneficiaryId: id },
   "system.health": undefined,
 };
 /** The permission each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
@@ -58,6 +64,9 @@ const REQUIRES: Record<string, Permission | null> = {
   "documents.update": "documents.edit", "documents.archive": "documents.edit",
   "sandbox.send": "sandbox.use", "sandbox.thread": "sandbox.use", "sandbox.runReminders": "sandbox.use", "sandbox.reset": "sandbox.use",
   "knowledge.sources": "knowledge.view", "knowledge.search": "knowledge.view", "knowledge.sync": "knowledge.manage",
+  "conversations.list": "conversations.view", "conversations.get": "conversations.view",
+  "conversations.approveDraft": "conversations.reply", "conversations.rejectDraft": "conversations.reply",
+  "conversations.reply": "conversations.reply", "conversations.resolve": "conversations.reply",
 };
 const PUBLIC = new Set(["auth.login", "system.health"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export type PromptName = "letter-analysis" | "document-analysis" | "language-detect" | "letter-translate" | "letter-orientation";
+export type PromptName = "letter-analysis" | "document-analysis" | "language-detect" | "letter-translate" | "letter-orientation" | "chat-plan" | "chat-reply" | "chat-translate";
 
 /** Current released version of each prompt. Bump here (and add the vN file) to switch. */
 export const PROMPT_VERSIONS: Record<PromptName, number> = {
@@ -11,6 +11,9 @@ export const PROMPT_VERSIONS: Record<PromptName, number> = {
   "language-detect": 1,
   "letter-translate": 1,
   "letter-orientation": 1,
+  "chat-plan": 1,
+  "chat-reply": 1,
+  "chat-translate": 1,
 };
 
 /** e.g. "letter-analysis@1" — stored in each analysis as `promptVersion`. */

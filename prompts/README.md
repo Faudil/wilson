@@ -8,7 +8,7 @@ Versioned LLM prompts for "Mon courrier". File name: `<name>.v<N>.md`. The loade
 
 ## Placeholders
 
-`{{today}}` (YYYY-MM-DD, Europe/Paris), `{{targetLanguageName}}` (English name, e.g. "Arabic"), `{{targetLanguageCode}}`, `{{languageList}}` (supported codes), plus `{{text}}` (language-detect) and `{{frJson}}` (letter-translate), `{{inputJson}}` (letter-orientation). Rendering fails if a placeholder in the file has no value.
+`{{today}}` (YYYY-MM-DD, Europe/Paris), `{{targetLanguageName}}` (English name, e.g. "Arabic"), `{{targetLanguageCode}}`, `{{languageList}}` (supported codes), plus `{{text}}` (language-detect) and `{{frJson}}` (letter-translate), `{{inputJson}}` (letter-orientation, chat-reply), `{{historyJson}}` (chat-plan), `{{fromName}}` (chat-translate). Rendering fails if a placeholder in the file has no value.
 
 ## Files
 
@@ -16,6 +16,9 @@ Versioned LLM prompts for "Mon courrier". File name: `<name>.v<N>.md`. The loade
 - `document-analysis.v1.md` - vision: classify a personal document and read its expiry date.
 - `language-detect.v1.md` - text: detect the language of a message.
 - `letter-translate.v1.md` - text: translate reviewer-edited French prose.
+- `chat-plan.v1.md` - text: classify the latest chat message (`ChatIntentSchema`) + French knowledge-base query + `needsHuman`; returns `{intent, frenchQuery, needsHuman}`.
+- `chat-reply.v1.md` - text (RAG): chatbot answer in the target language AND French (<= 900 chars) from snippets only, association pointer, no legal advice, never invents addresses/phones/hours, never asks for personal data; returns `{text, textFr, usedIds}`.
+- `chat-translate.v1.md` - text: plain translation of one chat message (volunteer replies fr->target, beneficiary messages ->fr); returns the translated text only.
 - `letter-orientation.v1.md` - text (RAG): rewrite the "who to turn to" lines from retrieved snippets (association first, nothing invented, never legal advice); returns `{fr, target, usedIds}`.
 
 ## Non-negotiable rules (all letter prompts)

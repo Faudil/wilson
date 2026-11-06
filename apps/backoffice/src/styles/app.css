@@ -602,3 +602,110 @@ blockquote {
   background: #eef4ff;
   border-radius: 8px;
 }
+
+/* ---- Conversations (chatbot review) ---- */
+.nav-badge {
+  margin-inline-start: 6px;
+  min-inline-size: 20px;
+  padding-inline: 6px;
+  border-radius: 10px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 20px;
+}
+.chat-card-needs_human {
+  border-inline-start: 5px solid var(--high);
+}
+.chat-card-pending_review {
+  border-inline-start: 5px solid var(--medium);
+}
+.chat-preview {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.chat-status-needs_human {
+  background: #fde8e6;
+  color: var(--danger);
+}
+.chat-status-pending_review {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+.chat-status-bot,
+.chat-status-resolved {
+  background: var(--info-bg);
+  color: var(--muted);
+}
+.thread {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.bubble {
+  max-inline-size: 92%;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  align-self: flex-start;
+}
+.bubble-bot,
+.bubble-volunteer,
+.bubble-system {
+  align-self: flex-end;
+  background: var(--info-bg);
+}
+.bubble-volunteer {
+  background: #e3f4ea;
+}
+.bubble-system {
+  background: var(--bg);
+}
+.bubble-draft {
+  border: 2px dashed var(--medium);
+  background: var(--warn-bg);
+}
+.bubble-rejected {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+.bubble-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.bubble-text {
+  margin: 0.35rem 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bubble-fr {
+  margin: 0.4rem 0 0;
+  padding-block-start: 0.4rem;
+  border-block-start: 1px dashed var(--line);
+  color: var(--muted);
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bubble-fr-tag {
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: var(--brand);
+}
+.bubble-sources {
+  margin: 0.4rem 0 0;
+}
+.bubble-actions {
+  margin-block-start: 0.6rem;
+}
+.reply-box {
+  padding-block-start: 0.75rem;
+  border-block-start: 1px solid var(--line);
+}

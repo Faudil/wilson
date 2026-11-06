@@ -15,7 +15,9 @@ export interface JobPayloads {
   /** Outbound text already rendered; the worker decides text vs template from the 24 h window. */
   [JOBS.waSend]:
     | { kind: "text"; beneficiaryId: string; body: string; letterId?: string; reminderId?: string }
-    | { kind: "letter_reply"; letterId: string };
+    | { kind: "letter_reply"; letterId: string }
+    /** Chatbot message already stored (encrypted, footer included) in `messages`; the worker sends it and marks it sent. */
+    | { kind: "chat"; messageId: string };
   [JOBS.remindersDispatch]: { now?: string };
   [JOBS.mediaPurge]: Record<string, never>;
   [JOBS.archivePurge]: Record<string, never>;

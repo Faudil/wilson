@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { documentTypeName, formatDate, waText } from "@wilson/i18n";
 import { JOBS, type JobPayloads } from "../jobs/names.js";
 import { messages, reminders } from "../db/schema.js";
@@ -57,6 +57,8 @@ export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.
     return;
   }
 
+  if (payload.kind === "chat") return runChatSend(deps, payload.messageId);
+
   const b = await beneficiaries.get(payload.beneficiaryId);
   if (!b) return;
   const to = await beneficiaries.getWaId(b.id);
@@ -80,6 +82,30 @@ export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.
   }
   const { waMessageId } = await wa.sendText(to, payload.body);
   await storeOutbound(deps, b.id, "text", payload.body, waMessageId);
+}
+
+/**
+ * Chatbot message: the row already exists (created by ChatService, footer included). Send it, then give the row the
+ * transport's message id and drop the duplicate row the sandbox transport recorded. Outside the 24 h window the
+ * message stays queued behind an opt-in template and is re-queued on the next inbound message (ChatService.flushQueued).
+ */
+async function runChatSend(deps: WaDeps, messageId: string): Promise<void> {
+  const { beneficiaries, wa, config, db, crypto } = deps;
+  const [m] = await db.select().from(messages).where(eq(messages.id, messageId)).limit(1);
+  // Idempotent: only a queued, released message is sent (drafts and rejected ones never are).
+  if (!m || m.status !== "queued" || m.chatState !== "sent" || !m.bodyEnc) return;
+  const b = await beneficiaries.get(m.beneficiaryId);
+  if (!b) return;
+  const to = await beneficiaries.getWaId(b.id);
+  if (!windowOpen(deps, b.lastInboundAt)) {
+    const { waMessageId } = await wa.sendTemplate(to, config.WHATSAPP_TEMPLATE_EXPLANATION_READY, b.language, []);
+    await storeOutbound(deps, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_EXPLANATION_READY}]`, waMessageId);
+    return;
+  }
+  const dek = await beneficiaries.getDek(b.id);
+  const { waMessageId } = await wa.sendText(to, crypto.decrypt(dek, m.bodyEnc).toString("utf8"));
+  await db.delete(messages).where(and(eq(messages.waMessageId, waMessageId), ne(messages.id, m.id)));
+  await db.update(messages).set({ waMessageId, status: "sent" }).where(eq(messages.id, m.id));
 }
 
 function windowOpen(deps: WaDeps, lastInboundAt: Date | null): boolean {

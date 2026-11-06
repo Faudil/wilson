@@ -59,7 +59,8 @@ export const sandboxRouter = {
     if (!b) return [];
     const dek = await d.beneficiaries.getDek(b.id);
     const rows = await d.db.select().from(messages).where(eq(messages.beneficiaryId, b.id)).orderBy(asc(messages.createdAt));
-    return rows.map((m) => ({
+    // Bot drafts waiting for review (or rejected) were never sent to the phone.
+    return rows.filter((m) => m.chatState !== "draft" && m.chatState !== "rejected").map((m) => ({
       id: m.id,
       direction: m.direction === "in" ? ("inbound" as const) : ("outbound" as const),
       at: m.createdAt.toISOString(),

@@ -7,7 +7,9 @@ Service WhatsApp pour les personnes accompagnées par l'association :
 
 Le service **ne donne jamais de conseil juridique** : il explique, oriente et rappelle. Chaque message se termine par les coordonnées de l'association.
 
-Langues : français, anglais, arabe, dari, pachto, ourdou, ukrainien, tigrinya, somali, amharique.
+Langues (28) : français, anglais, arabe, dari, pachto, ourdou, ukrainien, tigrinya, somali, amharique, russe, espagnol, portugais, turc, kurde (kurmandji et sorani), bengali, tamoul, géorgien, arménien, albanais, roumain, créole haïtien, wolof, pulaar, bambara, lingala, swahili.
+
+3. **Poser une question (chatbot).** La personne peut écrire une question avec ses mots (menu 4, ou n'importe quel texte libre). Le robot répond dans sa langue à partir de la base de connaissances, sans conseil juridique, et oriente toujours vers l'association.
 
 > Documentation technique : [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -27,7 +29,7 @@ pnpm local
 Puis ouvrir http://localhost:5173 (compte `admin@example.org` / `change-me-please`) et l'onglet **Bac à sable**.
 
 - Aucun service à installer : la base de données est embarquée (PGlite), les fichiers chiffrés sont dans `.data/`, les clés sont générées dans `.env.local` au premier lancement.
-- Pour repartir de zéro : arrêter (Ctrl+C) et supprimer `.data/` et `.env.local`.
+- Toujours arrêter avec Ctrl+C (la base est fermée proprement ; un seul lancement à la fois sur le même dossier). Pour repartir de zéro : arrêter (Ctrl+C) et supprimer `.data/` et `.env.local`.
 - Pour la vraie IA : dans `.env.local`, mettre `LLM_MODE=anthropic` et `ANTHROPIC_API_KEY=…`.
 - Mode réservé aux tests : les tâches en attente sont perdues si on arrête le programme.
 
@@ -99,6 +101,16 @@ La mise à jour se fait automatiquement chaque semaine (et au premier démarrage
 
 La recherche se fait dans notre propre base, sans service extérieur : aucune donnée des personnes n'est envoyée nulle part pour cela.
 
+
+## 2c. Chatbot (« Poser une question »)
+
+- **Mode relecture (par défaut, `CHAT_MODE=review`)** : chaque réponse du robot est un brouillon. L'écran **Discussions** les montre ; le·la bénévole lit la version française, peut la corriger, puis **Approuver et envoyer** ou **Rejeter**. La personne reçoit d'abord « votre question est reçue, un bénévole vérifie la réponse ».
+- **Mode instantané (`CHAT_MODE=auto`)** : les réponses partent tout de suite.
+- **Dans les deux modes**, le robot ne répond pas sur le fond aux questions juridiques (recours, chances, « que dois-je faire ») ni aux demandes de parler à quelqu'un : la discussion passe en **« Personne demandée »**. En cas d'urgence (danger, santé, dormir dehors), il envoie un message fixe avec les numéros 115, 15, 17, 112, 119, 114 et prévient les bénévoles.
+- Les bénévoles peuvent **répondre eux-mêmes en français** : le message est traduit automatiquement dans la langue de la personne. « Clore » termine une prise en charge.
+- Les messages vocaux ne sont pas pris en charge (il faudrait un service de transcription tiers) : le robot demande d'écrire.
+- L'historique envoyé à l'IA ne contient que les derniers messages de la discussion (texte), jamais le numéro ni le nom.
+
 ---
 
 ## 3. RGPD — ce qui est stocké, combien de temps, qui y accède
@@ -123,7 +135,7 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
 
 ## 4. Limites connues (POC)
 
-- **Traductions** : seuls le français et l'anglais ont été rédigés avec soin. Les textes en arabe, dari, pachto, ourdou, ukrainien, tigrinya, somali et amharique sont des **brouillons à faire relire par des locuteurs natifs**. Les dates en tigrinya/somali/amharique utilisent des noms de mois intégrés au code.
+- **Traductions** : seuls le français et l'anglais ont été rédigés avec soin. Les textes des 26 autres langues sont des **brouillons à faire relire par des locuteurs natifs**. Les dates en tigrinya/somali/amharique utilisent des noms de mois intégrés au code.
 - **Langues de l'interface bénévole** : français, anglais, arabe.
 - **IA** : l'explication peut se tromper (date calculée, type de courrier). C'est pour cela que chaque réponse est relue. Les réponses de l'IA n'ont pas encore été testées sur de vrais courriers ni avec le vrai modèle (exemples synthétiques uniquement).
 - **WhatsApp** : les modèles de messages Meta (hors fenêtre de 24 h) doivent être créés et approuvés dans le compte Meta. Le bac à sable ignore cette règle.

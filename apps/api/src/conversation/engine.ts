@@ -7,7 +7,8 @@ import { JOBS } from "../jobs/names.js";
 import { todayIn, type WaDeps } from "../whatsapp/context.js";
 import { enqueueText, footerFor } from "../whatsapp/send.js";
 import { announceDocumentDetection } from "./documentFlow.js";
-import { isLanguageWord, menuChoice } from "./text.js";
+import { getChat } from "../chat/service.js";
+import { isLanguageWord, isMenuWord, menuChoice } from "./text.js";
 
 const MAX_MEDIA_BYTES = 12 * 1024 * 1024;
 const SUPPORTED_MIME = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"]);
@@ -15,7 +16,8 @@ const SUPPORTED_MIME = new Set(["image/jpeg", "image/jpg", "image/png", "image/w
 type Input =
   | { type: "text"; text: string }
   | { type: "file"; mediaId: string; mime: string }
-  | { type: "media_unsupported" } // audio, video, sticker
+  | { type: "voice" } // audio / voice note
+  | { type: "media_unsupported" } // video, sticker
   | { type: "other" } // location, contacts, unsupported
   | { type: "ignore" }; // reactions
 
@@ -24,6 +26,8 @@ interface Ctx {
   b: BeneficiaryRow;
   lang: LanguageCode;
   state: ConversationState;
+  /** Meta message id of the inbound message being processed (its row already exists). */
+  msgId: string;
 }
 
 function classify(msg: WaInboundMessage): Input {
@@ -35,7 +39,8 @@ function classify(msg: WaInboundMessage): Input {
       const r = msg.interactive.button_reply ?? msg.interactive.list_reply;
       return r ? { type: "text", text: r.title } : { type: "other" };
     }
-    case "audio": case "video": case "sticker": return { type: "media_unsupported" };
+    case "audio": return { type: "voice" };
+    case "video": case "sticker": return { type: "media_unsupported" };
     case "reaction": return { type: "ignore" };
     default: return { type: "other" };
   }
@@ -76,9 +81,10 @@ export async function processInbound(deps: WaDeps, msg: WaInboundMessage): Promi
   await beneficiaries.touchInbound(beneficiary.id, deps.now());
 
   const input = classify(msg);
-  const ctx: Ctx = { deps, b: beneficiary, lang: beneficiary.language, state: beneficiary.conversationState };
+  const ctx: Ctx = { deps, b: beneficiary, lang: beneficiary.language, state: beneficiary.conversationState, msgId: msg.id };
 
   // A reviewed explanation (or rejection notice) is waiting behind the opt-in template: any message releases it.
+  await getChat(deps).flushQueued(beneficiary.id); // chatbot answers held behind the 24 h window
   const released = await releaseAwaiting(ctx);
   if (released && input.type !== "file") return;
   if (input.type === "ignore") return;
@@ -128,6 +134,7 @@ async function dispatch(c: Ctx, input: Input): Promise<void> {
   switch (c.state.step) {
     case "choose_language": return onChooseLanguage(c, input);
     case "main_menu":
+    case "chat":
     case "await_letter_photo":
     case "await_document_file":
     case "offer_save_letter":
@@ -172,6 +179,7 @@ async function onFreeState(c: Ctx, input: Input): Promise<void> {
     if (c.state.step === "await_document_file") return onDocumentFile(c, input);
     return onLetterFile(c, input);
   }
+  if (input.type === "voice") return sayKey(c, "chat_voice_unsupported");
   if (input.type === "media_unsupported") return sayKey(c, "letter_unsupported_media");
   if (input.type === "other") return sayKey(c, "not_understood");
 
@@ -182,7 +190,16 @@ async function onFreeState(c: Ctx, input: Input): Promise<void> {
     if (choice === "1" || choice === "2") return onOfferAnswer(c, choice === "1", c.state.letterId);
     return sayKey(c, "letter_offer_save");
   }
+  if (isMenuWord(input.text)) return showMainMenu(c);
+  // Free text (anything that is not a menu number) goes to the chatbot — also while we wait for a photo/file
+  // (the state is kept, so the photo can still be sent afterwards).
+  if (choice === null) {
+    return getChat(c.deps).handleMessage(c.b.id, input.text, { waMessageId: c.msgId });
+  }
   switch (choice) {
+    case "4":
+      await setState(c, { step: "chat" });
+      return sayKey(c, "chat_intro");
     case "1":
       await setState(c, { step: "await_letter_photo" });
       return sayKey(c, "letter_ask_photo");

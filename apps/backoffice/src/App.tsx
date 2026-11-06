@@ -9,6 +9,7 @@ import { fetchMe, ME_KEY } from "./lib/me";
 import { href, useRoute } from "./lib/router";
 import { SessionContext, type Session } from "./lib/session";
 import { BeneficiaryDetail, BeneficiaryList } from "./screens/Beneficiaries";
+import { ConversationDetail, ConversationList, useAttentionCount } from "./screens/Conversations";
 import { Deadlines } from "./screens/Deadlines";
 import { LanguageTest } from "./screens/LanguageTest";
 import { Knowledge } from "./screens/Knowledge";
@@ -71,6 +72,7 @@ function Shell({ children, nav, onLogout }: { children: React.ReactNode; nav?: R
 
 const NAV: { key: string; label: MessageKey; permission: Permission | null; sandboxOnly?: boolean }[] = [
   { key: "queue", label: "nav.queue", permission: "letters.review" },
+  { key: "conversations", label: "nav.conversations", permission: "conversations.view" },
   { key: "beneficiaries", label: "nav.beneficiaries", permission: "beneficiaries.view" },
   { key: "deadlines", label: "nav.deadlines", permission: "documents.view_metadata" },
   { key: "knowledge", label: "nav.knowledge", permission: "knowledge.view" },
@@ -105,6 +107,7 @@ export function App() {
   );
 
   const [section = "", arg] = route;
+  const attention = useAttentionCount(!!session && session.can("conversations.view"));
 
   // The language test page needs no backend nor login (no personal data on it).
   if (section === "languages" && !session) {
@@ -148,7 +151,9 @@ export function App() {
   const allowed = (key: string) => items.some((n) => n.key === key);
 
   let screen: React.ReactNode;
-  if (section === "letters" && arg && session.can("letters.review")) screen = <LetterReview id={arg} />;
+  if (section === "conversations" && arg && allowed("conversations")) screen = <ConversationDetail id={arg} />;
+  else if (section === "conversations" && allowed("conversations")) screen = <ConversationList />;
+  else if (section === "letters" && arg && session.can("letters.review")) screen = <LetterReview id={arg} />;
   else if (section === "beneficiaries" && arg && allowed("beneficiaries")) screen = <BeneficiaryDetail id={arg} />;
   else if (section === "beneficiaries" && allowed("beneficiaries")) screen = <BeneficiaryList />;
   else if (section === "deadlines" && allowed("deadlines")) screen = <Deadlines />;
@@ -169,6 +174,11 @@ export function App() {
             {items.map((n) => (
               <a key={n.key} href={href(n.key)} aria-current={current === n.key ? "page" : undefined}>
                 {t(n.label)}
+                {n.key === "conversations" && attention > 0 && (
+                  <span className="nav-badge" aria-label={String(attention)}>
+                    {attention}
+                  </span>
+                )}
               </a>
             ))}
           </nav>
