@@ -14,7 +14,7 @@ export class S3BlobStore implements BlobStore {
       endpoint: config.S3_ENDPOINT,
       region: config.S3_REGION,
       forcePathStyle: config.S3_FORCE_PATH_STYLE,
-      credentials: { accessKeyId: config.S3_ACCESS_KEY, secretAccessKey: config.S3_SECRET_KEY },
+      credentials: { accessKeyId: config.S3_ACCESS_KEY ?? "", secretAccessKey: config.S3_SECRET_KEY ?? "" },
     });
   }
 

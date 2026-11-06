@@ -5,7 +5,14 @@ const EnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().default(3000),
   PUBLIC_BACKOFFICE_ORIGIN: z.string().default("http://localhost:5173"),
-  DATABASE_URL: z.string(),
+  /**
+   * server = Postgres + S3 + pg-boss (docker compose / production).
+   * local  = no external services: embedded Postgres (PGlite, WASM) + encrypted files on disk + in-process queue.
+   */
+  RUNTIME: z.enum(["server", "local"]).default("server"),
+  /** local runtime only: where the embedded database and encrypted blobs live. */
+  DATA_DIR: z.string().default(".data"),
+  DATABASE_URL: z.string().optional(),
 
   /** 32 bytes, base64. Wraps every beneficiary DEK. Never logged. */
   MASTER_KEY: z.string().refine((v) => Buffer.from(v, "base64").length === 32, "MASTER_KEY must be 32 bytes base64"),
@@ -13,11 +20,11 @@ const EnvSchema = z.object({
   LOOKUP_KEY: z.string().refine((v) => Buffer.from(v, "base64").length === 32, "LOOKUP_KEY must be 32 bytes base64"),
   SESSION_TTL_HOURS: z.coerce.number().default(12),
 
-  S3_ENDPOINT: z.string(),
+  S3_ENDPOINT: z.string().optional(),
   S3_REGION: z.string().default("fr-par"),
   S3_BUCKET: z.string().default("wilson"),
-  S3_ACCESS_KEY: z.string(),
-  S3_SECRET_KEY: z.string(),
+  S3_ACCESS_KEY: z.string().optional(),
+  S3_SECRET_KEY: z.string().optional(),
   S3_FORCE_PATH_STYLE: z.coerce.boolean().default(true),
 
   WHATSAPP_MODE: z.enum(["sandbox", "meta"]).default("sandbox"),
@@ -52,6 +59,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const c = parsed.data;
   if (c.WHATSAPP_MODE === "meta" && !(c.WHATSAPP_ACCESS_TOKEN && c.WHATSAPP_APP_SECRET && c.WHATSAPP_PHONE_NUMBER_ID && c.WHATSAPP_VERIFY_TOKEN)) {
     console.error("WHATSAPP_MODE=meta requires WHATSAPP_ACCESS_TOKEN, WHATSAPP_APP_SECRET, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_VERIFY_TOKEN");
+    process.exit(1);
+  }
+  if (c.RUNTIME === "server" && !(c.DATABASE_URL && c.S3_ENDPOINT && c.S3_ACCESS_KEY && c.S3_SECRET_KEY)) {
+    console.error("RUNTIME=server requires DATABASE_URL, S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY (or use RUNTIME=local)");
     process.exit(1);
   }
   if (c.LLM_MODE === "anthropic" && !c.ANTHROPIC_API_KEY) {

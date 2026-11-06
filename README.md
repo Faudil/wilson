@@ -15,6 +15,25 @@ Langues : français, anglais, arabe, dari, pachto, ourdou, ukrainien, tigrinya, 
 
 ## 1. Installation (personne technique)
 
+### Option A — sur un ordinateur, sans Docker (le plus simple pour tester)
+
+Prérequis : [Node.js 22](https://nodejs.org) et pnpm (`npm install -g pnpm`). Fonctionne sous Windows, macOS et Linux.
+
+```bash
+pnpm install
+pnpm local
+```
+
+Puis ouvrir http://localhost:5173 (compte `admin@example.org` / `change-me-please`) et l'onglet **Bac à sable**.
+
+- Aucun service à installer : la base de données est embarquée (PGlite), les fichiers chiffrés sont dans `.data/`, les clés sont générées dans `.env.local` au premier lancement.
+- Pour repartir de zéro : arrêter (Ctrl+C) et supprimer `.data/` et `.env.local`.
+- Pour la vraie IA : dans `.env.local`, mettre `LLM_MODE=anthropic` et `ANTHROPIC_API_KEY=…`.
+- Mode réservé aux tests : les tâches en attente sont perdues si on arrête le programme.
+
+### Option B — avec Docker (proche de la production)
+
+
 Prérequis : Docker et Docker Compose.
 
 ```bash

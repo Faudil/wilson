@@ -12,7 +12,11 @@ import {
   UrgencySchema, VolunteerRoleSchema,
 } from "@wilson/contracts";
 
-export const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
+export const bytea = customType<{ data: Buffer; driverData: Buffer | Uint8Array }>({
+  dataType: () => "bytea",
+  // node-postgres returns Buffer, PGlite (local mode) returns Uint8Array: normalise to Buffer.
+  fromDriver: (v) => (Buffer.isBuffer(v) ? v : Buffer.from(v)),
+});
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
 

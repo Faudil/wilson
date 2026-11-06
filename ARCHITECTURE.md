@@ -47,6 +47,7 @@ wilson/
 
 - **Queue: pg-boss**, not BullMQ: it runs in the existing Postgres, so no Redis to host, back up or secure. Jobs are transactional with the data they describe.
 - **Single API process** runs HTTP + workers in the POC (`API_ROLE=all`); can be split later with the same image.
+- `RUNTIME=local` (`pnpm local`): no Docker at all — embedded Postgres (PGlite, WASM) with the same migrations, encrypted blobs on disk (`FsBlobStore`), in-process queue with timer crons. For testing on a laptop only.
 - `WHATSAPP_MODE=sandbox|meta`. In sandbox, outbound messages are written to the `messages` table instead of calling Meta, and the back-office "Sandbox" page shows a fake phone. `LLM_MODE=anthropic|fake`: fake returns fixture analyses from `samples/letters/*.expected.json`, so the whole flow runs with no API keys at all.
 
 ## 4. Flows
