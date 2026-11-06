@@ -4,6 +4,7 @@ import { LoginInputSchema, VolunteerSchema } from "./auth.js";
 import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
+import { ConversationDetailSchema, ConversationSummarySchema } from "./chat.js";
 import { KnowledgeHitSchema, KnowledgeSearchInputSchema, KnowledgeSourceIdSchema, KnowledgeSourceSchema } from "./knowledge.js";
 import { LanguageSchema } from "./languages.js";
 import { LetterDetailSchema, LetterEditSchema, LetterStatusSchema, LetterSummarySchema } from "./letters.js";
@@ -72,6 +73,20 @@ const sandbox = {
   reset: base.input(z.object({ phone: SandboxPhoneSchema })).output(z.void()),
 };
 
+/** Chatbot conversations: volunteers read them, approve/reject bot drafts, reply themselves, close handoffs. */
+const conversations = {
+  list: base
+    .input(PageInputSchema.extend({ filter: z.enum(["attention", "all"]).default("attention") }))
+    .output(pageOf(ConversationSummarySchema)),
+  get: base.input(z.object({ beneficiaryId: IdSchema })).output(ConversationDetailSchema),
+  /** Send a bot draft, optionally after editing its French version (then re-translated before sending). */
+  approveDraft: base.input(z.object({ messageId: IdSchema, textFr: z.string().min(1).max(3000).optional() })).output(ConversationDetailSchema),
+  rejectDraft: base.input(z.object({ messageId: IdSchema })).output(ConversationDetailSchema),
+  /** Volunteer writes in French; translated to the beneficiary's language by the LLM, footer appended. */
+  reply: base.input(z.object({ beneficiaryId: IdSchema, textFr: z.string().min(1).max(3000) })).output(ConversationDetailSchema),
+  resolve: base.input(z.object({ beneficiaryId: IdSchema })).output(ConversationDetailSchema),
+};
+
 /** Knowledge base (RAG) used to ground orientation. */
 const knowledge = {
   sources: base.output(z.array(KnowledgeSourceSchema)),
@@ -82,8 +97,8 @@ const knowledge = {
 };
 
 const system = {
-  health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]) })),
+  health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, system };
+export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, system };
 export type Contract = typeof contract;

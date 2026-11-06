@@ -17,8 +17,9 @@ const analysis = {
 };
 
 describe("contracts", () => {
-  it("covers the 10 required languages", () => {
-    expect(LANGUAGE_CODES).toEqual(["fr", "en", "ar", "fa", "ps", "ur", "uk", "ti", "so", "am"]);
+  it("covers the required languages", () => {
+    expect(LANGUAGE_CODES.slice(0, 10)).toEqual(["fr", "en", "ar", "fa", "ps", "ur", "uk", "ti", "so", "am"]);
+    expect(LANGUAGE_CODES).toHaveLength(28);
   });
   it("accepts a valid LLM analysis", () => {
     expect(LetterAnalysisSchema.parse(analysis).letterType).toBe("caf");
@@ -36,6 +37,6 @@ describe("contracts", () => {
     expect(WaWebhookSchema.parse(payload).entry[0]?.changes[0]?.value.messages?.[0]?.type).toBe("image");
   });
   it("exposes the expected procedure groups", () => {
-    expect(Object.keys(contract).sort()).toEqual(["auth", "beneficiaries", "documents", "knowledge", "letters", "sandbox", "system"]);
+    expect(Object.keys(contract).sort()).toEqual(["auth", "beneficiaries", "conversations", "documents", "knowledge", "letters", "sandbox", "system"]);
   });
 });

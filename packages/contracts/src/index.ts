@@ -7,4 +7,5 @@ export * from "./auth.js";
 export * from "./sandbox.js";
 export * from "./whatsapp.js";
 export * from "./knowledge.js";
+export * from "./chat.js";
 export * from "./contract.js";

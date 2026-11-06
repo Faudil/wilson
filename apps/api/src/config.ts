@@ -58,6 +58,10 @@ const EnvSchema = z.object({
   ANNUAIRE_TYPES: z.string().default("prefecture,sous_pref,caf,cpam,point_justice,maison_justice,france_services,ofii,pole_emploi,france_travail,sip,mairie"),
   /** Turn the RAG orientation step off (analysis only). */
   RAG_ENABLED: boolEnv.default(true),
+  /** review = every chatbot answer is a draft a volunteer approves (default); auto = sent at once (legal/urgent still to volunteers). */
+  CHAT_MODE: z.enum(["review", "auto"]).default("review"),
+  /** Max beneficiary turns kept as chat context for the LLM. */
+  CHAT_HISTORY_TURNS: z.coerce.number().default(6),
   PHOTO_TTL_HOURS: z.coerce.number().default(48),
   ARCHIVE_RETENTION_DAYS: z.coerce.number().default(30),
   TIMEZONE: z.string().default("Europe/Paris"),

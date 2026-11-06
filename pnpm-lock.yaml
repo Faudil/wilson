@@ -84,7 +84,19 @@ importers:
       '@fontsource/noto-sans-arabic':
         specifier: 5.3.0
         version: 5.3.0
+      '@fontsource/noto-sans-armenian':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource/noto-sans-bengali':
+        specifier: 5.3.0
+        version: 5.3.0
       '@fontsource/noto-sans-ethiopic':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource/noto-sans-georgian':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource/noto-sans-tamil':
         specifier: 5.3.0
         version: 5.3.0
       '@fontsource/vazirmatn':
@@ -717,8 +729,20 @@ packages:
   '@fontsource/noto-sans-arabic@5.3.0':
     resolution: {integrity: sha512-i3t6GR0LOReyJVEk+YfYCnxv53wuIelg7Y9NGNvOq4Diq/EP0YszaGXkQwfQNigLjfO4POrLaPGM0sNliGYk7A==}
 
+  '@fontsource/noto-sans-armenian@5.3.0':
+    resolution: {integrity: sha512-ot9KkRsd2hDXGIMZQeRSvtsw1uoFIBIS+yL7ZLDHY8GpT2LJz7FaCxGT07Iudu0yNTlSEYNLLAbKcy2ZUIjzUA==}
+
+  '@fontsource/noto-sans-bengali@5.3.0':
+    resolution: {integrity: sha512-EFBMU0UvzyFSc1ERK369zfqEu6DMRuWmCQ2+2ahhQTQAIDPEyN1UYlQdQeFkheu2DWG2hfdwrhiLlGFl2sSr/A==}
+
   '@fontsource/noto-sans-ethiopic@5.3.0':
     resolution: {integrity: sha512-ivXPkx5Grhse+0GEyedQysDI5vSMUIeDNBhev6OIcSX6WyAPtvutU/CSWqf2wv67POnvQ0QaQ8Aq36vy9WfZpw==}
+
+  '@fontsource/noto-sans-georgian@5.3.0':
+    resolution: {integrity: sha512-+a+N1mvCugsggDb5eKPKcwDXQQtbaV+x9/Zo2/p2c9yAZeib+qD2ftbezbPAoLvBf4MP+F8BdDwHdrlnNRSdng==}
+
+  '@fontsource/noto-sans-tamil@5.3.0':
+    resolution: {integrity: sha512-webid7fyBljiIEJ1hXuey48vCUe2Oq3/EwYjo6XBtXItO9FoUmqy0bEnXA5iE++iC324BTI8QMy80SYtDheCzA==}
 
   '@fontsource/noto-sans@5.3.0':
     resolution: {integrity: sha512-fBCog2PY7DiVVTEEqtI/Qdinx/knobHYfoGpjFXdfBX5RoJaBp1Prw2G75p0OIsdlMZg3cLo0c+YbIUYOxnQJw==}
@@ -2015,7 +2039,15 @@ snapshots:
 
   '@fontsource/noto-sans-arabic@5.3.0': {}
 
+  '@fontsource/noto-sans-armenian@5.3.0': {}
+
+  '@fontsource/noto-sans-bengali@5.3.0': {}
+
   '@fontsource/noto-sans-ethiopic@5.3.0': {}
+
+  '@fontsource/noto-sans-georgian@5.3.0': {}
+
+  '@fontsource/noto-sans-tamil@5.3.0': {}
 
   '@fontsource/noto-sans@5.3.0': {}
 

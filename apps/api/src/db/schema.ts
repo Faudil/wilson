@@ -31,6 +31,10 @@ export const permissionEnum = pgEnum("permission", PermissionSchema.options as [
 export const directionEnum = pgEnum("direction", ["in", "out"]);
 export const messageKindEnum = pgEnum("message_kind", ["text", "image", "document", "template", "interactive", "other"]);
 export const messageStatusEnum = pgEnum("message_status", ["received", "queued", "sent", "delivered", "read", "failed"]);
+export const messageAuthorEnum = pgEnum("message_author", ["beneficiary", "bot", "volunteer", "system"]);
+export const chatStateEnum = pgEnum("chat_state", ["received", "draft", "sent", "rejected"]);
+export const chatIntentEnum = pgEnum("chat_intent", ["info", "legal", "urgent", "human", "letter", "document", "smalltalk", "out_of_scope"]);
+export const conversationStatusEnum = pgEnum("conversation_status", ["bot", "pending_review", "needs_human", "resolved"]);
 export const reminderKindEnum = pgEnum("reminder_kind", ["d30", "d7"]);
 export const knowledgeSourceEnum = pgEnum("knowledge_source", ["service_public", "annuaire", "association", "watizat"]);
 export const knowledgeKindEnum = pgEnum("knowledge_kind", ["procedure", "contact", "guide"]);
@@ -45,7 +49,9 @@ export type ConversationState =
   | { step: "confirm_document"; documentId: string }
   | { step: "enter_document_date"; documentId: string }
   | { step: "offer_save_letter"; letterId: string }
-  | { step: "confirm_delete_all" };
+  | { step: "confirm_delete_all" }
+  /** Free-form chat ("ask a question"); any non-menu text also goes to the chatbot. */
+  | { step: "chat" };
 
 export const beneficiaries = pgTable("beneficiaries", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -64,6 +70,8 @@ export const beneficiaries = pgTable("beneficiaries", {
   lastInboundAt: ts("last_inbound_at"),
   archivedAt: ts("archived_at"),
   purgeAt: ts("purge_at"),
+  /** Chatbot handoff state, drives the Conversations screen. */
+  chatStatus: conversationStatusEnum("chat_status").notNull().default("bot"),
 });
 
 export const messages = pgTable("messages", {
@@ -77,6 +85,14 @@ export const messages = pgTable("messages", {
   mediaKey: text("media_key"),
   status: messageStatusEnum("status").notNull(),
   createdAt: ts("created_at").notNull().defaultNow(),
+  // — chatbot (null for menu/system traffic of the letter & document flows) —
+  author: messageAuthorEnum("author"),
+  chatState: chatStateEnum("chat_state"),
+  intent: chatIntentEnum("intent"),
+  /** French version for volunteers, encrypted. */
+  textFrEnc: bytea("text_fr_enc"),
+  sources: jsonb("sources").$type<{ chunkId: string; sourceId: string; title: string; url: string | null }[]>(),
+  volunteerId: uuid("volunteer_id").references(() => volunteers.id),
 }, (t) => [index("messages_beneficiary_idx").on(t.beneficiaryId, t.createdAt)]);
 
 export const letters = pgTable("letters", {

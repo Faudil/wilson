@@ -21,7 +21,7 @@ export type WaKey =
   | "language_menu" // numbered list of languages in native scripts (same text in every catalog)
   | "language_set" // {language}
   | "welcome"
-  | "main_menu" // 1 letter · 2 documents · 3 language · 0 human · 9 delete my data
+  | "main_menu" // 1 letter · 2 documents · 3 language · 4 ask a question · 0 human · 9 delete my data
   | "not_understood"
   | "human_contact" // {name} {contact}
   | "letter_ask_photo"
@@ -53,6 +53,13 @@ export type WaKey =
   | "deadline_today"
   | "deadline_passed"
   | "letter_urgent" // shown first when urgency is high
+  | "chat_intro" // you can ask a question in your own words; a volunteer checks answers (review mode)
+  | "chat_pending" // your question was received, a volunteer will check the answer before sending
+  | "chat_handoff" // a volunteer will answer you personally
+  | "chat_urgent" // emergency numbers: 115 (shelter), 15 (SAMU), 17 (police), 112, 119 (child); association contact
+  | "chat_voice_unsupported" // please write your message, voice notes are not supported yet
+  | "chat_letter_redirect" // to explain a letter, send a photo (or menu 1)
+  | "chat_document_redirect" // for your documents, reply 2
   | "footer"; // {name} {contact} — appended to every reply, never optional
 
 export type Params = Record<string, string | number>;

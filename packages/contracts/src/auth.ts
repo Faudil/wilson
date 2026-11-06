@@ -19,6 +19,8 @@ export const PermissionSchema = z.enum([
   "audit.view",
   "knowledge.view", // browse sources, test search
   "knowledge.manage", // trigger a sync
+  "conversations.view", // read chatbot conversations
+  "conversations.reply", // approve/reject drafts, reply, resolve
 ]);
 export type Permission = z.infer<typeof PermissionSchema>;
 
@@ -35,6 +37,8 @@ const VOLUNTEER: Permission[] = [
   "documents.edit",
   "sandbox.use",
   "knowledge.view",
+  "conversations.view",
+  "conversations.reply",
 ];
 export const ROLE_PERMISSIONS: Record<VolunteerRole, readonly Permission[]> = {
   volunteer: VOLUNTEER,
