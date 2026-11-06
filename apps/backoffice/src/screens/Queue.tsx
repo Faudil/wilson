@@ -1,12 +1,13 @@
 import type { LetterStatus } from "@wilson/contracts";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { DeadlineText, LangBadge, StatusBadge, UrgencyBadge } from "../components/badges";
-import { Empty, ErrorBox, Loading } from "../components/ui";
+import { Chip, Countdown, LangBadge, StatusBadge, UrgencyBadge } from "../components/badges";
+import { Icon } from "../components/Icon";
+import { Empty, ErrorBox, Skeleton } from "../components/ui";
 import { useI18n, type MessageKey } from "../i18n";
 import { orpc } from "../lib/api";
+import { relativeTime } from "../lib/relative";
 import { href } from "../lib/router";
-import { formatDateTime } from "../lib/wilson-i18n";
 
 type Filter = "pending" | "failed" | "sent";
 const FILTERS: Record<Filter, LetterStatus[]> = {
@@ -14,6 +15,19 @@ const FILTERS: Record<Filter, LetterStatus[]> = {
   failed: ["failed", "rejected"],
   sent: ["approved", "sent"],
 };
+
+export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: { value: T; label: string; count?: number }[]; onChange: (v: T) => void; label: string }) {
+  return (
+    <div className="segmented" role="tablist" aria-label={label}>
+      {options.map((o) => (
+        <button key={o.value} type="button" role="tab" aria-selected={o.value === value} className={o.value === value ? "is-active" : ""} onClick={() => onChange(o.value)}>
+          {o.label}
+          {o.count ? <span className="segmented-count">{o.count}</span> : null}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function Queue() {
   const { t, lang } = useI18n();
@@ -29,46 +43,56 @@ export function Queue() {
   const items = query.data?.pages.flatMap((p) => p.items) ?? [];
 
   return (
-    <section>
+    <section className="stack">
       <h1>{t("queue.title")}</h1>
-      <div className="segmented" role="tablist" aria-label={t("queue.filter")}>
-        {(Object.keys(FILTERS) as Filter[]).map((f) => (
-          <button key={f} type="button" role="tab" aria-selected={f === filter} className={f === filter ? "is-active" : ""} onClick={() => setFilter(f)}>
-            {t(`queue.filter.${f}` as MessageKey)}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        label={t("queue.filter")}
+        value={filter}
+        onChange={setFilter}
+        options={(Object.keys(FILTERS) as Filter[]).map((f) => ({ value: f, label: t(`queue.filter.${f}` as MessageKey) }))}
+      />
 
-      {query.isPending && <Loading />}
+      {query.isPending && <Skeleton lines={3} />}
       {query.isError && <ErrorBox error={query.error} retry={() => void query.refetch()} />}
-      {query.isSuccess && items.length === 0 && <Empty>{t(`queue.empty.${filter}` as MessageKey)}</Empty>}
+      {query.isSuccess && items.length === 0 && (
+        <Empty
+          art={filter === "failed" ? "done" : "letters"}
+          action={
+            filter === "pending" ? (
+              <button type="button" className="btn" onClick={() => setFilter("sent")}>
+                {t("queue.seeSent")}
+              </button>
+            ) : undefined
+          }
+        >
+          {t(`queue.empty.${filter}` as MessageKey)}
+        </Empty>
+      )}
 
       <ul className="cards">
         {items.map((letter) => (
           <li key={letter.id}>
-            <a className={`card card-link urgency-${letter.urgency ?? "none"}`} href={href("letters", letter.id)}>
-              <div className="row wrap">
+            <a className={`card card-link${letter.urgency === "high" ? " is-urgent" : letter.urgency === "medium" ? " is-attention" : ""}`} href={href("letters", letter.id)}>
+              <div className="card-top">
+                <span className="card-kicker">
+                  <Icon name="mail" size={16} />
+                  <span dir="ltr">{letter.beneficiaryLabel}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>{relativeTime(letter.receivedAt, lang)}</span>
+                </span>
                 <LangBadge language={letter.language} />
-                <UrgencyBadge urgency={letter.urgency} />
-                {filter !== "pending" && <StatusBadge status={letter.status} />}
-                {letter.lowConfidence && <span className="badge badge-warn">{t("queue.lowConfidence")}</span>}
               </div>
-              <strong className="card-title">
-                {letter.letterType ? t(`letterType.${letter.letterType}` as MessageKey) : t("queue.typeUnknown")}
-              </strong>
-              <div>
-                {letter.deadline ? (
-                  <>
-                    <span className="muted">{t("queue.deadline")} </span>
-                    <DeadlineText date={letter.deadline} />
-                  </>
-                ) : (
-                  <span className="muted">{t("queue.noDeadline")}</span>
+              <strong className="card-title">{letter.letterType ? t(`letterType.${letter.letterType}` as MessageKey) : t("queue.typeUnknown")}</strong>
+              <div className="chips">
+                {filter !== "pending" ? <StatusBadge status={letter.status} /> : <UrgencyBadge urgency={letter.urgency} />}
+                {letter.deadline ? <Countdown date={letter.deadline} /> : <span className="muted small">{t("queue.noDeadline")}</span>}
+                {letter.lowConfidence && (
+                  <Chip tone="warn" icon="eye">
+                    {t("queue.lowConfidence")}
+                  </Chip>
                 )}
               </div>
-              <div className="muted small">
-                <span dir="ltr">{letter.beneficiaryLabel}</span> · {formatDateTime(letter.receivedAt, lang)}
-              </div>
+              <Icon name="chevron" size={20} className="card-chevron" />
             </a>
           </li>
         ))}

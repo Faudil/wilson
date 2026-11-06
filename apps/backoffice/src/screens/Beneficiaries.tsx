@@ -1,14 +1,18 @@
 import { LANGUAGES, LANGUAGE_CODES, DocumentTypeSchema, type DocumentDto, type LanguageCode } from "@wilson/contracts";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { DeadlineText, LangBadge, StatusBadge, UrgencyBadge } from "../components/badges";
+import { Chip, Countdown, LangBadge, StatusBadge, UrgencyBadge } from "../components/badges";
+import { Icon } from "../components/Icon";
 import { DateField } from "../components/DateField";
-import { BackLink, Empty, ErrorBox, Loading } from "../components/ui";
+import { BackLink, ConfirmSheet, Empty, ErrorBox, OverflowMenu, Skeleton, useToast } from "../components/ui";
 import { useI18n, type MessageKey } from "../i18n";
 import { client, orpc } from "../lib/api";
 import { href } from "../lib/router";
 import { useSession } from "../lib/session";
-import { documentTypeName, formatDate, formatDateTime } from "../lib/wilson-i18n";
+import { documentTypeName, formatDate } from "../lib/wilson-i18n";
+import { daysBetween, todayParis } from "../lib/format";
+import { relativeTime } from "../lib/relative";
+import { daysHint } from "../components/badges";
 
 export function BeneficiaryList() {
   const { t, lang } = useI18n();
@@ -29,27 +33,38 @@ export function BeneficiaryList() {
   const items = query.data?.pages.flatMap((p) => p.items) ?? [];
 
   return (
-    <section>
+    <section className="stack">
       <h1>{t("beneficiaries.title")}</h1>
-      <label className="field">
-        <span>{t("beneficiaries.search")}</span>
-        <input type="search" inputMode="numeric" maxLength={40} value={input} onChange={(e) => setInput(e.target.value)} dir="ltr" />
+      <label className="search">
+        <span className="visually-hidden">{t("beneficiaries.search")}</span>
+        <Icon name="search" size={20} />
+        <input type="search" inputMode="numeric" maxLength={40} value={input} placeholder={t("beneficiaries.searchPlaceholder")} onChange={(e) => setInput(e.target.value)} dir="ltr" />
       </label>
-      {query.isPending && <Loading />}
+      {query.isPending && <Skeleton lines={3} />}
       {query.isError && <ErrorBox error={query.error} retry={() => void query.refetch()} />}
-      {query.isSuccess && items.length === 0 && <Empty>{t("beneficiaries.empty")}</Empty>}
+      {query.isSuccess && items.length === 0 && <Empty art="search">{search ? t("beneficiaries.noResults") : t("beneficiaries.empty")}</Empty>}
       <ul className="cards">
         {items.map((b) => (
           <li key={b.id}>
-            <a className="card card-link" href={href("beneficiaries", b.id)}>
-              <div className="row wrap">
-                <strong dir="ltr">{b.label}</strong>
-                <LangBadge language={b.language} />
-              </div>
-              <div className="muted">{t("beneficiaries.documentCount", { count: b.documentCount })}</div>
-              <div className="muted small">
-                {b.nextExpiry ? t("beneficiaries.nextExpiry", { date: formatDate(b.nextExpiry, lang) }) : t("beneficiaries.noExpiry")}
-              </div>
+            <a className="card card-link person-card" href={href("beneficiaries", b.id)}>
+              <span className="avatar avatar-soft" aria-hidden="true">
+                <Icon name="user" size={22} />
+              </span>
+              <span className="person-main">
+                <span className="card-top">
+                  <strong className="card-title" dir="ltr">
+                    {b.label}
+                  </strong>
+                  <LangBadge language={b.language} />
+                </span>
+                <span className="muted small">
+                  {t("beneficiaries.documentCount", { count: b.documentCount })}
+                  {" · "}
+                  {b.nextExpiry ? t("beneficiaries.nextExpiry", { date: formatDate(b.nextExpiry, lang) }) : t("beneficiaries.noExpiry")}
+                </span>
+                {b.nextExpiry && <Countdown date={b.nextExpiry} />}
+              </span>
+              <Icon name="chevron" size={20} className="card-chevron" />
             </a>
           </li>
         ))}
@@ -78,25 +93,35 @@ export function BeneficiaryDetail({ id }: { id: string }) {
   return (
     <section className="stack">
       <BackLink to={href("beneficiaries")}>{t("nav.beneficiaries")}</BackLink>
-      {query.isPending && <Loading />}
+      {query.isPending && <Skeleton lines={3} />}
       {query.isError && <ErrorBox error={query.error} retry={() => void query.refetch()} />}
       {query.isSuccess && (
         <>
-          <header className="stack-tight">
-            <h1 dir="ltr" className="start">
-              {query.data.label}
-            </h1>
-            <div className="row wrap">
-              <LangBadge language={query.data.language} />
-              <span className="muted small">
-                {query.data.lastMessageAt ? t("beneficiaries.lastMessage", { date: formatDateTime(query.data.lastMessageAt, lang) }) : ""}
-              </span>
+          <header className="chat-head">
+            <span className="avatar avatar-soft" aria-hidden="true">
+              <Icon name="user" size={22} />
+            </span>
+            <div className="chat-head-main">
+              <h1 dir="ltr" className="start">
+                {query.data.label}
+              </h1>
+              <div className="chips">
+                <LangBadge language={query.data.language} />
+                <span className="muted small">
+                  {query.data.lastMessageAt ? t("beneficiaries.lastMessage", { date: relativeTime(query.data.lastMessageAt, lang) }) : t("beneficiaries.noMessages")}
+                </span>
+              </div>
             </div>
+            {can("conversations.view") && (
+              <a className="icon-btn" href={href("conversations", id)} aria-label={t("beneficiaries.openChat")}>
+                <Icon name="chat" />
+              </a>
+            )}
           </header>
 
           {can("beneficiaries.edit") && (
-            <label className="field">
-              <span>{t("beneficiaries.language")}</span>
+            <label className="field card">
+              <span className="field-label">{t("beneficiaries.language")}</span>
               <select
                 value={query.data.language}
                 disabled={setLanguage.isPending}
@@ -113,10 +138,10 @@ export function BeneficiaryDetail({ id }: { id: string }) {
             </label>
           )}
 
-          <h2>{t("beneficiaries.documents")}</h2>
+          <h2 className="section-title">{t("beneficiaries.documents")}</h2>
           {can("documents.view_metadata") ? (
             query.data.documents.length === 0 ? (
-              <Empty>{t("beneficiaries.noDocuments")}</Empty>
+              <Empty art="letters">{t("beneficiaries.noDocuments")}</Empty>
             ) : (
               <ul className="cards">
                 {query.data.documents.map((d) => (
@@ -130,20 +155,21 @@ export function BeneficiaryDetail({ id }: { id: string }) {
             <p className="muted">{t("error.forbidden")}</p>
           )}
 
-          <h2>{t("beneficiaries.letters")}</h2>
+          <h2 className="section-title">{t("beneficiaries.letters")}</h2>
           {query.data.letters.length === 0 ? (
-            <Empty>{t("beneficiaries.noLetters")}</Empty>
+            <Empty art="letters">{t("beneficiaries.noLetters")}</Empty>
           ) : (
             <ul className="cards">
               {query.data.letters.map((l) => (
                 <li key={l.id}>
                   <a className="card card-link" href={href("letters", l.id)}>
-                    <div className="row wrap">
+                    <strong className="card-title">{l.letterType ? t(`letterType.${l.letterType}` as MessageKey) : t("queue.typeUnknown")}</strong>
+                    <div className="chips">
                       <StatusBadge status={l.status} />
                       <UrgencyBadge urgency={l.urgency} />
+                      {l.deadline && <Countdown date={l.deadline} />}
                     </div>
-                    <strong>{l.letterType ? t(`letterType.${l.letterType}` as MessageKey) : t("queue.typeUnknown")}</strong>
-                    {l.deadline && <DeadlineText date={l.deadline} />}
+                    <Icon name="chevron" size={20} className="card-chevron" />
                   </a>
                 </li>
               ))}
@@ -159,9 +185,13 @@ function DocumentCard({ doc }: { doc: DocumentDto }) {
   const { t, lang } = useI18n();
   const { can } = useSession();
   const qc = useQueryClient();
+  const toast = useToast();
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const archive = useMutation({
     ...orpc.documents.archive.mutationOptions(),
     onSuccess: () => {
+      setConfirmArchive(false);
+      toast(t("documents.archivedToast"));
       void qc.invalidateQueries({ queryKey: orpc.beneficiaries.key() });
       void qc.invalidateQueries({ queryKey: orpc.documents.key() });
     },
@@ -174,6 +204,7 @@ function DocumentCard({ doc }: { doc: DocumentDto }) {
     ...orpc.documents.update.mutationOptions(),
     onSuccess: () => {
       setEditing(false);
+      toast(t("documents.saved"));
       void qc.invalidateQueries({ queryKey: orpc.beneficiaries.key() });
       void qc.invalidateQueries({ queryKey: orpc.documents.key() });
     },
@@ -213,57 +244,93 @@ function DocumentCard({ doc }: { doc: DocumentDto }) {
   };
 
   const archived = doc.archivedAt !== null;
+  const left = doc.expiresAt ? daysBetween(todayParis(), doc.expiresAt) : null;
+  const fill = left === null ? 0 : Math.max(4, Math.min(100, Math.round((left / 365) * 100)));
+  const tone = left === null ? "ok" : left < 0 || left <= 7 ? "urgent" : left <= 30 ? "warn" : "ok";
+  const canView = can("documents.view_file");
+  const canEdit = can("documents.edit") && !archived;
   return (
-    <div className={`card ${archived ? "is-archived" : ""}`}>
-      <strong className="card-title">{documentTypeName(doc.type, lang)}</strong>
-      {doc.label && <div>{doc.label}</div>}
-      <div>
-        {doc.expiresAt ? (
-          <>
-            <span className="muted">{t("documents.expires")} </span>
-            <DeadlineText date={doc.expiresAt} />
-          </>
-        ) : (
-          <span className="muted">{t("documents.noExpiry")}</span>
+    <div className={`card doc-card ${archived ? "is-archived" : ""}`}>
+      <div className="card-top">
+        <span className="doc-title">
+          <span className="doc-icon">
+            <Icon name="file" size={20} />
+          </span>
+          <span>
+            <strong className="card-title">{documentTypeName(doc.type, lang)}</strong>
+            {doc.label && <span className="muted small doc-label">{doc.label}</span>}
+          </span>
+        </span>
+        {(canView || canEdit) && (
+          <OverflowMenu label={t("beneficiaries.moreActions")}>
+            {(close) => (
+              <>
+                {canView && (
+                  <button type="button" role="menuitem" disabled={opening} onClick={() => { close(); void openFile(); }}>
+                    <Icon name="eye" size={18} />
+                    {t("documents.view")}
+                  </button>
+                )}
+                {canEdit && !editing && (
+                  <button type="button" role="menuitem" onClick={() => { close(); startEdit(); }}>
+                    <Icon name="edit" size={18} />
+                    {t("documents.edit")}
+                  </button>
+                )}
+                {canEdit && (
+                  <button type="button" role="menuitem" className="menu-danger" onClick={() => { close(); setConfirmArchive(true); }}>
+                    <Icon name="archive" size={18} />
+                    {t("documents.archive")}
+                  </button>
+                )}
+              </>
+            )}
+          </OverflowMenu>
         )}
       </div>
-      <div className="muted small">
-        {t("documents.remindersLine", {
-          list:
-            doc.reminders.length === 0
-              ? t("documents.noReminders")
-              : doc.reminders.map((r) => `${t(`reminder.${r.kind}` as MessageKey)} ${t(`reminderStatus.${r.status}` as MessageKey)}`).join(" · "),
-        })}
-      </div>
-      {archived && doc.purgeAt && <div className="notice notice-info small">{t("documents.archivedUntil", { date: formatDate(doc.purgeAt.slice(0, 10), lang) })}</div>}
-      <div className="row wrap">
-        {can("documents.view_file") && (
-          <button type="button" className="btn" onClick={() => void openFile()} disabled={opening}>
-            {t("documents.view")}
-          </button>
-        )}
-        {can("documents.edit") && !archived && !editing && (
-          <button type="button" className="btn" onClick={startEdit}>
-            {t("documents.edit")}
-          </button>
-        )}
-        {can("documents.edit") && !archived && (
-          <button
-            type="button"
-            className="btn btn-danger-quiet"
-            disabled={archive.isPending}
-            onClick={() => {
-              if (window.confirm(t("documents.confirmArchive"))) archive.mutate({ id: doc.id });
-            }}
-          >
-            {t("documents.archive")}
-          </button>
-        )}
-      </div>
-      {editing && can("documents.edit") && !archived && (
-        <fieldset className="stack" disabled={update.isPending}>
+      {doc.expiresAt && left !== null ? (
+        <div className="expiry">
+          <div className="expiry-row">
+            <span className="muted small">
+              {t("documents.expires")} <strong className="expiry-date">{formatDate(doc.expiresAt, lang, { weekday: true })}</strong>
+            </span>
+            <Chip tone={tone} icon="clock">
+              {left < 0 ? t("documents.expired") + " · " + daysHint(t, left) : daysHint(t, left)}
+            </Chip>
+          </div>
+          <div className={`meter meter-${tone}`} role="img" aria-label={`${t("documents.validity")}: ${daysHint(t, left)}`}>
+            <span style={{ inlineSize: `${left < 0 ? 100 : fill}%` }} />
+          </div>
+        </div>
+      ) : (
+        <span className="muted small">{t("documents.noExpiry")}</span>
+      )}
+      {doc.reminders.length > 0 && (
+        <div className="reminders">
+          <span className="muted small field-label">
+            <Icon name="bell" size={14} /> {t("documents.reminders")}
+          </span>
+          <ol className="mini-timeline">
+            {doc.reminders.map((r) => (
+              <li key={r.id} className={`rem rem-${r.status}`}>
+                <span className="rem-dot" aria-hidden="true" />
+                <span>{t(`reminder.${r.kind}` as MessageKey)}</span>
+                <span className="muted small">{t(`reminderState.${r.status}` as MessageKey)}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+      {archived && doc.purgeAt && (
+        <div className="notice notice-info small">
+          <Icon name="info" size={16} />
+          <span className="notice-body">{t("documents.archivedUntil", { date: formatDate(doc.purgeAt.slice(0, 10), lang) })}</span>
+        </div>
+      )}
+      {editing && canEdit && (
+        <fieldset className="stack fix-panel" disabled={update.isPending}>
           <label className="field">
-            <span>{t("documents.type")}</span>
+            <span className="field-label">{t("documents.type")}</span>
             <select value={type} onChange={(e) => setType(e.target.value as DocumentDto["type"])}>
               {DocumentTypeSchema.options.map((o) => (
                 <option key={o} value={o}>
@@ -281,16 +348,25 @@ function DocumentCard({ doc }: { doc: DocumentDto }) {
             <button type="button" className="btn btn-primary" disabled={!dateOk} onClick={saveEdit}>
               {t("documents.saveEdit")}
             </button>
-            <button type="button" className="btn" onClick={() => setEditing(false)}>
+            <button type="button" className="btn btn-quiet" onClick={() => setEditing(false)}>
               {t("common.cancel")}
             </button>
           </div>
         </fieldset>
       )}
-      {update.isSuccess && !editing && <p className="notice notice-ok small">{t("documents.saved")}</p>}
       {update.isError && <p className="notice notice-error small">{t("error.generic")}</p>}
       {fileError && <p className="notice notice-error small">{t("error.generic")}</p>}
       {archive.isError && <p className="notice notice-error small">{t("error.generic")}</p>}
+      <ConfirmSheet
+        open={confirmArchive}
+        title={t("documents.archiveTitle")}
+        body={t("documents.confirmArchive")}
+        confirmLabel={t("documents.archiveYes")}
+        tone="danger"
+        busy={archive.isPending}
+        onConfirm={() => archive.mutate({ id: doc.id })}
+        onClose={() => setConfirmArchive(false)}
+      />
     </div>
   );
 }

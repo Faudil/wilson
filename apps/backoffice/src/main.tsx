@@ -2,6 +2,7 @@ import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-qu
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { ToastProvider } from "./components/ui";
 import { applyDocumentLanguage, I18nProvider, readStoredLanguage } from "./i18n";
 import { errorCode } from "./lib/api";
 import { ME_KEY } from "./lib/me";
@@ -24,7 +25,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </I18nProvider>
     </QueryClientProvider>
   </StrictMode>,

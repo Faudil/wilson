@@ -1,20 +1,35 @@
 import { LANGUAGES, type ChatIntent, type ChatMessage } from "@wilson/contracts";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { LangBadge } from "../components/badges";
-import { BackLink, Empty, ErrorBox, Loading } from "../components/ui";
+import { useEffect, useRef, useState } from "react";
+import { Chip, LangBadge } from "../components/badges";
+import { Icon, type IconName } from "../components/Icon";
+import { BackLink, Empty, ErrorBox, Skeleton, useToast } from "../components/ui";
+import { Segmented } from "./Queue";
 import { useI18n, type MessageKey } from "../i18n";
 import { errorCode, orpc } from "../lib/api";
 import { href } from "../lib/router";
 import { useSession } from "../lib/session";
 import { formatDateTime } from "../lib/wilson-i18n";
+import { relativeTime } from "../lib/relative";
 
 type Status = "bot" | "pending_review" | "needs_human" | "resolved";
 type Filter = "attention" | "all";
 
+const CHAT_VIEW: Record<Status, { tone: "ok" | "warn" | "urgent" | "info" | "muted"; icon: IconName }> = {
+  bot: { tone: "info", icon: "bot" },
+  pending_review: { tone: "warn", icon: "eye" },
+  needs_human: { tone: "urgent", icon: "hand" },
+  resolved: { tone: "ok", icon: "checkCircle" },
+};
+
 export function StatusChip({ status }: { status: Status }) {
   const { t } = useI18n();
-  return <span className={`badge chat-status-${status}`}>{t(`conv.status.${status}` as MessageKey)}</span>;
+  const v = CHAT_VIEW[status];
+  return (
+    <Chip tone={v.tone} icon={v.icon}>
+      {t(`conv.status.${status}` as MessageKey)}
+    </Chip>
+  );
 }
 
 /** Number of conversations waiting for a volunteer (needs_human or pending_review), for the nav badge. */
@@ -41,34 +56,50 @@ export function ConversationList() {
   );
   const items = query.data?.pages.flatMap((p) => p.items) ?? [];
   return (
-    <section>
+    <section className="stack">
       <h1>{t("conv.title")}</h1>
-      <div className="segmented" role="tablist" aria-label={t("conv.filter")}>
-        {(["attention", "all"] as Filter[]).map((f) => (
-          <button key={f} type="button" role="tab" aria-selected={f === filter} className={f === filter ? "is-active" : ""} onClick={() => setFilter(f)}>
-            {t(`conv.filter.${f}` as MessageKey)}
-          </button>
-        ))}
-      </div>
-      {query.isPending && <Loading />}
+      <Segmented
+        label={t("conv.filter")}
+        value={filter}
+        onChange={setFilter}
+        options={(["attention", "all"] as Filter[]).map((f) => ({ value: f, label: t(`conv.filter.${f}` as MessageKey) }))}
+      />
+      {query.isPending && <Skeleton lines={3} />}
       {query.isError && <ErrorBox error={query.error} retry={() => void query.refetch()} />}
-      {query.isSuccess && items.length === 0 && <Empty>{t(`conv.empty.${filter}` as MessageKey)}</Empty>}
+      {query.isSuccess && items.length === 0 && (
+        <Empty art="chat" sub={filter === "attention" ? t("conv.empty.attention.sub") : undefined}>
+          {t(`conv.empty.${filter}` as MessageKey)}
+        </Empty>
+      )}
       <ul className="cards">
         {items.map((c) => (
           <li key={c.beneficiaryId}>
-            <a className={`card card-link chat-card chat-card-${c.status}`} href={href("conversations", c.beneficiaryId)}>
-              <div className="row wrap">
+            <a className={`card card-link${c.status === "needs_human" ? " is-urgent" : c.status === "pending_review" ? " is-attention" : ""}`} href={href("conversations", c.beneficiaryId)}>
+              <div className="card-top">
+                <span className="card-kicker">
+                  <Icon name="chat" size={16} />
+                  <span dir="ltr">{c.beneficiaryLabel}</span>
+                  {c.lastMessageAt && (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span>{relativeTime(c.lastMessageAt, lang)}</span>
+                    </>
+                  )}
+                </span>
                 <LangBadge language={c.language} />
-                <StatusChip status={c.status} />
-                {c.pendingDrafts > 0 && <span className="badge badge-warn">{t("conv.drafts", { n: c.pendingDrafts })}</span>}
               </div>
               <p className="chat-preview" lang="fr">
                 {c.lastPreview ?? "…"}
               </p>
-              <div className="muted small">
-                <span dir="ltr">{c.beneficiaryLabel}</span>
-                {c.lastMessageAt && <> · {formatDateTime(c.lastMessageAt, lang)}</>}
+              <div className="chips">
+                <StatusChip status={c.status} />
+                {c.pendingDrafts > 0 && (
+                  <Chip tone="warn" icon="edit">
+                    {t("conv.drafts", { n: c.pendingDrafts })}
+                  </Chip>
+                )}
               </div>
+              <Icon name="chevron" size={20} className="card-chevron" />
             </a>
           </li>
         ))}
@@ -96,16 +127,25 @@ function Bubble({ m, language, canAct, busy, onApprove, onReject }: {
   const mine = m.author === "beneficiary";
   const draft = m.state === "draft";
   const dir = LANGUAGES[language].dir;
+  const who = mine ? t("conv.author.beneficiary") : m.author === "volunteer" ? (m.volunteerName ?? t("conv.author.volunteer")) : m.author === "bot" ? t("conv.author.bot") : t("conv.author.system");
   return (
     <li className={`bubble bubble-${m.author}${draft ? " bubble-draft" : ""}${m.state === "rejected" ? " bubble-rejected" : ""}`}>
-      <div className="bubble-meta small muted">
-        <span>{mine ? t("conv.author.beneficiary") : m.author === "volunteer" ? (m.volunteerName ?? t("conv.author.volunteer")) : m.author === "bot" ? t("conv.author.bot") : t("conv.author.system")}</span>
-        {m.intent && <span className="badge badge-muted">{t(`conv.intent.${m.intent satisfies ChatIntent}` as MessageKey)}</span>}
-        {draft && <span className="badge badge-warn">{t("conv.draft")}</span>}
-        {m.state === "rejected" && <span className="badge badge-status-rejected">{t("conv.rejected")}</span>}
-        <span>{formatDateTime(m.at, lang)}</span>
+      <div className="bubble-meta small">
+        <Icon name={mine ? "user" : m.author === "bot" ? "bot" : m.author === "volunteer" ? "hand" : "info"} size={14} />
+        <span className="bubble-who">{who}</span>
+        {draft && (
+          <Chip tone="warn" icon="edit">
+            {t("conv.draft")}
+          </Chip>
+        )}
+        {m.state === "rejected" && (
+          <Chip tone="muted" icon="x">
+            {t("conv.rejected")}
+          </Chip>
+        )}
+        {m.intent && <span className="pill">{t(`conv.intent.${m.intent satisfies ChatIntent}` as MessageKey)}</span>}
       </div>
-      <p className="bubble-text" lang={language} dir={dir}>
+      <p className="bubble-text long-text" lang={language} dir={dir}>
         {m.text}
       </p>
       {m.textFr && language !== "fr" && (
@@ -115,7 +155,7 @@ function Bubble({ m, language, canAct, busy, onApprove, onReject }: {
       )}
       {m.sources.length > 0 && (
         <p className="small bubble-sources">
-          <span className="muted">{t("conv.sources")}: </span>
+          <Icon name="link" size={14} />
           {m.sources.map((s, i) => (
             <span key={s.chunkId}>
               {i > 0 && " · "}
@@ -134,25 +174,34 @@ function Bubble({ m, language, canAct, busy, onApprove, onReject }: {
         <div className="stack-tight bubble-actions">
           {editing && (
             <label className="field">
-              <span>{t("conv.editLabel")}</span>
+              <span className="field-label">{t("conv.editLabel")}</span>
               <textarea rows={5} maxLength={3000} lang="fr" dir="ltr" value={fr} onChange={(e) => setFr(e.target.value)} />
             </label>
           )}
           <div className="row wrap">
-            <button type="button" className="btn btn-primary" disabled={busy || (editing && !fr.trim())} onClick={() => onApprove(editing ? fr.trim() : undefined)}>
+            <button type="button" className="btn btn-primary btn-small" disabled={busy || (editing && !fr.trim())} onClick={() => onApprove(editing ? fr.trim() : undefined)}>
+              <Icon name="send" size={16} />
               {editing ? t("conv.sendEdited") : t("conv.approve")}
             </button>
             {!editing && (
-              <button type="button" className="btn" disabled={busy} onClick={() => setEditing(true)}>
+              <button type="button" className="btn btn-small" disabled={busy} onClick={() => setEditing(true)}>
+                <Icon name="edit" size={16} />
                 {t("conv.edit")}
               </button>
             )}
-            <button type="button" className="btn btn-danger-quiet" disabled={busy} onClick={onReject}>
+            {editing && (
+              <button type="button" className="btn btn-small btn-quiet" onClick={() => setEditing(false)}>
+                {t("common.cancel")}
+              </button>
+            )}
+            <button type="button" className="btn btn-small btn-danger-quiet" disabled={busy} onClick={onReject}>
+              <Icon name="x" size={16} />
               {t("conv.reject")}
             </button>
           </div>
         </div>
       )}
+      <span className="bubble-time small muted">{formatDateTime(m.at, lang)}</span>
     </li>
   );
 }
@@ -161,52 +210,111 @@ export function ConversationDetail({ id }: { id: string }) {
   const { t } = useI18n();
   const session = useSession();
   const qc = useQueryClient();
+  const toast = useToast();
   const [text, setText] = useState("");
   const query = useQuery({ ...orpc.conversations.get.queryOptions({ input: { beneficiaryId: id } }), refetchInterval: 10_000 });
   const done = () => {
     void qc.invalidateQueries({ queryKey: orpc.conversations.key() });
   };
-  const approve = useMutation({ ...orpc.conversations.approveDraft.mutationOptions(), onSuccess: done });
-  const reject = useMutation({ ...orpc.conversations.rejectDraft.mutationOptions(), onSuccess: done });
+  const approve = useMutation({
+    ...orpc.conversations.approveDraft.mutationOptions(),
+    onSuccess: () => {
+      toast(t("conv.approvedToast"));
+      done();
+    },
+  });
+  const reject = useMutation({
+    ...orpc.conversations.rejectDraft.mutationOptions(),
+    onSuccess: () => {
+      toast(t("conv.rejectedToast"), "info");
+      done();
+    },
+  });
   const reply = useMutation({
     ...orpc.conversations.reply.mutationOptions(),
     onSuccess: () => {
       setText("");
+      toast(t("conv.sentToast"));
       done();
     },
   });
-  const resolve = useMutation({ ...orpc.conversations.resolve.mutationOptions(), onSuccess: done });
+  const resolve = useMutation({
+    ...orpc.conversations.resolve.mutationOptions(),
+    onSuccess: () => {
+      toast(t("conv.resolvedToast"));
+      done();
+    },
+  });
   const canAct = session.can("conversations.reply");
   const busy = approve.isPending || reject.isPending || reply.isPending || resolve.isPending;
   const error = approve.error ?? reject.error ?? reply.error ?? resolve.error;
   const c = query.data;
+  const count = c?.messages.length ?? 0;
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: "end" });
+  }, [count]);
+
+  const send = () => {
+    if (text.trim()) reply.mutate({ beneficiaryId: id, textFr: text.trim() });
+  };
 
   return (
-    <section>
-      <BackLink to={href("conversations")}>{t("nav.conversations")}</BackLink>
-      {query.isPending && <Loading />}
+    <section className={canAct ? "has-composer" : ""}>
+      <BackLink to={href("conversations")}>{t("conv.title")}</BackLink>
+      {query.isPending && <Skeleton lines={3} />}
       {query.isError && <ErrorBox error={query.error} retry={() => void query.refetch()} />}
       {c && (
         <div className="stack">
-          <header className="stack-tight">
-            <h1>
-              <span dir="ltr">{c.beneficiaryLabel}</span>
-            </h1>
-            <div className="row wrap">
-              <LangBadge language={c.language} />
-              <StatusChip status={c.status} />
-              <a className="small" href={href("beneficiaries", c.beneficiaryId)}>
-                {t("nav.beneficiaries")}
-              </a>
+          <header className="chat-head">
+            <span className="avatar avatar-soft" aria-hidden="true">
+              <Icon name="user" size={22} />
+            </span>
+            <div className="chat-head-main">
+              <h1>
+                <span dir="ltr">{c.beneficiaryLabel}</span>
+              </h1>
+              <div className="chips">
+                <LangBadge language={c.language} />
+                <StatusChip status={c.status} />
+              </div>
             </div>
+            <a className="icon-btn" href={href("beneficiaries", c.beneficiaryId)} aria-label={t("nav.beneficiaries")}>
+              <Icon name="users" />
+            </a>
           </header>
 
-          {error && (
-            <div className="notice notice-error" role="alert">
-              {errorCode(error) === "CONFLICT" ? t("conv.conflict") : t("error.generic")}
+          {c.status === "needs_human" && (
+            <div className="callout callout-urgent">
+              <Icon name="hand" size={20} />
+              <div>
+                <strong>{t("conv.needsYou")}</strong>
+                {canAct && (
+                  <div>
+                    <button type="button" className="btn btn-small" disabled={busy} onClick={() => resolve.mutate({ beneficiaryId: id })}>
+                      <Icon name="checkCircle" size={16} />
+                      {t("conv.resolveLong")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {c.status === "pending_review" && (
+            <div className="callout">
+              <Icon name="eye" size={20} />
+              <strong>{t("conv.reviewNeeded")}</strong>
             </div>
           )}
 
+          {error && (
+            <div className="notice notice-error" role="alert">
+              <Icon name="alert" />
+              <span className="notice-body">{errorCode(error) === "CONFLICT" ? t("conv.conflict") : t("error.generic")}</span>
+            </div>
+          )}
+
+          {c.messages.length === 0 && <Empty art="chat">{t("conv.emptyThread")}</Empty>}
           <ul className="thread">
             {c.messages.map((m) => (
               <Bubble
@@ -220,32 +328,45 @@ export function ConversationDetail({ id }: { id: string }) {
               />
             ))}
           </ul>
-
-          {canAct && (
-            <form
-              className="stack-tight reply-box"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (text.trim()) reply.mutate({ beneficiaryId: id, textFr: text.trim() });
-              }}
-            >
-              <label className="field">
-                <span>{t("conv.replyLabel")}</span>
-                <textarea rows={3} maxLength={3000} lang="fr" dir="ltr" value={text} onChange={(e) => setText(e.target.value)} />
-              </label>
-              <div className="row wrap">
-                <button type="submit" className="btn btn-primary" disabled={busy || !text.trim()}>
-                  {t("conv.send")}
-                </button>
-                {c.status === "needs_human" && (
-                  <button type="button" className="btn" disabled={busy} onClick={() => resolve.mutate({ beneficiaryId: id })}>
-                    {t("conv.resolve")}
-                  </button>
-                )}
-              </div>
-            </form>
-          )}
+          <div ref={endRef} />
         </div>
+      )}
+
+      {c && canAct && (
+        <form
+          className="composer"
+          onSubmit={(e) => {
+            e.preventDefault();
+            send();
+          }}
+        >
+          <div className="composer-inner">
+            <div className="composer-field">
+              <textarea
+                rows={1}
+                maxLength={3000}
+                lang="fr"
+                dir="ltr"
+                value={text}
+                placeholder={t("conv.composerPlaceholder")}
+                aria-label={t("conv.replyLabel")}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    send();
+                  }
+                }}
+              />
+              <span className="composer-hint">
+                <Icon name="globe" size={12} /> {t("conv.composerHint")}
+              </span>
+            </div>
+            <button type="submit" className="send-btn" disabled={busy || !text.trim()} aria-label={t("conv.send")}>
+              <Icon name="send" size={22} />
+            </button>
+          </div>
+        </form>
       )}
     </section>
   );

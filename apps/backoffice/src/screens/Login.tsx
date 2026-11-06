@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
+import { Icon } from "../components/Icon";
 import { orpc, errorCode } from "../lib/api";
 import { useI18n } from "../i18n";
 import { ME_KEY } from "../lib/me";
@@ -9,6 +10,7 @@ export function Login() {
   const qc = useQueryClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
   const login = useMutation({
     ...orpc.auth.login.mutationOptions(),
     onSuccess: (volunteer) => qc.setQueryData(ME_KEY, volunteer),
@@ -21,38 +23,51 @@ export function Login() {
   const code = errorCode(login.error);
 
   return (
-    <main className="narrow">
-      <h1>{t("login.title")}</h1>
+    <div className="login">
+      <div className="login-hero" aria-hidden="true">
+        <span className="login-mark">
+          <Icon name="mail" size={34} />
+        </span>
+      </div>
+      <h1>{t("login.welcome")}</h1>
       <p className="muted">{t("login.intro")}</p>
-      <form onSubmit={submit} className="stack">
+      <form onSubmit={submit} className="card stack">
         <label className="field">
-          <span>{t("login.email")}</span>
+          <span className="field-label">{t("login.email")}</span>
           <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} dir="ltr" />
         </label>
         <label className="field">
-          <span>{t("login.password")}</span>
-          <input
-            type="password"
-            autoComplete="current-password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            dir="ltr"
-          />
+          <span className="field-label">{t("login.password")}</span>
+          <span className="input-wrap">
+            <input
+              type={show ? "text" : "password"}
+              autoComplete="current-password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              dir="ltr"
+            />
+            <button type="button" className="icon-btn input-action" onClick={() => setShow(!show)} aria-label={show ? t("login.hidePassword") : t("login.showPassword")}>
+              <Icon name={show ? "eyeOff" : "eye"} />
+            </button>
+          </span>
         </label>
         {login.isError && (
           <p className="notice notice-error" role="alert">
-            {code === "UNAUTHORIZED" ? t("login.wrong") : t("error.generic")}
+            <Icon name="alert" />
+            <span className="notice-body">{code === "UNAUTHORIZED" ? t("login.wrong") : t("error.generic")}</span>
           </p>
         )}
-        <button type="submit" className="btn btn-primary btn-block" disabled={login.isPending}>
+        <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={login.isPending}>
           {login.isPending ? t("common.loading") : t("login.submit")}
         </button>
       </form>
-      <p>
-        <a href="#/languages">{t("nav.languages")}</a>
+      <p className="center">
+        <a className="link-quiet" href="#/languages">
+          <Icon name="globe" size={16} /> {t("nav.languages")}
+        </a>
       </p>
-    </main>
+    </div>
   );
 }
