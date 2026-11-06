@@ -40,7 +40,7 @@ wilson/
    │                    reminders.dispatch (cron) · media.purge (cron)      │
    └──────┬───────────────────────┬───────────────────────┬────────────────┘
           ▼                       ▼                       ▼
-   PostgreSQL 17           MinIO (S3 API)           LLM provider (default: Anthropic API, Claude Opus)
+   PostgreSQL 17           SeaweedFS (S3)           LLM provider (default: Anthropic API, Claude Opus)
    data + pg-boss queues   encrypted blobs only     behind the generic LlmProvider interface
    backoffice (nginx, static build) ──/rpc──▶ api
 ```
@@ -111,7 +111,7 @@ Type, dates, urgency and status stay in clear so the queue can sort and filter; 
 ## 6. Security & GDPR
 
 - **Encryption at rest, per user.** Each beneficiary gets a random 256-bit data key (DEK), stored only wrapped by `MASTER_KEY` (env/secret manager). Blobs are encrypted by the API with the DEK (AES-256-GCM) **before** upload to S3, and sensitive DB columns use the same DEK. Deleting a beneficiary deletes `wrapped_dek` → all their data is cryptographically unreadable (crypto-shredding), then rows/blobs are purged.
-  *Decision:* app-level envelope encryption instead of S3 SSE-C. SSE-C still sends the key to the storage provider on each request and MinIO only accepts it over TLS; app-level encryption works on any EU S3 (Scaleway, OVH, Clever Cloud) and the provider never sees plaintext. The bucket additionally uses provider-side SSE-S3 in production.
+  *Decision:* app-level envelope encryption instead of S3 SSE-C. SSE-C still sends the key to the storage provider on each request and most self-hosted S3 servers only accept it over TLS; app-level encryption works on any EU S3 (Scaleway, OVH, Clever Cloud) and the provider never sees plaintext. The bucket additionally uses provider-side SSE-S3 in production.
 - **Letter photos** are deleted after processing (§4.2), unless the user saves them to My documents.
 - **Third parties:** only Meta (WhatsApp transport) and the LLM provider. No analytics, no CDN, fonts self-hosted, no external calls from the back-office.
 - **Back-office:** cookie session (httpOnly, SameSite=Strict, Secure), argon2id passwords, phone numbers masked, every photo/document view logged.
@@ -168,6 +168,7 @@ The Meta webhook is the one HTTP route outside oRPC (format and signature impose
 | D5 | Outgoing text = template(fields) + fixed footer | Guarantees orientation pointer and structure; LLM never writes the whole message |
 | D6 | Webhook as plain HTTP route with contract-defined Zod schema | Meta imposes format + raw-body signature |
 | D7 | Back-office UI in fr + en + ar first, WhatsApp catalogs in all 10 | Volunteers are francophone; ar proves RTL UI; beneficiary-facing text is what must be in all languages. Machine-drafted translations flagged for native review |
+| D8 | SeaweedFS as local S3 instead of MinIO | MinIO no longer publishes Docker images; any EU S3 provider works in production (only the endpoint changes) |
 
 ## 12. Answers from the association (2026-11-06)
 
