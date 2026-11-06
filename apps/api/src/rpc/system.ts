@@ -1,0 +1,9 @@
+import { os } from "./base.js";
+
+export const systemRouter = {
+  health: os.system.health.handler(({ context }) => ({
+    ok: true,
+    mode: context.deps.config.WHATSAPP_MODE,
+    llm: context.deps.config.LLM_MODE,
+  })),
+};
