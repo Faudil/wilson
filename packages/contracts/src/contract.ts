@@ -4,6 +4,7 @@ import { LoginInputSchema, VolunteerSchema } from "./auth.js";
 import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
+import { KnowledgeHitSchema, KnowledgeSearchInputSchema, KnowledgeSourceIdSchema, KnowledgeSourceSchema } from "./knowledge.js";
 import { LanguageSchema } from "./languages.js";
 import { LetterDetailSchema, LetterEditSchema, LetterStatusSchema, LetterSummarySchema } from "./letters.js";
 import { SandboxMessageSchema, SandboxPhoneSchema, SandboxSendInputSchema } from "./sandbox.js";
@@ -71,9 +72,18 @@ const sandbox = {
   reset: base.input(z.object({ phone: SandboxPhoneSchema })).output(z.void()),
 };
 
+/** Knowledge base (RAG) used to ground orientation. */
+const knowledge = {
+  sources: base.output(z.array(KnowledgeSourceSchema)),
+  /** Same retrieval the orientation step uses — lets volunteers check what the AI will see. */
+  search: base.input(KnowledgeSearchInputSchema).output(z.array(KnowledgeHitSchema)),
+  /** Re-download and re-index one source (admin). Runs in the background. */
+  sync: base.input(z.object({ sourceId: KnowledgeSourceIdSchema })).output(z.object({ queued: z.boolean() })),
+};
+
 const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]) })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, system };
+export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, system };
 export type Contract = typeof contract;

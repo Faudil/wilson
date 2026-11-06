@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CalendarDateSchema, IdSchema, TimestampSchema } from "./common.js";
+import { LetterSourceRefSchema } from "./knowledge.js";
 import { LanguageSchema } from "./languages.js";
 
 export const LetterTypeSchema = z.enum([
@@ -71,6 +72,8 @@ export const LetterAnalysisSchema = z.object({
   reviewerWarnings: z.array(z.string().max(300)).max(5),
   fr: LetterTextSchema,
   target: LetterTextSchema,
+  /** Set by the orientation step (RAG): knowledge entries the orientation lines are based on. Not produced by the analysis prompt. */
+  sources: z.array(LetterSourceRefSchema).max(8).optional(),
 });
 export type LetterAnalysis = z.infer<typeof LetterAnalysisSchema>;
 

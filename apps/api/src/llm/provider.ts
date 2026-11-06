@@ -23,6 +23,17 @@ export interface LlmProvider {
   detectLanguage(input: { text: string }): Promise<{ language: LanguageCode | null; confidence: number }>;
   /** Text: translate reviewer-edited French prose into the beneficiary's language (same structure). */
   translateLetterText(input: { fr: LetterText; targetLanguage: LanguageCode }): Promise<LetterText>;
+  /**
+   * RAG orientation step (after analyzeLetter): rewrite the "who to turn to" lines using ONLY the given snippets
+   * (+ the association, always first). Returns orientation in French and in the target language (same order, 1–4
+   * lines) and the snippet ids actually used. Never legal advice; never invents an address, phone or office.
+   */
+  orientLetter(input: {
+    analysis: LetterAnalysis;
+    targetLanguage: LanguageCode;
+    association: { name: string; contact: string };
+    snippets: { id: string; title: string; text: string; url: string | null }[];
+  }): Promise<{ fr: string[]; target: string[]; usedIds: string[] }>;
 }
 
 export class LlmError extends Error {

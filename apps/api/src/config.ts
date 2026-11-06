@@ -43,6 +43,14 @@ const EnvSchema = z.object({
   ASSOCIATION_NAME: z.string().default("Association Wilson"),
   /** Shown in every outgoing message footer: phone, address, opening hours. Plain text. */
   ASSOCIATION_CONTACT: z.string().default("01 23 45 67 89 · 12 rue de l'Exemple, 75010 Paris · lun-ven 9h-17h"),
+  /** Département(s) whose local offices are loaded from the annuaire and preferred in search, comma-separated INSEE codes. */
+  KNOWLEDGE_DEPARTMENTS: z.string().default("75"),
+  /** Folder of the association's own Markdown notes + dropped-in guides (watizat/*.pdf). */
+  KNOWLEDGE_DIR: z.string().default("knowledge"),
+  /** Comma-separated source ids to enable on top of the defaults, e.g. "watizat" once permission is granted. */
+  KNOWLEDGE_ENABLE: z.string().default(""),
+  /** Turn the RAG orientation step off (analysis only). */
+  RAG_ENABLED: z.coerce.boolean().default(true),
   PHOTO_TTL_HOURS: z.coerce.number().default(48),
   ARCHIVE_RETENTION_DAYS: z.coerce.number().default(30),
   TIMEZONE: z.string().default("Europe/Paris"),

@@ -32,6 +32,8 @@ export const directionEnum = pgEnum("direction", ["in", "out"]);
 export const messageKindEnum = pgEnum("message_kind", ["text", "image", "document", "template", "interactive", "other"]);
 export const messageStatusEnum = pgEnum("message_status", ["received", "queued", "sent", "delivered", "read", "failed"]);
 export const reminderKindEnum = pgEnum("reminder_kind", ["d30", "d7"]);
+export const knowledgeSourceEnum = pgEnum("knowledge_source", ["service_public", "annuaire", "association", "watizat"]);
+export const knowledgeKindEnum = pgEnum("knowledge_kind", ["procedure", "contact", "guide"]);
 export const reminderStatusEnum = pgEnum("reminder_status", ["scheduled", "sent", "cancelled", "failed"]);
 
 /** Conversation state machine snapshot, owned by src/conversation/engine.ts. */
@@ -173,3 +175,39 @@ export const accessLog = pgTable("access_log", {
   at: ts("at").notNull().defaultNow(),
 });
 
+
+const tsvector = customType<{ data: string }>({ dataType: () => "tsvector" });
+
+/** Knowledge base (RAG). Public, non-personal content only — never beneficiary data. */
+export const knowledgeSources = pgTable("knowledge_sources", {
+  id: knowledgeSourceEnum("id").primaryKey(),
+  /** Admin override; null = adapter default (`enabledByDefault`). */
+  enabled: boolean("enabled"),
+  lastSyncAt: ts("last_sync_at"),
+  lastError: text("last_error"),
+});
+
+export const knowledgeChunks = pgTable("knowledge_chunks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sourceId: knowledgeSourceEnum("source_id").notNull(),
+  /** Stable id inside the source (fiche id + section, annuaire id…), used to upsert on re-sync. */
+  externalId: text("external_id").notNull(),
+  kind: knowledgeKindEnum("kind").notNull(),
+  title: text("title").notNull(),
+  url: text("url"),
+  /** INSEE département code for local contacts; null = national. */
+  department: text("department"),
+  /** Plain text, ≤ ~1500 chars per chunk. French. */
+  text: text("text").notNull(),
+  /** Source-provided last update, if any. */
+  sourceUpdatedAt: ts("source_updated_at"),
+  syncedAt: ts("synced_at").notNull().defaultNow(),
+  /** French full-text index over title (weight A) + text (weight B). */
+  tsv: tsvector("tsv").generatedAlwaysAs(
+    sql`setweight(to_tsvector('french', coalesce(title, '')), 'A') || setweight(to_tsvector('french', coalesce(text, '')), 'B')`,
+  ),
+}, (t) => [
+  uniqueIndex("knowledge_chunks_source_ext_idx").on(t.sourceId, t.externalId),
+  index("knowledge_chunks_tsv_idx").using("gin", t.tsv),
+  index("knowledge_chunks_dept_idx").on(t.department),
+]);

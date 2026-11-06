@@ -6,6 +6,7 @@ export const JOBS = {
   remindersDispatch: "reminders.dispatch", // cron */15
   mediaPurge: "media.purge", // cron hourly: letter photos past PHOTO_TTL_HOURS
   archivePurge: "archive.purge", // cron daily: documents/beneficiaries past purge_at
+  knowledgeSync: "knowledge.sync", // cron weekly + on demand
 } as const;
 
 export interface JobPayloads {
@@ -18,6 +19,8 @@ export interface JobPayloads {
   [JOBS.remindersDispatch]: { now?: string };
   [JOBS.mediaPurge]: Record<string, never>;
   [JOBS.archivePurge]: Record<string, never>;
+  /** No sourceId = every enabled source. */
+  [JOBS.knowledgeSync]: { sourceId?: "service_public" | "annuaire" | "association" | "watizat" };
 }
 
 export interface JobQueue {

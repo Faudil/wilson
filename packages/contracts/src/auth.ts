@@ -17,6 +17,8 @@ export const PermissionSchema = z.enum([
   "sandbox.use",
   "volunteers.manage",
   "audit.view",
+  "knowledge.view", // browse sources, test search
+  "knowledge.manage", // trigger a sync
 ]);
 export type Permission = z.infer<typeof PermissionSchema>;
 
@@ -32,10 +34,11 @@ const VOLUNTEER: Permission[] = [
   "documents.view_file",
   "documents.edit",
   "sandbox.use",
+  "knowledge.view",
 ];
 export const ROLE_PERMISSIONS: Record<VolunteerRole, readonly Permission[]> = {
   volunteer: VOLUNTEER,
-  admin: [...VOLUNTEER, "volunteers.manage", "audit.view"],
+  admin: [...VOLUNTEER, "volunteers.manage", "audit.view", "knowledge.manage"],
 };
 
 export const VolunteerSchema = z.object({
