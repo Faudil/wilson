@@ -142,7 +142,31 @@ function dtf(locale: string, weekday: boolean, numberingSystem: string): Intl.Da
   return f;
 }
 
+/**
+ * Chromium lacks CLDR data for ti and so (and am differs between engines): month and weekday names are built in so
+ * Node and browsers print the same text. Order is fixed: [weekday] day month year. Weekday index 0 = Sunday.
+ */
+const NAME_TABLES: Partial<Record<LanguageCode, { months: string[]; days: string[] }>> = {
+  am: {
+    months: "ጃንዋሪ ፌብሩዋሪ ማርች ኤፕሪል ሜይ ጁን ጁላይ ኦገስት ሴፕቴምበር ኦክቶበር ኖቬምበር ዲሴምበር".split(" "),
+    days: "እሑድ ሰኞ ማክሰኞ ረቡዕ ሐሙስ ዓርብ ቅዳሜ".split(" "),
+  },
+  ti: {
+    months: "ጥሪ ለካቲት መጋቢት ሚያዝያ ግንቦት ሰነ ሓምለ ነሓሰ መስከረም ጥቅምቲ ሕዳር ታሕሳስ".split(" "),
+    days: "ሰንበት ሰኑይ ሰሉስ ረቡዕ ሓሙስ ዓርቢ ቀዳም".split(" "),
+  },
+  so: {
+    months: "Janaayo Febraayo Maarso Abriil May Juun Luuliyo Ogost Sebtembar Oktoobar Nofembar Desembar".split(" "),
+    days: "Axad Isniin Salaasa Arbaco Khamiis Jimce Sabti".split(" "),
+  },
+};
+
 function formatOne(date: Date, lang: LanguageCode, weekday: boolean, numberingSystem: string): string {
+  const table = NAME_TABLES[lang];
+  if (table) {
+    const parts = [String(date.getUTCDate()), table.months[date.getUTCMonth()]!, String(date.getUTCFullYear())];
+    return (weekday ? [table.days[date.getUTCDay()]!, ...parts] : parts).join(" ");
+  }
   const f = dtf(LANGUAGES[lang].intlLocale, weekday, numberingSystem);
   if (lang === "ps") {
     // ICU's Pashto pattern ("يونۍ د ۲۰۲۷ د مارچ ۱۴") is hard to read: compose weekday, day, month, year ourselves.

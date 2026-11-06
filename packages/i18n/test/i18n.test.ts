@@ -79,6 +79,23 @@ describe("formatDate", () => {
     expect(formatDate("2027-03-14", "en", { weekday: true })).toContain("Sunday");
     expect(formatDate("2027-12-31", "fr")).toBe("31 décembre 2027");
   });
+  it("ti / so / am use built-in names (identical in Node and browsers)", () => {
+    for (const l of ["ti", "so", "am"] as const) {
+      for (const weekday of [false, true]) {
+        const s = formatDate("2027-03-14", l, { weekday });
+        expect(s).not.toMatch(/M\d{2}/);
+        expect(s).not.toMatch(/March|Sunday|Mar\b/);
+        expect(s).toContain("14");
+        expect(s).toContain("2027");
+      }
+    }
+    expect(formatDate("2027-03-14", "so", { weekday: true })).toBe("Axad 14 Maarso 2027");
+    expect(formatDate("2027-03-14", "ti")).toBe("14 መጋቢት 2027");
+    expect(formatDate("2027-03-14", "am")).toBe("14 ማርች 2027");
+  });
+  it("all 10 languages format without throwing", () => {
+    for (const l of LANGUAGE_CODES) expect(formatDate("2027-03-14", l).length).toBeGreaterThan(5);
+  });
   it("rejects invalid input", () => {
     expect(() => formatDate("2027-02-31", "fr")).toThrow();
   });

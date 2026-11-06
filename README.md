@@ -1,0 +1,100 @@
+# Mon courrier — POC
+
+Service WhatsApp pour les personnes accompagnées par l'association :
+
+1. **Expliquer un courrier.** La personne envoie la photo d'un courrier officiel (préfecture, OFPRA, CAF, OFII…). Elle reçoit dans sa langue ce qu'est le courrier, ce qu'on attend d'elle, la date limite et à qui s'adresser. **Chaque réponse est relue et validée par un·e bénévole avant l'envoi.**
+2. **Mes documents.** La personne garde ses papiers (attestation, récépissé, domiciliation…) dans un coffre chiffré. Elle reçoit un rappel WhatsApp 30 jours et 7 jours avant l'expiration.
+
+Le service **ne donne jamais de conseil juridique** : il explique, oriente et rappelle. Chaque message se termine par les coordonnées de l'association.
+
+Langues : français, anglais, arabe, dari, pachto, ourdou, ukrainien, tigrinya, somali, amharique.
+
+> Documentation technique : [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
+## 1. Installation (personne technique)
+
+Prérequis : Docker et Docker Compose.
+
+```bash
+cp .env.example .env
+# Générer les deux clés secrètes (à garder précieusement, voir §4) :
+sed -i "s#^MASTER_KEY=.*#MASTER_KEY=$(openssl rand -base64 32)#; s#^LOOKUP_KEY=.*#LOOKUP_KEY=$(openssl rand -base64 32)#" .env
+# Renseigner ASSOCIATION_NAME, ASSOCIATION_CONTACT, SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD
+docker compose up --build
+```
+
+- Back-office : http://localhost:8080 (compte admin = `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`).
+- Un compte « Bénévole Démo » est aussi créé hors production.
+
+### Mode bac à sable (sans compte Meta, sans clé IA)
+
+Par défaut, `WHATSAPP_MODE=sandbox` et `LLM_MODE=fake` :
+
+- l'onglet **Bac à sable** du back-office simule un téléphone WhatsApp : écrivez « bonjour », choisissez une langue, envoyez une photo de courrier (exemples dans `samples/letters/*.png`) ;
+- le courrier apparaît dans **Courriers à relire** ; validez-le et la réponse arrive dans le faux téléphone ;
+- « Simuler les rappels » lance les rappels de documents comme si on était à une date donnée ;
+- en `LLM_MODE=fake`, les 10 courriers d'exemple reçoivent une analyse préparée à l'avance ; toute autre photo reçoit une analyse générique.
+
+### Passer en vrai
+
+| Variable | Rôle |
+|---|---|
+| `LLM_MODE=anthropic`, `ANTHROPIC_API_KEY`, `LLM_MODEL` | Analyse réelle par Claude (modèle Opus par défaut) |
+| `WHATSAPP_MODE=meta` + `WHATSAPP_*` | WhatsApp Cloud API (Meta). Webhook : `https://<domaine>/webhooks/whatsapp` |
+| `WHATSAPP_TEMPLATE_EXPLANATION_READY`, `WHATSAPP_TEMPLATE_DOCUMENT_REMINDER` | Modèles de messages à faire approuver par Meta (catégorie « utility ») dans les 10 langues. Ils servent quand la personne n'a pas écrit depuis plus de 24 h (règle WhatsApp) |
+| `S3_*` | Stockage S3 hébergé en France/UE (Scaleway, OVH, Clever Cloud…) |
+
+Le back-office doit être servi en **HTTPS** en production (le cookie de session est `Secure`).
+
+Développement sans Docker : `pnpm install`, une base Postgres, puis `pnpm --filter @wilson/api dev` et `pnpm --filter @wilson/backoffice dev`. Tests : `pnpm test` (Postgres requis sur `localhost:5432`, utilisateur `wilson`).
+
+*Derrière un proxy d'entreprise qui intercepte TLS* : `docker build --secret id=extra_ca,src=<ca.crt> -f docker/api.Dockerfile -t wilson-api .` (idem pour `backoffice`), puis `docker compose up --no-build`.
+
+---
+
+## 2. Utilisation par les bénévoles
+
+Le back-office fonctionne sur téléphone.
+
+- **Courriers** : la liste des courriers à relire, les plus urgents en premier. Ouvrez un courrier, regardez la photo, lisez l'explication **en français**, corrigez si besoin (texte, type, urgence, date limite), puis **Valider et envoyer** ou **Refuser**.
+  - Si vous corrigez le français, la traduction est refaite automatiquement au moment de l'envoi.
+  - Refuser : la personne reçoit « un·e bénévole va vous recontacter » ; rien de l'IA n'est envoyé.
+  - Les encadrés jaunes signalent ce qu'il faut vérifier (date calculée, photo floue, OQTF…).
+- **Personnes** : documents de chaque personne, dates d'expiration, rappels, changement de langue.
+- **Échéances** : documents qui expirent dans les 60 prochains jours.
+- **Test des langues** : vérifie que chaque écriture s'affiche correctement sur votre téléphone.
+
+---
+
+## 3. RGPD — ce qui est stocké, combien de temps, qui y accède
+
+| Donnée | Où | Protection | Durée |
+|---|---|---|---|
+| Numéro WhatsApp | Base de données | Chiffré ; seuls les 2 derniers chiffres sont visibles par les bénévoles | Jusqu'à suppression demandée |
+| Langue, étape de conversation | Base de données | — | Idem |
+| Messages échangés | Base de données | Chiffrés (clé propre à chaque personne) | Pas de suppression automatique pour l'instant (décision de l'association) |
+| **Photo d'un courrier** | Stockage S3 | Chiffrée | **Supprimée après traitement** : dès que la personne répond « non » à « garder ce courrier ? », et au plus tard 48 h après l'envoi de l'explication. Conservée seulement si la personne choisit de la garder dans « Mes documents » |
+| Analyse du courrier (texte) | Base de données | Chiffrée | Pas de suppression automatique pour l'instant |
+| Documents (« Mes documents ») | Stockage S3 | Chiffrés | Jusqu'à ce que la personne les supprime ; ils sont alors **archivés 30 jours puis effacés définitivement** |
+| Comptes bénévoles, journal des accès | Base de données | Mots de passe hachés (argon2id) | Durée de l'engagement |
+
+- **Chiffrement** : chaque personne a sa propre clé, elle-même chiffrée par la clé maître (`MASTER_KEY`). Le fournisseur de stockage ne voit jamais les fichiers en clair. Quand une personne demande la suppression de ses données (menu 9), tout est archivé 30 jours, puis sa clé est détruite : ses données deviennent illisibles, puis sont effacées.
+- **Hébergement** : base de données et stockage en UE (France visée).
+- **Tiers** : uniquement **Meta** (transport WhatsApp) et le **fournisseur d'IA** (Anthropic par défaut). L'IA reçoit seulement l'image du courrier et la langue cible : ni nom de la personne, ni numéro, ni historique. Le fournisseur peut être changé (interface générique) pour un hébergement UE. Aucune statistique, aucun CDN, polices hébergées localement.
+- **Accès** : bénévoles connectés au back-office. Aujourd'hui, tout·e bénévole peut voir photos et documents ; **chaque consultation est enregistrée** (qui, quoi, quand). Des permissions fines sont prêtes pour restreindre plus tard. Seuls les admins gèrent les comptes.
+- **Droits des personnes** : la personne peut supprimer un document ou toutes ses données depuis WhatsApp (menu 2 et menu 9).
+
+---
+
+## 4. Limites connues (POC)
+
+- **Traductions** : seuls le français et l'anglais ont été rédigés avec soin. Les textes en arabe, dari, pachto, ourdou, ukrainien, tigrinya, somali et amharique sont des **brouillons à faire relire par des locuteurs natifs**. Les dates en tigrinya/somali/amharique utilisent des noms de mois intégrés au code.
+- **Langues de l'interface bénévole** : français, anglais, arabe.
+- **IA** : l'explication peut se tromper (date calculée, type de courrier). C'est pour cela que chaque réponse est relue. Les réponses de l'IA n'ont pas encore été testées sur de vrais courriers ni avec le vrai modèle (exemples synthétiques uniquement).
+- **WhatsApp** : les modèles de messages Meta (hors fenêtre de 24 h) doivent être créés et approuvés dans le compte Meta. Le bac à sable ignore cette règle.
+- **Suppression** : une personne qui a demandé la suppression de ses données ne reçoit plus de réponse pendant les 30 jours d'archivage. La suppression d'un seul document depuis WhatsApp n'est pas encore disponible (possible depuis le back-office).
+- **Ourdou** affiché en Naskh, pas en Nastaliq.
+- **Sauvegardes** : non configurées. **Perdre `MASTER_KEY` = perdre toutes les données.** La conserver hors du serveur (coffre-fort de mots de passe de l'association).
+- **Pas encore audité** en sécurité ; ne pas utiliser avec de vraies personnes avant revue.

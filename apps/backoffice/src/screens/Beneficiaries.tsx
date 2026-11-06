@@ -1,7 +1,8 @@
-import { LANGUAGES, LANGUAGE_CODES, type DocumentDto, type LanguageCode } from "@wilson/contracts";
+import { LANGUAGES, LANGUAGE_CODES, DocumentTypeSchema, type DocumentDto, type LanguageCode } from "@wilson/contracts";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { DeadlineText, LangBadge, StatusBadge, UrgencyBadge } from "../components/badges";
+import { DateField } from "../components/DateField";
 import { BackLink, Empty, ErrorBox, Loading } from "../components/ui";
 import { useI18n, type MessageKey } from "../i18n";
 import { client, orpc } from "../lib/api";
@@ -165,6 +166,34 @@ function DocumentCard({ doc }: { doc: DocumentDto }) {
       void qc.invalidateQueries({ queryKey: orpc.documents.key() });
     },
   });
+  const [editing, setEditing] = useState(false);
+  const [type, setType] = useState(doc.type);
+  const [noExpiry, setNoExpiry] = useState(doc.expiresAt === null);
+  const [date, setDate] = useState(doc.expiresAt ?? "");
+  const update = useMutation({
+    ...orpc.documents.update.mutationOptions(),
+    onSuccess: () => {
+      setEditing(false);
+      void qc.invalidateQueries({ queryKey: orpc.beneficiaries.key() });
+      void qc.invalidateQueries({ queryKey: orpc.documents.key() });
+    },
+  });
+  const startEdit = () => {
+    setType(doc.type);
+    setNoExpiry(doc.expiresAt === null);
+    setDate(doc.expiresAt ?? "");
+    update.reset();
+    setEditing(true);
+  };
+  const dateOk = noExpiry || /^\d{4}-\d{2}-\d{2}$/.test(date);
+  const saveEdit = () => {
+    const expiresAt = noExpiry ? null : date;
+    update.mutate({
+      id: doc.id,
+      ...(type !== doc.type ? { type } : {}),
+      ...(expiresAt !== doc.expiresAt ? { expiresAt } : {}),
+    });
+  };
   const [opening, setOpening] = useState(false);
   const [fileError, setFileError] = useState(false);
 
@@ -213,6 +242,11 @@ function DocumentCard({ doc }: { doc: DocumentDto }) {
             {t("documents.view")}
           </button>
         )}
+        {can("documents.edit") && !archived && !editing && (
+          <button type="button" className="btn" onClick={startEdit}>
+            {t("documents.edit")}
+          </button>
+        )}
         {can("documents.edit") && !archived && (
           <button
             type="button"
@@ -226,6 +260,35 @@ function DocumentCard({ doc }: { doc: DocumentDto }) {
           </button>
         )}
       </div>
+      {editing && can("documents.edit") && !archived && (
+        <fieldset className="stack" disabled={update.isPending}>
+          <label className="field">
+            <span>{t("documents.type")}</span>
+            <select value={type} onChange={(e) => setType(e.target.value as DocumentDto["type"])}>
+              {DocumentTypeSchema.options.map((o) => (
+                <option key={o} value={o}>
+                  {documentTypeName(o, lang)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="check">
+            <input type="checkbox" checked={noExpiry} onChange={(e) => setNoExpiry(e.target.checked)} />
+            <span>{t("documents.noExpiryCheck")}</span>
+          </label>
+          {!noExpiry && <DateField label={t("documents.expiryDate")} value={date} onChange={setDate} previewKey="documents.datePreview" />}
+          <div className="row wrap">
+            <button type="button" className="btn btn-primary" disabled={!dateOk} onClick={saveEdit}>
+              {t("documents.saveEdit")}
+            </button>
+            <button type="button" className="btn" onClick={() => setEditing(false)}>
+              {t("common.cancel")}
+            </button>
+          </div>
+        </fieldset>
+      )}
+      {update.isSuccess && !editing && <p className="notice notice-ok small">{t("documents.saved")}</p>}
+      {update.isError && <p className="notice notice-error small">{t("error.generic")}</p>}
       {fileError && <p className="notice notice-error small">{t("error.generic")}</p>}
       {archive.isError && <p className="notice notice-error small">{t("error.generic")}</p>}
     </div>

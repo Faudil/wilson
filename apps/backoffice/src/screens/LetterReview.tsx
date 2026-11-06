@@ -1,7 +1,8 @@
-import { LANGUAGES, type LetterDetail, type LetterText } from "@wilson/contracts";
+import { LANGUAGES, LetterTypeSchema, type LetterAnalysis, type LetterDetail, type LetterText } from "@wilson/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { DeadlineText, LangBadge, StatusBadge, UrgencyBadge } from "../components/badges";
+import { DateField } from "../components/DateField";
 import { BackLink, ErrorBox, Loading, useObjectUrl } from "../components/ui";
 import { useI18n, type MessageKey } from "../i18n";
 import { errorCode, orpc } from "../lib/api";
@@ -24,6 +25,31 @@ const fromDraft = (d: Draft): LetterText => ({
   actions: linesToList(d.actions),
   orientation: linesToList(d.orientation),
 });
+
+type Facts = {
+  letterType: LetterAnalysis["letterType"];
+  urgency: LetterAnalysis["urgency"];
+  noDeadline: boolean;
+  date: string;
+  kind: NonNullable<LetterAnalysis["deadline"]>["kind"];
+  explicit: boolean;
+};
+const DEADLINE_KINDS = ["reply", "appointment", "appeal", "payment", "other"] as const;
+const URGENCIES = ["low", "medium", "high"] as const;
+
+const toFacts = (a: LetterAnalysis): Facts => ({
+  letterType: a.letterType,
+  urgency: a.urgency,
+  noDeadline: a.deadline === null,
+  date: a.deadline?.date ?? "",
+  kind: a.deadline?.kind ?? "reply",
+  explicit: a.deadline?.explicit ?? true,
+});
+const factsDirty = (f: Facts, o: Facts): boolean =>
+  f.letterType !== o.letterType ||
+  f.urgency !== o.urgency ||
+  f.noDeadline !== o.noDeadline ||
+  (!f.noDeadline && (f.date !== o.date || f.kind !== o.kind || f.explicit !== o.explicit));
 
 export function LetterReview({ id }: { id: string }) {
   const { t } = useI18n();
@@ -69,13 +95,21 @@ function Review({ detail }: { detail: LetterDetail }) {
   useEffect(() => {
     setDraft(original);
   }, [original]);
+  const originalFacts = useMemo(() => (analysis ? toFacts(analysis) : null), [analysis]);
+  const [facts, setFacts] = useState<Facts | null>(originalFacts);
+  useEffect(() => {
+    setFacts(originalFacts);
+  }, [originalFacts]);
   const [rejecting, setRejecting] = useState(false);
   const [note, setNote] = useState("");
   const [showFr, setShowFr] = useState(false);
 
-  const dirty = !!draft && !!original && (Object.keys(draft) as (keyof Draft)[]).some((k) => draft[k] !== original[k]);
+  const textDirty = !!draft && !!original && (Object.keys(draft) as (keyof Draft)[]).some((k) => draft[k] !== original[k]);
+  const factsChanged = !!facts && !!originalFacts && factsDirty(facts, originalFacts);
+  const dirty = textDirty || factsChanged;
   const parsed = draft ? fromDraft(draft) : null;
   const invalid =
+    (!!facts && !facts.noDeadline && !/^\d{4}-\d{2}-\d{2}$/.test(facts.date)) ||
     !parsed || !parsed.title || !parsed.summary || parsed.orientation.length < 1 || parsed.orientation.length > 4 || parsed.actions.length > 6;
 
   const refresh = (next: LetterDetail) => {
@@ -88,14 +122,35 @@ function Review({ detail }: { detail: LetterDetail }) {
   const busy = edit.isPending || approve.isPending || reject.isPending;
   const error = edit.error ?? approve.error ?? reject.error;
 
-  const save = () => parsed && edit.mutate({ id: detail.id, fr: parsed });
+  /** Only the fields the volunteer changed are sent. */
+  const buildEdit = () => {
+    if (!parsed) return null;
+    const out: Parameters<typeof edit.mutate>[0] = { id: detail.id };
+    if (textDirty) out.fr = parsed;
+    if (facts && originalFacts && analysis && factsChanged) {
+      if (facts.letterType !== originalFacts.letterType) out.letterType = facts.letterType;
+      if (facts.urgency !== originalFacts.urgency) out.urgency = facts.urgency;
+      if (facts.noDeadline !== originalFacts.noDeadline || facts.date !== originalFacts.date || facts.kind !== originalFacts.kind || facts.explicit !== originalFacts.explicit) {
+        out.deadline = facts.noDeadline
+          ? null
+          : { date: facts.date, kind: facts.kind, explicit: facts.explicit, sourceQuote: analysis.deadline?.sourceQuote ?? "" };
+      }
+    }
+    return out;
+  };
+  const save = () => {
+    const input = buildEdit();
+    if (input) edit.mutate(input);
+  };
   const doApprove = async () => {
     if (!window.confirm(t("letter.confirmApprove"))) return;
-    if (dirty && parsed) await edit.mutateAsync({ id: detail.id, fr: parsed });
+    const input = dirty ? buildEdit() : null;
+    if (input) await edit.mutateAsync(input);
     approve.mutate({ id: detail.id });
   };
 
   const target = LANGUAGES[detail.language];
+  const setF = <K extends keyof Facts>(k: K, v: Facts[K]) => setFacts((f) => (f ? { ...f, [k]: v } : f));
   const set = (k: keyof Draft) => (e: { target: { value: string } }) => setDraft((d) => (d ? { ...d, [k]: e.target.value } : d));
 
   return (
@@ -170,10 +225,61 @@ function Review({ detail }: { detail: LetterDetail }) {
         </div>
       )}
 
+      {facts && editable && (
+        <div className="card">
+          <h2>{t("letter.editFacts")}</h2>
+          <fieldset className="stack" disabled={busy}>
+            <label className="field">
+              <span>{t("letter.f.type")}</span>
+              <select value={facts.letterType} onChange={(e) => setF("letterType", e.target.value as Facts["letterType"])}>
+                {LetterTypeSchema.options.map((type) => (
+                  <option key={type} value={type}>
+                    {t(`letterType.${type}` as MessageKey)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>{t("letter.f.urgency")}</span>
+              <select value={facts.urgency} onChange={(e) => setF("urgency", e.target.value as Facts["urgency"])}>
+                {URGENCIES.map((u) => (
+                  <option key={u} value={u}>
+                    {t(`urgency.${u}` as MessageKey)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="check">
+              <input type="checkbox" checked={facts.noDeadline} onChange={(e) => setF("noDeadline", e.target.checked)} />
+              <span>{t("letter.f.noDeadline")}</span>
+            </label>
+            {!facts.noDeadline && (
+              <>
+                <DateField label={t("letter.f.deadlineDate")} value={facts.date} onChange={(v) => setF("date", v)} previewKey="letter.f.datePreview" />
+                <label className="field">
+                  <span>{t("letter.f.deadlineKind")}</span>
+                  <select value={facts.kind} onChange={(e) => setF("kind", e.target.value as Facts["kind"])}>
+                    {DEADLINE_KINDS.map((k) => (
+                      <option key={k} value={k}>
+                        {t(`deadlineKind.${k}` as MessageKey)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="check">
+                  <input type="checkbox" checked={facts.explicit} onChange={(e) => setF("explicit", e.target.checked)} />
+                  <span>{t("letter.f.explicit")}</span>
+                </label>
+              </>
+            )}
+          </fieldset>
+        </div>
+      )}
+
       {draft && (
         <div className="card">
           <h2>{t("letter.frText")}</h2>
-          {detail.frEdited || dirty ? <p className="notice notice-info">{t("letter.retranslateNote")}</p> : null}
+          {detail.frEdited || textDirty ? <p className="notice notice-info">{t("letter.retranslateNote")}</p> : null}
           <fieldset className="stack" disabled={!editable || busy} lang="fr" dir="ltr">
             <label className="field">
               <span>{t("letter.f.title")}</span>
