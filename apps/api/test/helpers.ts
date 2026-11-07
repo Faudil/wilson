@@ -107,6 +107,8 @@ export function testConfig(overrides: Record<string, string | undefined> = {}): 
     S3_SECRET_KEY: "y",
     WHATSAPP_MODE: "sandbox",
     LLM_MODE: "fake",
+    // Never call the real association register from tests.
+    ASSOCIATION_SEARCH: "off",
     ...overrides,
   });
 }

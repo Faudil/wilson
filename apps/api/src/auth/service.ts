@@ -109,6 +109,10 @@ export function createAuthService(deps: { db: Db; config: { SESSION_TTL_HOURS: n
       await db.insert(volunteers).values({
         email, passwordHash, name: input.name.trim(), role: "responder", uiLanguage: input.uiLanguage,
         pendingApproval: true, signupNote: input.note?.trim() || null,
+        associationName: input.association?.name.trim() || null,
+        associationSiren: input.association?.siren ?? null,
+        associationRna: input.association?.rna ?? null,
+        associationCity: input.association?.city ?? null,
       }).onConflictDoNothing({ target: volunteers.email });
     },
 

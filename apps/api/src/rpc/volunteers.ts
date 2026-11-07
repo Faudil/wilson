@@ -34,6 +34,9 @@ async function toAccounts(deps: Deps, rows: Row[]): Promise<VolunteerAccount[]> 
     status: statusOf(r),
     uiLanguage: r.uiLanguage,
     note: r.signupNote,
+    association: r.associationName
+      ? { name: r.associationName, siren: r.associationSiren, rna: r.associationRna, city: r.associationCity }
+      : null,
     createdAt: r.createdAt.toISOString(),
     approvedAt: r.approvedAt?.toISOString() ?? null,
     approvedByName: r.approvedBy ? (names.get(r.approvedBy) ?? null) : null,
