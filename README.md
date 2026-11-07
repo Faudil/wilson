@@ -114,6 +114,20 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
 - Les bénévoles peuvent **répondre eux-mêmes en français** : le message est traduit automatiquement dans la langue de la personne. « Clore » termine une prise en charge.
 - **Prendre une discussion** : le bouton **« Je prends la discussion »** (ou simplement répondre) fait passer la discussion « Avec un·e bénévole » : le robot ne répond plus, la personne reçoit « un bénévole va vous répondre personnellement » dans sa langue, et ses nouveaux messages attendent la·le bénévole (traduction française affichée). Seule exception : en cas d'urgence, le message fixe avec les numéros d'urgence part quand même. **« Rendre à l'assistant »** remet le robot en route. L'onglet **Les miennes** liste les discussions que vous suivez ; une autre personne peut « Prendre le relais ».
 
+## 2c bis. Aide du jour et annonces
+
+- **Aide du jour** (Plus → Aide du jour) : les bénévoles publient les lieux du jour ou de la semaine (hébergement, repas, douches, vêtements, santé) avec horaires, adresse, téléphone et jours d'ouverture. Sur WhatsApp, le menu **5** ou une question comme « où dormir ce soir ? » renvoie la liste du jour, traduite dans la langue de la personne, avec le 115 à la fin. Pas de relecture : le texte est celui des bénévoles (seulement traduit, une fois par langue). Si rien n'est publié, la question passe par la base de connaissances comme les autres. En cas d'urgence (« je dors dehors »), les numéros d'urgence partent d'abord, puis la liste.
+- **Annonces** (Plus → Annonces) : une annonce écrite en français est envoyée, traduite, aux personnes qui ont accepté de les recevoir (menu **6** ; « STOP » pour arrêter). Elle est écrite par un·e bénévole, puis **validée par une autre personne** (droit « Valider et envoyer les annonces », admins par défaut ; `BROADCAST_FOUR_EYES=off` pour une petite équipe). Avant de valider, l'écran montre le nombre de destinataires par langue, combien sont dans la fenêtre gratuite de 24 h et le **coût WhatsApp estimé** des autres (modèle payant). Voir `docs/whatsapp-setup.md`.
+- **Droits détaillés** (Plus → Bénévoles → ⋮ → Droits détaillés) : en plus du rôle, un·e admin peut donner ou retirer chaque droit à une personne (ex. permettre à une répondante de publier les lieux, ou retirer à un bénévole l'envoi d'annonces). Chaque changement est journalisé et s'applique au clic suivant.
+
+| Droit | Répondant·e | Bénévole | Admin |
+|---|---|---|---|
+| Voir les lieux du jour (`places.view`) | ✓ | ✓ | ✓ |
+| Publier, modifier, retirer des lieux (`places.manage`) | | ✓ | ✓ |
+| Voir les annonces (`broadcasts.view`) | | ✓ | ✓ |
+| Écrire des annonces (`broadcasts.create`) | | ✓ | ✓ |
+| Valider et envoyer les annonces (`broadcasts.approve`) | | | ✓ |
+
 ## 2d. Devenir bénévole (inscription en ligne)
 
 - Sur la page de connexion, **« Devenir bénévole »** ouvre un formulaire : nom, e-mail, mot de passe, « comment souhaitez-vous aider ? » et un engagement de confidentialité (pas de conseil juridique).

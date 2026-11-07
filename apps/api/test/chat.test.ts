@@ -349,7 +349,7 @@ describe("AnthropicProvider chat methods", () => {
     const m = mock(["not json", '{"intent":"legal","frenchQuery":"recours oqtf","needsHuman":false}']);
     const llm = new AnthropicProvider({ model: "x", client: m.client });
     const r = await llm.planChat({ history: [{ role: "beneficiary", text: "puis-je faire appel ?" }], language: "en" });
-    expect(r).toEqual({ intent: "legal", frenchQuery: "recours oqtf", needsHuman: true });
+    expect(r).toEqual({ intent: "legal", frenchQuery: "recours oqtf", needsHuman: true, needsPlaces: false });
     expect(m.calls).toHaveLength(2);
   });
 

@@ -19,6 +19,7 @@ import { footerFor, windowOpen } from "../whatsapp/send.js";
 import { looksUrgent } from "./urgent.js";
 import { todayIn } from "../whatsapp/context.js";
 import { withUsageContext } from "../usage/context.js";
+import { getPlaces } from "../places/service.js";
 
 type Row = typeof messages.$inferSelect;
 type ChatStatus = (typeof beneficiaries.$inferSelect)["chatStatus"];
@@ -36,7 +37,7 @@ export class ChatError extends Error {
 const RLM = "‏";
 
 /** Wrap Latin/digit runs (addresses, phones, names of institutions) with FSI..PDI in RTL text, RLM at each line start. */
-function bidi(lang: LanguageCode, text: string): string {
+export function bidi(lang: LanguageCode, text: string): string {
   if (!isRtl(lang)) return text;
   const isolated = text.replace(/[\p{Script=Latin}\d](?:[\p{Script=Latin}\d'’.\-/°]|(?:,\s?|\s)(?=[\p{Script=Latin}\d]))*/gu, (m) => isolate(m));
   return isolated.split("\n").map((l) => (l.length > 0 && !l.startsWith(RLM) ? RLM + l : l)).join("\n");
@@ -261,9 +262,30 @@ export function createChatService(deps: Deps): ChatService {
       return;
     }
 
+    // Today's places posted by volunteers (shelter, food, showers…): sent at once, no review step, since the text is
+    // the volunteers' own (only translated). French version kept for the Conversations screen.
+    const sendPlaces = async (): Promise<boolean> => {
+      const placesSvc = getPlaces(deps);
+      const text = await placesSvc.messageFor(lang, { beneficiaryId });
+      if (!text) return false;
+      const textFr = lang === "fr" ? text : await placesSvc.messageFor("fr");
+      await sendRow(beneficiaryId, lang, text, { author: "bot", intent: "places", textFr });
+      return true;
+    };
+
     // 3. route
     switch (plan.intent) {
-      case "urgent": return handoff(b, lang, "chat_urgent", "urgent");
+      case "urgent":
+        await handoff(b, lang, "chat_urgent", "urgent");
+        // "Nowhere to sleep tonight": the emergency numbers first, then where volunteers know there is room.
+        if (plan.needsPlaces) await sendPlaces();
+        return;
+      case "places":
+        if (await sendPlaces()) {
+          if (plan.needsHuman) await setStatus(beneficiaryId, "needs_human");
+          return;
+        }
+        break; // nothing posted today: answer from the knowledge base (accueils de jour, 115, SIAO…) like any question
       case "human":
       case "legal": return handoff(b, lang, "chat_handoff", plan.intent);
       case "letter":
@@ -276,8 +298,9 @@ export function createChatService(deps: Deps): ChatService {
       default:
     }
 
-    // info / smalltalk / out_of_scope: grounded answer
-    const snippets = plan.intent === "info" || plan.intent === "smalltalk" ? await search(plan.frenchQuery || text) : [];
+    // info / smalltalk / out_of_scope / places with nothing posted: grounded answer
+    const query = plan.frenchQuery || (plan.intent === "places" ? "hébergement d'urgence 115 accueil de jour repas douche" : text);
+    const snippets = plan.intent === "info" || plan.intent === "smalltalk" || plan.intent === "places" ? await search(query) : [];
     let reply: { text: string; textFr: string; usedIds: string[] };
     try {
       reply = await withUsageContext(beneficiaryId, () => llm.chatReply({ history: turns, language: lang, intent: plan.intent, association, snippets: snippets.map(({ id, title, text: t, url }) => ({ id, title, text: t, url })), today: today() }));

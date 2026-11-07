@@ -1,12 +1,14 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-import { LoginInputSchema, SignupInputSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
+import { PermissionSchema, LoginInputSchema, SignupInputSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
 import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
 import { ConversationDetailSchema, ConversationSummarySchema } from "./chat.js";
 import { KnowledgeHitSchema, KnowledgeSearchInputSchema, KnowledgeSourceIdSchema, KnowledgeSourceSchema } from "./knowledge.js";
 import { LanguageSchema } from "./languages.js";
+import { BroadcastInputSchema, BroadcastEstimateSchema, BroadcastSchema } from "./broadcasts.js";
+import { PlaceInputSchema, PlaceSchema } from "./places.js";
 import { LetterDetailSchema, LetterEditSchema, LetterStatusSchema, LetterSummarySchema } from "./letters.js";
 import { SandboxMessageSchema, SandboxPhoneSchema, SandboxSendInputSchema } from "./sandbox.js";
 import { CaseFileSchema, CaseNoteSchema, CaseTaskSchema, NoteTextSchema, TaskAddSchema, TaskListInputSchema, TaskUpdateSchema } from "./notes.js";
@@ -93,6 +95,44 @@ const volunteers = {
   setRole: base.input(z.object({ id: IdSchema, role: VolunteerRoleSchema })).output(VolunteerAccountSchema),
   /** Disable (sessions revoked at once) or re-enable an account. Not on yourself. */
   setDisabled: base.input(z.object({ id: IdSchema, disabled: z.boolean() })).output(VolunteerAccountSchema),
+  /**
+   * Replace a person's per-permission overrides on top of their role bundle (granted: false = revoked). Not on
+   * yourself, not on a pending account (CONFLICT). Applies on the person's next request.
+   */
+  setPermissions: base
+    .input(z.object({ id: IdSchema, overrides: z.array(z.object({ permission: PermissionSchema, granted: z.boolean() })).max(64) }))
+    .output(VolunteerAccountSchema),
+};
+
+/** Places for today (shelter, food, showers…): `places.view` to read, `places.manage` to post, edit, remove. */
+const places = {
+  /** today = open on `date` (default today, Europe/Paris); upcoming = not finished yet; all = including past ones. */
+  list: base.input(z.object({ scope: z.enum(["today", "upcoming", "all"]).default("upcoming") })).output(z.array(PlaceSchema)),
+  create: base.input(PlaceInputSchema).output(PlaceSchema),
+  update: base.input(z.object({ id: IdSchema, place: PlaceInputSchema })).output(PlaceSchema),
+  /** Hidden from the bot and the list at once. */
+  remove: base.input(z.object({ id: IdSchema })).output(z.void()),
+  /** The WhatsApp message a person would get today in `language` (translations are cached). */
+  preview: base.input(z.object({ language: LanguageSchema })).output(z.object({ text: z.string() })),
+};
+
+/** WhatsApp announcements to people who opted in (menu 6). */
+const broadcasts = {
+  list: base.output(z.array(BroadcastSchema)),
+  /** Recipients and cost if it were sent now. */
+  estimate: base.input(z.object({ languages: z.array(LanguageSchema).min(1).nullable().default(null) })).output(BroadcastEstimateSchema),
+  create: base.input(BroadcastInputSchema).output(BroadcastSchema),
+  /** Drafts only; the author (or `broadcasts.approve`). */
+  update: base.input(z.object({ id: IdSchema, broadcast: BroadcastInputSchema })).output(BroadcastSchema),
+  /** The text as a person with `language` would read it (translation cached on the draft). */
+  preview: base.input(z.object({ id: IdSchema, language: LanguageSchema })).output(z.object({ text: z.string() })),
+  /**
+   * Approve and send (`broadcasts.approve`). CONFLICT { reason: "own_broadcast" } when four-eyes is on and you wrote
+   * it; { reason: "not_draft" }; { reason: "no_recipients" }.
+   */
+  approve: base.input(z.object({ id: IdSchema })).output(BroadcastSchema),
+  /** Drafts only: the author, or `broadcasts.approve`. */
+  cancel: base.input(z.object({ id: IdSchema })).output(BroadcastSchema),
 };
 
 /** Chatbot conversations: volunteers read them, approve/reject bot drafts, reply themselves, close handoffs. */
@@ -186,5 +226,5 @@ const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, system };
+export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, places, broadcasts, system };
 export type Contract = typeof contract;

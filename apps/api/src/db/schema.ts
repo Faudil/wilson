@@ -4,11 +4,12 @@
  * Change this file only through a reviewed migration (`bun run db:generate`).
  */
 import { sql } from "drizzle-orm";
+import type { LanguageCode } from "@wilson/contracts";
 import {
   type AnyPgColumn, boolean, customType, date, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import {
-  DocumentTypeSchema, ExpirySourceSchema, LANGUAGE_CODES, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
+  BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
   TaskStatusSchema, UrgencySchema, VOLUNTEER_SKILLS, VolunteerRoleSchema,
 } from "@wilson/contracts";
 
@@ -33,7 +34,10 @@ export const messageKindEnum = pgEnum("message_kind", ["text", "image", "documen
 export const messageStatusEnum = pgEnum("message_status", ["received", "queued", "sent", "delivered", "read", "failed"]);
 export const messageAuthorEnum = pgEnum("message_author", ["beneficiary", "bot", "volunteer", "system"]);
 export const chatStateEnum = pgEnum("chat_state", ["received", "draft", "sent", "rejected"]);
-export const chatIntentEnum = pgEnum("chat_intent", ["info", "legal", "urgent", "human", "letter", "document", "smalltalk", "out_of_scope"]);
+export const chatIntentEnum = pgEnum("chat_intent", ["info", "legal", "urgent", "human", "letter", "document", "smalltalk", "out_of_scope", "places"]);
+export const placeKindEnum = pgEnum("place_kind", PlaceKindSchema.options as [string, ...string[]]);
+export const broadcastStatusEnum = pgEnum("broadcast_status", BroadcastStatusSchema.options as [string, ...string[]]);
+export const recipientStatusEnum = pgEnum("broadcast_recipient_status", ["queued", "awaiting_reply", "sent", "failed", "skipped"]);
 export const conversationStatusEnum = pgEnum("conversation_status", ["bot", "pending_review", "needs_human", "with_volunteer", "resolved"]);
 export const reminderKindEnum = pgEnum("reminder_kind", ["d30", "d7"]);
 export const knowledgeSourceEnum = pgEnum("knowledge_source", ["service_public", "annuaire", "association", "watizat"]);
@@ -53,6 +57,8 @@ export type ConversationState =
   | { step: "enter_document_date"; documentId: string }
   | { step: "offer_save_letter"; letterId: string }
   | { step: "confirm_delete_all" }
+  /** Menu 6: "receive the association's announcements? 1 yes 2 no". */
+  | { step: "announcements" }
   /** Free-form chat ("ask a question"); any non-menu text also goes to the chatbot. */
   | { step: "chat" };
 
@@ -77,6 +83,8 @@ export const beneficiaries = pgTable("beneficiaries", {
   chatStatus: conversationStatusEnum("chat_status").notNull().default("bot"),
   /** Volunteer who took the conversation over (chat_status = with_volunteer). The bot stays silent meanwhile. */
   chatAssigneeId: uuid("chat_assignee_id").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  /** When the person said yes to announcements (menu 6); null = no announcements (opt-in only, WhatsApp policy). */
+  announcementsOptInAt: ts("announcements_opt_in_at"),
 });
 
 export const messages = pgTable("messages", {
@@ -337,4 +345,63 @@ export const knowledgeChunks = pgTable("knowledge_chunks", {
   uniqueIndex("knowledge_chunks_source_ext_idx").on(t.sourceId, t.externalId),
   index("knowledge_chunks_tsv_idx").using("gin", t.tsv),
   index("knowledge_chunks_dept_idx").on(t.department),
+]);
+
+/**
+ * Places for the day posted by volunteers (115, food distributions, showers…). Public information, so in clear.
+ * `translations` caches the name/details per language (cleared on edit) so each language is translated once.
+ */
+export const places = pgTable("places", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  kind: placeKindEnum("kind").notNull(),
+  name: text("name").notNull(),
+  address: text("address"),
+  phone: text("phone"),
+  details: text("details"),
+  startsOn: date("starts_on", { mode: "string" }).notNull(),
+  endsOn: date("ends_on", { mode: "string" }),
+  /** ISO weekdays 1..7; empty = every day. */
+  weekdays: integer("weekdays").array().notNull().default(sql`'{}'::integer[]`),
+  opensAt: text("opens_at"),
+  closesAt: text("closes_at"),
+  translations: jsonb("translations").$type<Partial<Record<LanguageCode, { name: string; details: string | null }>>>().notNull().default({}),
+  createdBy: uuid("created_by").references(() => volunteers.id, { onDelete: "set null" }),
+  updatedBy: uuid("updated_by").references(() => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+  removedAt: ts("removed_at"),
+}, (t) => [index("places_active_idx").on(t.removedAt, t.startsOn)]);
+
+/** Announcements (WhatsApp broadcasts) to beneficiaries who opted in. The text is the association's, not personal. */
+export const broadcasts = pgTable("broadcasts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  textFr: text("text_fr").notNull(),
+  /** null = every language. */
+  languages: languageEnum("languages").array(),
+  status: broadcastStatusEnum("status").notNull().default("draft"),
+  /** Cached translations of textFr (cleared when the draft is edited). */
+  translations: jsonb("translations").$type<Partial<Record<LanguageCode, string>>>().notNull().default({}),
+  /** Estimate taken at approval (recipients, cost). */
+  estimate: jsonb("estimate").$type<import("@wilson/contracts").BroadcastEstimate>(),
+  createdBy: uuid("created_by").references(() => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+  approvedBy: uuid("approved_by").references(() => volunteers.id, { onDelete: "set null" }),
+  approvedAt: ts("approved_at"),
+  sentAt: ts("sent_at"),
+  cancelledAt: ts("cancelled_at"),
+}, (t) => [index("broadcasts_created_idx").on(t.createdAt)]);
+
+/** One row per person and announcement: idempotent sending, and the text held behind the template until they reply. */
+export const broadcastRecipients = pgTable("broadcast_recipients", {
+  broadcastId: uuid("broadcast_id").notNull().references(() => broadcasts.id, { onDelete: "cascade" }),
+  beneficiaryId: uuid("beneficiary_id").notNull().references(() => beneficiaries.id, { onDelete: "cascade" }),
+  status: recipientStatusEnum("status").notNull().default("queued"),
+  /** The announcement template was used (outside the 24 h window): counted in the cost. */
+  viaTemplate: boolean("via_template").notNull().default(false),
+  sentAt: ts("sent_at"),
+  error: text("error"),
+}, (t) => [
+  primaryKey({ columns: [t.broadcastId, t.beneficiaryId] }),
+  index("broadcast_recipients_beneficiary_idx").on(t.beneficiaryId, t.status),
 ]);
