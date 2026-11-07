@@ -2,6 +2,7 @@ import { useI18n, type MessageKey } from "../i18n";
 import { Icon, type IconName } from "../components/Icon";
 import { Empty, Skeleton } from "../components/ui";
 import { useAttentionCount, useLetterStats, usePendingVolunteers, useWeekDeadlines } from "../lib/counts";
+import { BudgetNotice, useUsageBudget } from "../components/BudgetNotice";
 import { firstName, longDate } from "../lib/relative";
 import { href } from "../lib/router";
 import { useSession } from "../lib/session";
@@ -59,6 +60,7 @@ export function Home() {
   const deadlines = useWeekDeadlines(canDeadlines);
   const canVolunteers = can("volunteers.manage");
   const signups = usePendingVolunteers(canVolunteers);
+  const budget = useUsageBudget(can("usage.manage"));
 
   const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/Paris" }).format(new Date())) % 24;
   const greetKey: MessageKey = hour < 12 ? "home.morning" : hour < 18 ? "home.afternoon" : "home.evening";
@@ -71,6 +73,8 @@ export function Home() {
         <h1>{t(greetKey, { name: `\u2068${firstName(volunteer.name)}\u2069` })}</h1>
         <p className="muted hello-date">{t("home.today", { date: longDate(lang) })}</p>
       </header>
+
+      <BudgetNotice budget={budget} link={href("usage")} />
 
       {loading && <Skeleton lines={3} />}
 

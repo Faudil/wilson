@@ -106,8 +106,14 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 | `volunteer_permissions` | volunteer_id, permission, granted (bool) — per-volunteer overrides on top of the role bundle (empty in the POC) |
 | `sessions` | id (random, httpOnly cookie), volunteer_id, expires_at |
 | `access_log` | volunteer_id, action (view_photo, view_document, edit…), target id, at — who looked at what |
+| `llm_usage` | one row per Claude call: at, task (prompt name), model, language, beneficiary_id (opaque, set null on purge), api_key_id, input/output/cache tokens, `cost_micro_usd` (estimate from `llm/pricing.ts`). No prompt, reply, name or phone |
+| `llm_api_keys` | admin-added Claude keys (donors): label, `key_enc` under the key's own DEK (wrapped by MASTER_KEY), last 4 chars, monthly limit, disabled_at, last error. The key is never returned to the back-office |
+| `llm_budget` | single row: global monthly limit (USD cents) + hard stop flag |
 
 Type, dates, urgency and status stay in clear so the queue can sort and filter; they are low-sensitivity and never include names. Names, phone numbers, letter content and document labels are encrypted.
+
+### Claude usage, budgets and keys
+Every Claude call goes through `AnthropicProvider.create`, which asks the usage meter (`src/usage/service.ts`) for a key and records tokens + estimated cost afterwards. Key choice: the oldest active admin-added key whose month-to-date cost is under its own limit, then the server key (`ANTHROPIC_API_KEY`). A key the API refuses (401/403, no credit) is noted and skipped for 30 min, and the call is retried on the next one. With the global hard stop on and the monthly budget reached, or with no key left, the provider throws `LlmError`: the chat hands the question to volunteers and the letter shows as failed, as for any LLM failure. Admins (`usage.manage`) see daily/monthly totals, a 30-day chart and breakdowns by task, language and model under Plus > Coûts de l'IA; Home shows a notice at 80 % and 100 % of the budget.
 
 ## 6. Security & GDPR
 

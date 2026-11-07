@@ -29,6 +29,7 @@ const { Queue } = lazyScreens(() => import("./screens/Queue"), "Queue");
 const { Sandbox } = lazyScreens(() => import("./screens/Sandbox"), "Sandbox");
 const { Signup } = lazyScreens(() => import("./screens/Signup"), "Signup");
 const { Volunteers } = lazyScreens(() => import("./screens/Volunteers"), "Volunteers");
+const { Usage } = lazyScreens(() => import("./screens/Usage"), "Usage");
 
 function useLanguageChange() {
   const { lang, setLang } = useI18n();
@@ -113,6 +114,7 @@ const MORE: NavItem[] = [
   { key: "deadlines", label: "nav.deadlines", icon: "calendar", desc: "more.deadlines", permission: "documents.view_metadata" },
   { key: "knowledge", label: "nav.knowledge", icon: "book", desc: "more.knowledge", permission: "knowledge.view" },
   { key: "volunteers", label: "nav.volunteers", icon: "users", desc: "more.volunteers", permission: "volunteers.manage" },
+  { key: "usage", label: "nav.usage", icon: "chart", desc: "more.usage", permission: "usage.manage" },
   { key: "languages", label: "nav.languages", icon: "globe", desc: "more.languages", permission: null },
   { key: "sandbox", label: "nav.sandbox", icon: "flask", desc: "more.sandbox", permission: "sandbox.use", sandboxOnly: true },
 ];
@@ -325,9 +327,10 @@ export function App() {
   else if (section === "languages") screen = <LanguageTest />;
   else if (section === "sandbox" && allowed("sandbox")) screen = <Sandbox />;
   else if (section === "volunteers" && allowed("volunteers")) screen = <Volunteers />;
+  else if (section === "usage" && allowed("usage")) screen = <Usage />;
   else screen = <Home />;
 
-  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters", "volunteers"];
+  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters", "volunteers", "usage"];
   const current = section === "letters" ? "queue" : known.includes(section) ? section : "";
   const focus = (section === "letters" || section === "conversations") && !!arg;
 

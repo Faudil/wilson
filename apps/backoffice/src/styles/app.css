@@ -2323,6 +2323,102 @@ blockquote {
   }
 }
 
+/* ---------- AI usage (admins) ---------- */
+.usage-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.usage-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.usage-amount {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+}
+.usage-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  block-size: 96px;
+  border-block-end: 1px solid var(--line-strong);
+  direction: ltr; /* time runs left to right, also in Arabic */
+}
+.usage-bar {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  block-size: 100%;
+  min-inline-size: 0;
+  cursor: default;
+}
+.usage-bar > span {
+  display: block;
+  inline-size: 100%;
+  background: var(--brand);
+  border-radius: 4px 4px 0 0;
+}
+.usage-bar:hover > span,
+.usage-bar:focus-visible > span {
+  background: var(--brand-hover);
+}
+.usage-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+.usage-table th,
+.usage-table td {
+  padding-block: 8px;
+  padding-inline: 4px;
+  text-align: end;
+  border-block-end: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.usage-table thead th {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+.usage-table th:first-child {
+  text-align: start;
+  white-space: normal;
+  font-weight: 500;
+  inline-size: 100%;
+}
+.usage-table tbody th .meter {
+  block-size: 4px;
+  margin-block-start: 6px;
+}
+.key-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.key-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-block: 12px;
+  border-block-start: 1px solid var(--line);
+}
+.key-row.is-off .key-main strong {
+  color: var(--muted);
+}
+.key-main {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
 /* Sandbox: WhatsApp reply buttons / list rows under a bot message */
 .wa-choices {
   display: flex;

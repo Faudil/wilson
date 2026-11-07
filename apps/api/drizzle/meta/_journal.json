@@ -33,8 +33,15 @@
     {
       "idx": 4,
       "version": "7",
-      "when": 1794070472729,
-      "tag": "0004_perf_indexes",
+      "when": 1794069385208,
+      "tag": "0004_llm_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794075832891,
+      "tag": "0005_perf_indexes",
       "breakpoints": true
     }
   ]

@@ -9,4 +9,5 @@ export * from "./sandbox.js";
 export * from "./whatsapp.js";
 export * from "./knowledge.js";
 export * from "./chat.js";
+export * from "./usage.js";
 export * from "./contract.js";

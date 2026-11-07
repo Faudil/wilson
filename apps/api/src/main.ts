@@ -13,6 +13,7 @@ import type { BlobStore } from "./storage/blobStore.js";
 import { registerWorkers } from "./jobs/workers.js";
 import { createLettersService } from "./letters/service.js";
 import { createLlmProvider } from "./llm/index.js";
+import { usageServiceFor } from "./usage/service.js";
 import { createHttpServer } from "./server.js";
 import { enqueueInitialSync } from "./knowledge/service.js";
 import { adoptServices, getServices } from "./services.js";
@@ -49,7 +50,10 @@ async function main(): Promise<void> {
   }
   if (process.env.SEED_ADMIN_EMAIL) console.log("seed:", await seed(db));
 
-  const base = { config, db, crypto: createCrypto(config), blobs, llm: createLlmProvider(config), jobs: queue, now: () => new Date() };
+  const now = () => new Date();
+  const crypto = createCrypto(config);
+  const usage = usageServiceFor({ db, crypto, config, now });
+  const base = { config, db, crypto, blobs, llm: createLlmProvider(config, usage.meter), jobs: queue, now };
   const { beneficiaries, documents, knowledge } = getServices(base);
   const deps: Deps = { ...base, wa: createTransport({ ...base, beneficiaries }) };
   const letters = createLettersService(deps, beneficiaries, knowledge);

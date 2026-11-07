@@ -9,6 +9,7 @@ import { enqueueText, footerFor, letterOfferText } from "../whatsapp/send.js";
 import { announceDocumentDetection } from "./documentFlow.js";
 import { getChat } from "../chat/service.js";
 import { isLanguageWord, isMenuWord, menuChoice } from "./text.js";
+import { withUsageContext } from "../usage/context.js";
 
 const MAX_MEDIA_BYTES = 12 * 1024 * 1024;
 const SUPPORTED_MIME = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"]);
@@ -198,7 +199,7 @@ async function onChooseLanguage(c: Ctx, input: Input): Promise<void> {
       if (code) return setLanguageAndGo(c, code);
     } else if (input.text.trim().length >= 2) {
       try {
-        const det = await c.deps.llm.detectLanguage({ text: input.text });
+        const det = await withUsageContext(c.b.id, () => c.deps.llm.detectLanguage({ text: input.text }));
         if (det.language && det.confidence >= 0.8) return setLanguageAndGo(c, det.language);
       } catch {
         /* detection is best effort: fall back to the menu */

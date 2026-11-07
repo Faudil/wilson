@@ -9,6 +9,7 @@ import { KnowledgeHitSchema, KnowledgeSearchInputSchema, KnowledgeSourceIdSchema
 import { LanguageSchema } from "./languages.js";
 import { LetterDetailSchema, LetterEditSchema, LetterStatusSchema, LetterSummarySchema } from "./letters.js";
 import { SandboxMessageSchema, SandboxPhoneSchema, SandboxSendInputSchema } from "./sandbox.js";
+import { ApiKeyAddSchema, ApiKeyListSchema, ApiKeySchema, ApiKeyUpdateSchema, UsageBudgetSchema, UsageSetBudgetSchema, UsageSummarySchema } from "./usage.js";
 
 /**
  * The single source of truth for every back-office ⇄ API call.
@@ -124,9 +125,21 @@ const knowledge = {
   sync: base.input(z.object({ sourceId: KnowledgeSourceIdSchema })).output(z.object({ queued: z.boolean() })),
 };
 
+/** Claude API usage and estimated cost (admin, `usage.manage`). Token counts only, never message content. */
+const usage = {
+  summary: base.output(UsageSummarySchema),
+  setBudget: base.input(UsageSetBudgetSchema).output(UsageBudgetSchema),
+  /** Claude API keys (e.g. given by donors), each with its own monthly limit. Keys are write-only. */
+  listKeys: base.output(ApiKeyListSchema),
+  addKey: base.input(ApiKeyAddSchema).output(ApiKeySchema),
+  updateKey: base.input(ApiKeyUpdateSchema).output(ApiKeySchema),
+  /** Past usage stays counted (without the key name). */
+  removeKey: base.input(z.object({ id: IdSchema })).output(z.void()),
+};
+
 const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, system };
+export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, system };
 export type Contract = typeof contract;

@@ -18,6 +18,7 @@ import { getServices } from "../services.js";
 import { footerFor, windowOpen } from "../whatsapp/send.js";
 import { looksUrgent } from "./urgent.js";
 import { todayIn } from "../whatsapp/context.js";
+import { withUsageContext } from "../usage/context.js";
 
 type Row = typeof messages.$inferSelect;
 type ChatStatus = (typeof beneficiaries.$inferSelect)["chatStatus"];
@@ -191,9 +192,9 @@ export function createChatService(deps: Deps): ChatService {
   }
 
   /** French version of an inbound message for volunteers; null if the translation fails (the reply still goes out). */
-  async function translateInbound(text: string, lang: LanguageCode): Promise<string | null> {
+  async function translateInbound(beneficiaryId: string, text: string, lang: LanguageCode): Promise<string | null> {
     try {
-      return await llm.translateText({ text, from: lang, to: "fr" });
+      return await withUsageContext(beneficiaryId, () => llm.translateText({ text, from: lang, to: "fr" }));
     } catch (e) {
       console.error("[chat] inbound translation failed:", e instanceof Error ? e.message : String(e));
       return null;
@@ -207,7 +208,7 @@ export function createChatService(deps: Deps): ChatService {
 
     // 1. store inbound (the engine already inserted the raw row: tag it, do not duplicate). The French version for
     // volunteers is translated while the intent is classified (step 2): the reply no longer waits for both in a row.
-    const translating = lang === "fr" ? Promise.resolve(null) : translateInbound(text, lang);
+    const translating = lang === "fr" ? Promise.resolve(null) : translateInbound(beneficiaryId, text, lang);
     let inboundId: string;
     const existing = opts.waMessageId
       ? (await db.select({ id: messages.id }).from(messages).where(eq(messages.waMessageId, opts.waMessageId)).limit(1))[0]
@@ -229,7 +230,7 @@ export function createChatService(deps: Deps): ChatService {
     // 2. plan (in parallel with the translation)
     const turns = await history(beneficiaryId);
     const [planned, textFr] = await Promise.all([
-      llm.planChat({ history: turns, language: lang }).then(
+      withUsageContext(beneficiaryId, () => llm.planChat({ history: turns, language: lang })).then(
         (p) => ({ ok: true as const, plan: p }),
         (e: unknown) => ({ ok: false as const, error: e }),
       ),
@@ -279,7 +280,7 @@ export function createChatService(deps: Deps): ChatService {
     const snippets = plan.intent === "info" || plan.intent === "smalltalk" ? await search(plan.frenchQuery || text) : [];
     let reply: { text: string; textFr: string; usedIds: string[] };
     try {
-      reply = await llm.chatReply({ history: turns, language: lang, intent: plan.intent, association, snippets: snippets.map(({ id, title, text: t, url }) => ({ id, title, text: t, url })), today: today() });
+      reply = await withUsageContext(beneficiaryId, () => llm.chatReply({ history: turns, language: lang, intent: plan.intent, association, snippets: snippets.map(({ id, title, text: t, url }) => ({ id, title, text: t, url })), today: today() }));
     } catch (e) {
       console.error("[chat] chatReply failed:", e instanceof Error ? e.message : String(e));
       await handoff(b, lang, "chat_handoff", "human");
@@ -338,7 +339,7 @@ export function createChatService(deps: Deps): ChatService {
       const patch: Partial<typeof messages.$inferInsert> = { chatState: "sent", volunteerId, createdAt: sql`now()` as unknown as Date };
       const edited = textFr?.trim();
       if (edited && edited !== (dec(dek, m.textFrEnc) ?? "")) {
-        const target = b.language === "fr" ? edited : await llm.translateText({ text: edited, from: "fr", to: b.language });
+        const target = b.language === "fr" ? edited : await withUsageContext(m.beneficiaryId, () => llm.translateText({ text: edited, from: "fr", to: b.language }));
         patch.bodyEnc = crypto.encrypt(dek, render(b.language, target));
         patch.textFrEnc = crypto.encrypt(dek, edited);
       }
@@ -360,7 +361,7 @@ export function createChatService(deps: Deps): ChatService {
       const b = await mustBeneficiary(beneficiaryId);
       const fr = textFr.trim();
       if (!fr) throw new ChatError("BAD_REQUEST", "empty reply");
-      const target = b.language === "fr" ? fr : await llm.translateText({ text: fr, from: "fr", to: b.language });
+      const target = b.language === "fr" ? fr : await withUsageContext(beneficiaryId, () => llm.translateText({ text: fr, from: "fr", to: b.language }));
       await sendRow(beneficiaryId, b.language, target, { author: "volunteer", textFr: fr, volunteerId });
       // Answering by hand = taking the conversation: the bot must not talk over the volunteer afterwards.
       const st = await getChatState(beneficiaryId);
