@@ -194,6 +194,17 @@ export const volunteers = pgTable("volunteers", {
   signupNote: text("signup_note"),
   approvedAt: ts("approved_at"),
   approvedBy: uuid("approved_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  /** False only for self-signups that have not clicked the e-mail link yet (when SMTP_URL is set). */
+  emailVerified: boolean("email_verified").notNull().default(true),
+  /** SHA-256 of the e-mail verification token, and its expiry. */
+  emailTokenHash: text("email_token_hash"),
+  emailTokenExpiresAt: ts("email_token_expires_at"),
+  /** TOTP secret, encrypted under its own DEK (wrapped by MASTER_KEY). Enabled once a first code was confirmed. */
+  totpSecretEnc: bytea("totp_secret_enc"),
+  totpWrappedDek: bytea("totp_wrapped_dek"),
+  totpEnabledAt: ts("totp_enabled_at"),
+  /** Last accepted 30-second step: a code cannot be used twice. */
+  totpLastStep: integer("totp_last_step"),
 });
 
 /** Per-volunteer overrides on top of ROLE_PERMISSIONS. Empty in the POC. */

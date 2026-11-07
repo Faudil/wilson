@@ -30,10 +30,13 @@ function shouldCompress(req: Request, res: Response): boolean {
 }
 
 /** Forward a request to the API unchanged (method, headers, cookies, body). */
-async function proxy(req: Request): Promise<Response> {
+async function proxy(req: Request, srv: { requestIP(r: Request): { address: string } | null }): Promise<Response> {
   const url = new URL(req.url);
   const headers = new Headers(req.headers);
   headers.delete("host");
+  // The API reads the visitor's IP (rate limits) from the right end of this list: add the hop we received it from.
+  const peer = srv.requestIP(req)?.address;
+  if (peer) headers.set("x-forwarded-for", [req.headers.get("x-forwarded-for"), peer].filter(Boolean).join(", "));
   try {
     const res = await fetch(apiOrigin + url.pathname + url.search, {
       method: req.method,

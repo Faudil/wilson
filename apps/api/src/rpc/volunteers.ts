@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { VolunteerAccount, VolunteerAccountStatus } from "@wilson/contracts";
 import { beneficiaries, sessions, volunteers } from "../db/schema.js";
 import type { Deps } from "../deps.js";
+import { alert } from "../alerts.js";
 import { logAccess } from "./logAccess.js";
 import { os, requirePermission, type RpcContext } from "./base.js";
 
@@ -28,6 +29,8 @@ async function toAccounts(deps: Deps, rows: Row[]): Promise<VolunteerAccount[]> 
     createdAt: r.createdAt.toISOString(),
     approvedAt: r.approvedAt?.toISOString() ?? null,
     approvedByName: r.approvedBy ? (names.get(r.approvedBy) ?? null) : null,
+    emailVerified: r.emailVerified,
+    twoFactorEnabled: !!r.totpEnabledAt,
   }));
 }
 
@@ -70,10 +73,13 @@ export const volunteersRouter = {
   approve: os.volunteers.approve.use(manage).handler(async ({ input, context }) => {
     const r = await mustRow(context.deps, input.id);
     if (!r.pendingApproval) throw new ORPCError("CONFLICT", { data: { reason: "not_pending" } });
+    // With e-mail set up, the person must first prove they own the address.
+    if (!r.emailVerified) throw new ORPCError("CONFLICT", { data: { reason: "email_unverified" } });
     await context.deps.db.update(volunteers)
       .set({ pendingApproval: false, role: input.role, approvedAt: context.deps.now(), approvedBy: context.volunteer.id })
       .where(eq(volunteers.id, input.id));
     await logAccess(context, `volunteers.approve:${input.role}`, input.id);
+    if (input.role === "admin") void alert(context.deps, `volunteers.admin:${input.id}`, `${context.volunteer.name} approved a new account as admin.`);
     return one(context.deps, input.id);
   }),
 
@@ -92,6 +98,7 @@ export const volunteersRouter = {
     await context.deps.db.update(volunteers).set({ role: input.role }).where(eq(volunteers.id, input.id));
     // Permissions are resolved per request from the role, so the change applies on the person's next click.
     await logAccess(context, `volunteers.set_role:${input.role}`, input.id);
+    if (input.role === "admin") void alert(context.deps, `volunteers.admin:${input.id}`, `${context.volunteer.name} gave admin rights to ${r.name}.`);
     return one(context.deps, input.id);
   }),
 
@@ -103,5 +110,16 @@ export const volunteersRouter = {
     if (input.disabled) await revoke(context.deps, input.id);
     await logAccess(context, input.disabled ? "volunteers.disable" : "volunteers.enable", input.id);
     return one(context.deps, input.id);
+  }),
+
+  resetTwoFactor: os.volunteers.resetTwoFactor.use(manage).handler(async ({ input, context }) => {
+    notSelf(context, input.id);
+    const r = await mustRow(context.deps, input.id);
+    await context.deps.db.update(volunteers).set({ totpEnabledAt: null, totpSecretEnc: null, totpWrappedDek: null, totpLastStep: null }).where(eq(volunteers.id, r.id));
+    // Whoever holds the old sessions keeps nothing: they log in again (and enrol again if they are an admin).
+    await context.deps.db.delete(sessions).where(eq(sessions.volunteerId, r.id));
+    await logAccess(context, "volunteers.reset_2fa", r.id);
+    void alert(context.deps, `volunteers.reset_2fa:${r.id}`, `${context.volunteer.name} removed the authenticator app of ${r.name}.`);
+    return one(context.deps, r.id);
   }),
 };

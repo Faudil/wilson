@@ -60,6 +60,12 @@ const VOLUNTEER: Permission[] = [
 ];
 /** Responders fill in their own skills (so hard cases can be routed to them) but see no case notes by default. */
 const RESPONDER: Permission[] = ["conversations.view", "conversations.reply", "knowledge.view", "skills.edit_own"];
+/**
+ * Permissions that need two-factor authentication (when ADMIN_2FA=required, the default): an account holding any of
+ * them without an authenticator app enrolled gets them withheld until it enrols.
+ */
+export const TWO_FACTOR_PERMISSIONS: readonly Permission[] = ["volunteers.manage", "audit.view", "usage.manage", "knowledge.manage", "notes.moderate"];
+
 export const ROLE_PERMISSIONS: Record<VolunteerRole, readonly Permission[]> = {
   responder: RESPONDER,
   volunteer: VOLUNTEER,
@@ -74,12 +80,27 @@ export const VolunteerSchema = z.object({
   /** Effective permissions (role bundle + future per-volunteer grants). The UI hides what is not allowed. */
   permissions: z.array(PermissionSchema),
   uiLanguage: LanguageSchema,
+  /** An authenticator app (TOTP) is enrolled: login asks for its 6-digit code. */
+  twoFactorEnabled: z.boolean(),
+  /** Admin rights are withheld until this account enrols an authenticator app (see TWO_FACTOR_PERMISSIONS). */
+  twoFactorMissing: z.boolean(),
 });
 export type Volunteer = z.infer<typeof VolunteerSchema>;
+
+export const TotpCodeSchema = z.string().trim().regex(/^\d{6}$/);
 
 export const LoginInputSchema = z.object({
   email: z.email(),
   password: z.string().min(8).max(200),
+  /** 6-digit code from the authenticator app, for accounts that enrolled one. */
+  totp: TotpCodeSchema.optional(),
+});
+
+export const TwoFactorSetupSchema = z.object({
+  /** Base32 secret, for typing into the app by hand. */
+  secret: z.string(),
+  /** otpauth:// link: tapping it on the phone opens the authenticator app. */
+  uri: z.string(),
 });
 
 /** Public self-signup. The account stays inactive (cannot log in) until an admin approves it. */
@@ -92,6 +113,8 @@ export const SignupInputSchema = z.object({
   note: z.string().trim().max(500).optional(),
   /** Must be true: the person accepts the confidentiality commitment shown on the form. */
   acceptsConfidentiality: z.literal(true),
+  /** Honeypot: hidden from people, filled in by bots. A non-empty value is silently ignored. */
+  website: z.string().max(200).optional(),
 });
 export type SignupInput = z.infer<typeof SignupInputSchema>;
 
@@ -110,5 +133,8 @@ export const VolunteerAccountSchema = z.object({
   createdAt: TimestampSchema,
   approvedAt: TimestampSchema.nullable(),
   approvedByName: z.string().nullable(),
+  /** False while a self-signup has not clicked the link in the verification e-mail (only when e-mail is set up). */
+  emailVerified: z.boolean(),
+  twoFactorEnabled: z.boolean(),
 });
 export type VolunteerAccount = z.infer<typeof VolunteerAccountSchema>;

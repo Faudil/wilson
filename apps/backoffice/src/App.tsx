@@ -1,7 +1,7 @@
 import type { LanguageCode, Permission } from "@wilson/contracts";
 import { LANGUAGES } from "@wilson/contracts/values";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { Icon, type IconName } from "./components/Icon";
 import { ErrorBox, Sheet, Skeleton } from "./components/ui";
 import { useI18n, type MessageKey } from "./i18n";
@@ -27,7 +27,8 @@ const { Knowledge } = lazyScreens(() => import("./screens/Knowledge"), "Knowledg
 const { LetterReview } = lazyScreens(() => import("./screens/LetterReview"), "LetterReview");
 const { Queue } = lazyScreens(() => import("./screens/Queue"), "Queue");
 const { Sandbox } = lazyScreens(() => import("./screens/Sandbox"), "Sandbox");
-const { Signup } = lazyScreens(() => import("./screens/Signup"), "Signup");
+const { Signup, VerifyEmail } = lazyScreens(() => import("./screens/Signup"), "Signup", "VerifyEmail");
+const { TwoFactorPanel } = lazyScreens(() => import("./screens/TwoFactor"), "TwoFactorPanel");
 const { Volunteers } = lazyScreens(() => import("./screens/Volunteers"), "Volunteers");
 const { Usage } = lazyScreens(() => import("./screens/Usage"), "Usage");
 const { Tasks } = lazyScreens(() => import("./screens/Tasks"), "Tasks");
@@ -97,6 +98,11 @@ function AccountSheet({ open, onClose, onLogout, volunteer }: { open: boolean; o
             ))}
           </div>
         </div>
+        <LazyBoundary>
+          <Suspense fallback={<Skeleton lines={1} card={false} />}>
+            <TwoFactorPanel />
+          </Suspense>
+        </LazyBoundary>
         <button type="button" className="btn btn-block btn-danger-quiet" onClick={onLogout}>
           <Icon name="logout" size={18} />
           {t("account.logout")}
@@ -160,6 +166,17 @@ function Shell({
         )}
       </header>
       <main className="content">
+        {session?.volunteer.twoFactorMissing && (
+          <div className="notice notice-warn tfa-banner" role="status">
+            <Icon name="shield" size={20} />
+            <span className="notice-body">
+              {t("tfa.banner")}{" "}
+              <button type="button" className="link-button" onClick={() => setAccount(true)}>
+                {t("tfa.start")}
+              </button>
+            </span>
+          </div>
+        )}
         <LazyBoundary>{children}</LazyBoundary>
       </main>
       {nav}
@@ -293,6 +310,15 @@ export function App() {
         <p>
           <a href={href("queue")}>{t("login.title")}</a>
         </p>
+      </Shell>
+    );
+  }
+
+  // The link in the verification e-mail works logged in or not.
+  if (section === "verify" && arg) {
+    return (
+      <Shell>
+        <VerifyEmail token={arg} />
       </Shell>
     );
   }

@@ -14,7 +14,8 @@ export async function createContext(
   deps: Deps,
   sessionToken: string | null,
   setSessionCookie: RpcContext["setSessionCookie"],
+  ip: string | null = null,
 ): Promise<RpcContext> {
   const volunteer = sessionToken ? await getAuth(deps).resolveVolunteer(sessionToken) : null;
-  return { deps, sessionToken, volunteer, setSessionCookie };
+  return { deps, sessionToken, volunteer, setSessionCookie, ip };
 }

@@ -57,6 +57,13 @@
       "when": 1794081012801,
       "tag": "0007_abuse_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794081602230,
+      "tag": "0008_account_security",
+      "breakpoints": true
     }
   ]
 }

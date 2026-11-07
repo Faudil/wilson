@@ -1,6 +1,7 @@
 /**
  * Security alerts: always written to the log, and posted to ALERT_WEBHOOK_URL when it is set.
- * Alerts carry counts and opaque ids only: never a name, a phone number or message content.
+ * Alerts never carry anything about the people we help (no name, phone number or message content): only counts and,
+ * for account events, the volunteer's display name.
  * The same alert key is sent at most once per ALERT_COOLDOWN_MS, so a flood cannot flood the alert channel too.
  */
 export const ALERT_COOLDOWN_MS = 10 * 60_000;

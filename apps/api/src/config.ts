@@ -26,6 +26,32 @@ const EnvSchema = z.object({
   VOLUNTEER_SIGNUP: z.enum(["on", "off"]).default("on"),
   /** Self-signups waiting for approval are capped (anti-spam): beyond this, new requests are refused. */
   VOLUNTEER_SIGNUP_MAX_PENDING: z.coerce.number().int().min(1).default(30),
+  /** Signup requests accepted per IP address per hour, and in total per day. */
+  SIGNUP_PER_IP_PER_HOUR: z.coerce.number().int().min(1).default(3),
+  SIGNUP_PER_DAY: z.coerce.number().int().min(1).default(20),
+  /**
+   * required = accounts holding admin permissions (volunteers, audit, usage, knowledge sync, moderation) must enrol an
+   * authenticator app; until then those permissions are withheld. optional = 2FA is offered but not enforced.
+   */
+  ADMIN_2FA: z.enum(["required", "optional"]).default("required"),
+  /** Failed logins before an e-mail address is locked for LOGIN_LOCK_MINUTES (doubling each time), and per IP. */
+  LOGIN_MAX_FAILURES: z.coerce.number().int().min(1).default(5),
+  LOGIN_MAX_FAILURES_PER_IP: z.coerce.number().int().min(1).default(20),
+  LOGIN_LOCK_MINUTES: z.coerce.number().int().min(1).default(15),
+  /**
+   * Reverse proxies in front of the back-office server (which adds its own hop). 1 = your nginx/Caddy/Traefik,
+   * 2 = Cloudflare + your proxy. Used to find the visitor's IP in X-Forwarded-For for rate limits.
+   */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
+  /** smtp(s)://user:pass@host:port. When set, self-signups must click a link in an e-mail before an admin can approve. */
+  SMTP_URL: z.string().optional(),
+  MAIL_FROM: z.string().default("Mon courrier <no-reply@localhost>"),
+  /**
+   * Unusual access: a volunteer opening more than this many different people's files, letters, conversations or notes
+   * in one hour raises an alert. AUDIT_BULK_READ_ACTION=suspend also disables the account at once (an admin re-enables it).
+   */
+  AUDIT_READS_PER_HOUR: z.coerce.number().int().min(5).default(60),
+  AUDIT_BULK_READ_ACTION: z.enum(["alert", "suspend"]).default("alert"),
 
   S3_ENDPOINT: z.string().optional(),
   S3_REGION: z.string().default("fr-par"),

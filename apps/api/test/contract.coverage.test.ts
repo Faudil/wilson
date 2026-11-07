@@ -27,6 +27,10 @@ const INPUTS: Record<string, unknown> = {
   "auth.logout": undefined,
   "auth.me": undefined,
   "auth.setUiLanguage": { language: "fr" },
+  "auth.verifyEmail": { token: "x".repeat(43) },
+  "auth.twoFactorSetup": undefined,
+  "auth.twoFactorEnable": { code: "123456" },
+  "auth.twoFactorDisable": { code: "123456" },
   "letters.list": { limit: 5 },
   "letters.get": { id },
   "letters.photo": { id },
@@ -60,6 +64,7 @@ const INPUTS: Record<string, unknown> = {
   "volunteers.reject": { id },
   "volunteers.setRole": { id, role: "volunteer" },
   "volunteers.setDisabled": { id, disabled: true },
+  "volunteers.resetTwoFactor": { id },
   "usage.summary": undefined,
   "usage.setBudget": { monthlyLimitUsd: 50, hardStop: false },
   "usage.listKeys": undefined,
@@ -90,6 +95,7 @@ const INPUTS: Record<string, unknown> = {
 /** The permission each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
 const REQUIRES: Record<string, Permission | null> = {
   "auth.me": null, "auth.setUiLanguage": null,
+  "auth.twoFactorSetup": null, "auth.twoFactorEnable": null, "auth.twoFactorDisable": null,
   "letters.list": "letters.review", "letters.get": "letters.review", "letters.edit": "letters.review",
   "letters.approve": "letters.review", "letters.reject": "letters.review", "letters.photo": "letters.view_photo",
   "beneficiaries.list": "beneficiaries.view", "beneficiaries.get": "beneficiaries.view", "beneficiaries.setLanguage": "beneficiaries.edit",
@@ -101,7 +107,7 @@ const REQUIRES: Record<string, Permission | null> = {
   "conversations.approveDraft": "conversations.reply", "conversations.rejectDraft": "conversations.reply",
   "conversations.reply": "conversations.reply", "conversations.resolve": "conversations.reply", "conversations.takeOver": "conversations.reply",
   "volunteers.list": "volunteers.manage", "volunteers.approve": "volunteers.manage", "volunteers.reject": "volunteers.manage",
-  "volunteers.setRole": "volunteers.manage", "volunteers.setDisabled": "volunteers.manage",
+  "volunteers.setRole": "volunteers.manage", "volunteers.setDisabled": "volunteers.manage", "volunteers.resetTwoFactor": "volunteers.manage",
   "usage.summary": "usage.manage", "usage.setBudget": "usage.manage", "usage.listKeys": "usage.manage",
   "usage.addKey": "usage.manage", "usage.updateKey": "usage.manage", "usage.removeKey": "usage.manage",
   "notes.list": "notes.view", "notes.add": "notes.write", "notes.edit": "notes.write", "notes.remove": "notes.write",
@@ -111,7 +117,7 @@ const REQUIRES: Record<string, Permission | null> = {
   "numbers.list": "numbers.moderate", "numbers.heldCount": "numbers.moderate", "numbers.release": "numbers.moderate",
   "numbers.releaseAllGlobal": "numbers.moderate", "numbers.block": "numbers.moderate", "numbers.unblock": "numbers.moderate",
 };
-const PUBLIC = new Set(["auth.login", "auth.signup", "system.health"]);
+const PUBLIC = new Set(["auth.login", "auth.signup", "auth.verifyEmail", "system.health"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */
 const ANON_OK = new Set([...PUBLIC, "auth.logout"]);
 const ALL = leaves(contract);

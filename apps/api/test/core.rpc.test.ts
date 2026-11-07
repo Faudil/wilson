@@ -192,7 +192,7 @@ describe("rpc: documents & beneficiaries", () => {
 
   it("system.health is public", async () => {
     const { client } = makeClient(t.deps);
-    expect(await client.system.health()).toEqual({ ok: true, mode: "sandbox", llm: "fake", chat: "review", signup: true });
+    expect(await client.system.health()).toEqual({ ok: true, mode: "sandbox", llm: "fake", chat: "review", signup: true, emailVerification: false });
   });
 });
 

@@ -1,6 +1,6 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-import { LoginInputSchema, SignupInputSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
+import { LoginInputSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
 import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
@@ -17,7 +17,7 @@ import { ApiKeyAddSchema, ApiKeyListSchema, ApiKeySchema, ApiKeyUpdateSchema, Us
 /**
  * The single source of truth for every back-office ⇄ API call.
  * Server: `implement(contract)` in apps/api. Client: `ContractRouterClient<typeof contract>` in apps/backoffice.
- * All procedures require a volunteer session except `auth.login`, `auth.signup` and `system.health`.
+ * All procedures require a volunteer session except `auth.login`, `auth.signup`, `auth.verifyEmail` and `system.health`.
  */
 
 const base = oc.errors({
@@ -25,11 +25,13 @@ const base = oc.errors({
   FORBIDDEN: {},
   NOT_FOUND: {},
   CONFLICT: { data: z.object({ reason: z.string() }) },
+  /** Too many attempts (login, signup): try again after `retryAfterSeconds`. */
+  TOO_MANY_REQUESTS: { data: z.object({ retryAfterSeconds: z.number().int() }) },
 });
 
 const auth = {
   /** FORBIDDEN = right password but the account is still waiting for an admin's approval. */
-  login: base.input(LoginInputSchema).output(VolunteerSchema),
+  login: base.errors({ TWO_FACTOR_REQUIRED: {} }).input(LoginInputSchema).output(VolunteerSchema),
   /**
    * Public self-signup → pending account, no access until `volunteers.approve`. Always answers `{ ok: true }` for a
    * well-formed request (also when the email is already taken) so it cannot be used to find who volunteers here.
@@ -39,6 +41,13 @@ const auth = {
   logout: base.output(z.void()),
   me: base.output(VolunteerSchema),
   setUiLanguage: base.input(z.object({ language: LanguageSchema })).output(VolunteerSchema),
+  /** Public: the link in the verification e-mail. Always `{ ok: true }` for a well-formed token (no oracle). */
+  verifyEmail: base.input(z.object({ token: z.string().min(20).max(100) })).output(z.object({ ok: z.literal(true) })),
+  /** New authenticator secret for the logged-in volunteer (not active until twoFactorEnable confirms a code). */
+  twoFactorSetup: base.output(TwoFactorSetupSchema),
+  twoFactorEnable: base.input(z.object({ code: TotpCodeSchema })).output(VolunteerSchema),
+  /** Needs a current code. Admin rights are withheld again afterwards (ADMIN_2FA=required). */
+  twoFactorDisable: base.input(z.object({ code: TotpCodeSchema })).output(VolunteerSchema),
 };
 
 /** Review queue (copilot mode). Nothing reaches a beneficiary without `approve`. */
@@ -94,6 +103,8 @@ const volunteers = {
   setRole: base.input(z.object({ id: IdSchema, role: VolunteerRoleSchema })).output(VolunteerAccountSchema),
   /** Disable (sessions revoked at once) or re-enable an account. Not on yourself. */
   setDisabled: base.input(z.object({ id: IdSchema, disabled: z.boolean() })).output(VolunteerAccountSchema),
+  /** Someone lost their phone: remove their authenticator app (they enrol again at next login). Not on yourself. */
+  resetTwoFactor: base.input(z.object({ id: IdSchema })).output(VolunteerAccountSchema),
 };
 
 /** Chatbot conversations: volunteers read them, approve/reject bot drafts, reply themselves, close handoffs. */
@@ -199,7 +210,7 @@ const numbers = {
 };
 
 const system = {
-  health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional() })),
+  health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional(), emailVerification: z.boolean().optional() })),
 };
 
 export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, numbers, system };
