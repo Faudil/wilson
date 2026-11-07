@@ -80,4 +80,12 @@ export const ln: Record<WaKey, string> = {
   guard_slow_down: "Ozali kotinda bansango mingi. Svp zela miniti moke, sima koma lisusu.",
   guard_held: "Bansango na yo ezali kozela mpo na sikoyo. Mosali moko ya bolingo akotala yango mpe akoyokisa yo.",
   guard_released: "Matondi mpo ozelaki. Okoki kokomela biso lisusu.",
+  nearby_hint: "📍 Mpo na komona bisika ya penepene na yo, kabola esika ozali (📎 sima 📍) to koma adresi to nkombo ya gare.",
+  nearby_title: "📍 Penepene na yo, efungwami lelo (na kati ya {distance}):",
+  nearby_none: "Namoni eloko moko te oyo efungwami penepene na esika oyo lelo.",
+  nearby_not_found: "Namoni adresi oyo te. Koma yango na nkombo ya engumba, to kabola esika ozali (📎 sima 📍).",
+  nearby_water: "Mai ya komela",
+  nearby_toilets: "Bakabine ya bato nyonso",
+  nearby_shower: "Douche ya bato nyonso",
+  nearby_pharmacy: "Farmasi",
 };

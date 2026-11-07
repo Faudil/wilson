@@ -6,7 +6,7 @@
 import { sql } from "drizzle-orm";
 import type { LanguageCode } from "@wilson/contracts";
 import {
-  type AnyPgColumn, boolean, customType, date, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
+  type AnyPgColumn, boolean, customType, date, doublePrecision, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import {
   BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, GuardReasonSchema, GuardStatusSchema, HelpKindSchema, HelpStatusSchema, HelpTopicSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
@@ -87,6 +87,8 @@ export type ConversationState =
   | { step: "help_consent"; requestId: string; slotId?: string }
   | { step: "help_list"; requestIds: string[] }
   | { step: "help_cancel"; requestId: string }
+  /** Menu 5 was answered: a shared location or a typed address lists the places nearest to it (nothing is stored). */
+  | { step: "nearby" }
   /** Free-form chat ("ask a question"); any non-menu text also goes to the chatbot. */
   | { step: "chat" }
   // — French practice buddies (conversation/buddyFlow.ts) —
@@ -511,6 +513,9 @@ export const places = pgTable("places", {
   weekdays: integer("weekdays").array().notNull().default(sql`'{}'::integer[]`),
   opensAt: text("opens_at"),
   closesAt: text("closes_at"),
+  /** Where `address` is, found with OpenStreetMap when the place is saved (null: no address, or not found). */
+  lat: doublePrecision("lat"),
+  lon: doublePrecision("lon"),
   translations: jsonb("translations").$type<Partial<Record<LanguageCode, { name: string; details: string | null }>>>().notNull().default({}),
   createdBy: uuid("created_by").references(() => volunteers.id, { onDelete: "set null" }),
   updatedBy: uuid("updated_by").references(() => volunteers.id, { onDelete: "set null" }),

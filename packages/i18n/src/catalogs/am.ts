@@ -80,4 +80,12 @@ export const am: Record<WaKey, string> = {
   guard_slow_down: "ብዙ መልዕክቶችን እየላኩ ነው። እባክዎ ጥቂት ደቂቃዎች ይጠብቁ፣ ከዚያ እንደገና ይጻፉ።",
   guard_held: "መልዕክቶችዎ ለጊዜው በመጠባበቅ ላይ ናቸው። አንድ በጎ ፈቃደኛ አይቶ ያገኝዎታል።",
   guard_released: "ስለጠበቁ እናመሰግናለን። እንደገና ሊጽፉልን ይችላሉ።",
+  nearby_hint: "📍 ለእርስዎ ቅርብ የሆኑ ቦታዎችን ለማየት አካባቢዎን ያጋሩ (📎 ከዚያ 📍) ወይም አድራሻ ወይም የጣቢያ ስም ይጻፉ።",
+  nearby_title: "📍 በአቅራቢያዎ፣ ዛሬ ክፍት ({distance} ውስጥ)፦",
+  nearby_none: "ዛሬ በዚህ ቦታ አቅራቢያ ክፍት የሆነ ነገር አላገኘሁም።",
+  nearby_not_found: "ይህን አድራሻ አላገኘሁትም። ከከተማው ስም ጋር ይጻፉት፣ ወይም አካባቢዎን ያጋሩ (📎 ከዚያ 📍)።",
+  nearby_water: "የመጠጥ ውሃ",
+  nearby_toilets: "የሕዝብ መጸዳጃ ቤት",
+  nearby_shower: "የሕዝብ ሻወር",
+  nearby_pharmacy: "ፋርማሲ",
 };

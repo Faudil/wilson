@@ -80,4 +80,12 @@ export const es: Record<WaKey, string> = {
   guard_slow_down: "Está enviando muchos mensajes. Por favor, espere unos minutos y vuelva a escribir.",
   guard_held: "Sus mensajes están en espera por ahora. Un voluntario los revisará y se pondrá en contacto con usted.",
   guard_released: "Gracias por esperar. Puede volver a escribirnos.",
+  nearby_hint: "📍 Para ver los lugares más cercanos, comparta su ubicación (📎 y luego 📍) o escriba una dirección o el nombre de una estación.",
+  nearby_title: "📍 Cerca de usted, abierto hoy (a menos de {distance}):",
+  nearby_none: "No encontré nada abierto cerca de este lugar hoy.",
+  nearby_not_found: "No encontré esta dirección. Escríbala con la ciudad, o comparta su ubicación (📎 y luego 📍).",
+  nearby_water: "Agua potable",
+  nearby_toilets: "Baños públicos",
+  nearby_shower: "Ducha pública",
+  nearby_pharmacy: "Farmacia",
 };

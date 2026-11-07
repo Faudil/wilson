@@ -23,4 +23,6 @@ export const SandboxSendInputSchema = z.object({
   text: z.string().max(4096).optional(),
   /** Photo or PDF of a letter/document. */
   file: z.file().max(10 * 1024 * 1024).optional(),
+  /** A shared location, as WhatsApp's 📎 → Location sends it. */
+  location: z.object({ latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180) }).optional(),
 });

@@ -80,4 +80,12 @@ export const ku: Record<WaKey, string> = {
   guard_slow_down: "Tu gelek peyaman dişînî. Ji kerema xwe çend deqeyan bisekine, paşê dîsa binivîse.",
   guard_held: "Peyamên te niha li bendê ne. Dilxwazek dê kontrol bike û bi te re têkilî dayne.",
   guard_released: "Spas ji bo sebra te. Tu dikarî dîsa ji me re binivîsî.",
+  nearby_hint: "📍 Ji bo dîtina cihên herî nêzî te, cihê xwe parve bike (📎 paşê 📍) an navnîşanek an navê stasyonekê binivîse.",
+  nearby_title: "📍 Nêzî te, îro vekirî (kêmtir ji {distance}):",
+  nearby_none: "Îro min tiştekî vekirî li nêzî vî cihî nedît.",
+  nearby_not_found: "Min ev navnîşan nedît. Bi navê bajêr re binivîse, an cihê xwe parve bike (📎 paşê 📍).",
+  nearby_water: "Ava vexwarinê",
+  nearby_toilets: "Tuwaleta giştî",
+  nearby_shower: "Dûşa giştî",
+  nearby_pharmacy: "Dermanxane",
 };

@@ -80,4 +80,12 @@ export const wo: Record<WaKey, string> = {
   guard_slow_down: "Yaa ngi yónnee bataaxal yu bari. Bal nu, xaaral ay simili, ba noppi nga bindaat.",
   guard_held: "Sa bataaxal yi ngi xaar léegi. Benn volontëër dina leen seetlu te dina la jokkoo.",
   guard_released: "Jërëjëf ci sa muñ. Mën nga nu bindaat.",
+  nearby_hint: "📍 Ngir gis bérab yi gëna jege, yónnee sa bérab (📎 ginaaw ba 📍) walla bindal adrees walla turu gaar.",
+  nearby_title: "📍 Ci sa wet, ubbi na tey (gëna tuuti {distance}):",
+  nearby_none: "Gisuma dara bu ubbeeku ci wetu bérab bii tey.",
+  nearby_not_found: "Gisuma adrees bii. Bindal ko ak turu dëkk bi, walla yónnee sa bérab (📎 ginaaw ba 📍).",
+  nearby_water: "Ndox mu ñuy naan",
+  nearby_toilets: "Wanag yu ñépp",
+  nearby_shower: "Sangukaay bu ñépp",
+  nearby_pharmacy: "Farmasi",
 };

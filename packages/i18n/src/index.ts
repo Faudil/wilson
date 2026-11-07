@@ -114,6 +114,14 @@ export type WaKey =
   | "guard_slow_down" // flood guard: too many messages, wait a few minutes
   | "guard_held" // flood guard: messages on hold until a volunteer checks
   | "guard_released" // flood guard: a volunteer released the number
+  | "nearby_hint" // after the list of the day: share your location (📎 then 📍) or write an address/station
+  | "nearby_title" // {distance} heading of the places nearest to a shared location
+  | "nearby_none" // nothing open found near that point today (the 115 line follows)
+  | "nearby_not_found" // typed address not found: add the city, or share your location
+  | "nearby_water" // label of an unnamed drinking-water point
+  | "nearby_toilets" // label of unnamed public toilets
+  | "nearby_shower" // label of an unnamed public shower
+  | "nearby_pharmacy" // label of an unnamed pharmacy
   | "footer"; // {name} {contact} — appended to every reply, never optional
 
 export type Params = Record<string, string | number>;

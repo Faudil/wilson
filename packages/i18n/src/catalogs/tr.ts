@@ -80,4 +80,12 @@ export const tr: Record<WaKey, string> = {
   guard_slow_down: "Çok fazla mesaj gönderiyorsunuz. Lütfen birkaç dakika bekleyin, sonra tekrar yazın.",
   guard_held: "Mesajlarınız şimdilik beklemede. Bir gönüllü kontrol edip size dönecek.",
   guard_released: "Beklediğiniz için teşekkürler. Bize tekrar yazabilirsiniz.",
+  nearby_hint: "📍 Size en yakın yerleri görmek için konumunuzu paylaşın (📎 sonra 📍) ya da bir adres veya istasyon adı yazın.",
+  nearby_title: "📍 Yakınınızda, bugün açık ({distance} içinde):",
+  nearby_none: "Bugün bu yerin yakınında açık bir şey bulamadım.",
+  nearby_not_found: "Bu adresi bulamadım. Şehir adıyla birlikte yazın ya da konumunuzu paylaşın (📎 sonra 📍).",
+  nearby_water: "İçme suyu",
+  nearby_toilets: "Umumi tuvalet",
+  nearby_shower: "Umumi duş",
+  nearby_pharmacy: "Eczane",
 };
