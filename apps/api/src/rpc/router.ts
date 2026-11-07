@@ -7,6 +7,7 @@ import { knowledgeRouter } from "./knowledge.js";
 import { lettersRouter } from "./letters.js";
 import { sandboxRouter } from "./sandbox.js";
 import { systemRouter } from "./system.js";
+import { volunteersRouter } from "./volunteers.js";
 
 export const router = os.router({
   auth: authRouter,
@@ -17,5 +18,6 @@ export const router = os.router({
   sandbox: sandboxRouter,
   knowledge: knowledgeRouter,
   conversations: conversationsRouter,
+  volunteers: volunteersRouter,
 });
 export type AppRouter = typeof router;

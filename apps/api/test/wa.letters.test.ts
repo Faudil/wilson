@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { documents, letterEvents, letters } from "../src/db/schema.js";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { beneficiaries, documents, letterEvents, letters } from "../src/db/schema.js";
 import { JOBS } from "../src/jobs/names.js";
 import { makeWa, type WaCtx } from "./wa.helpers.js";
 
@@ -133,13 +133,52 @@ describe("letter flow (sandbox)", () => {
     expect((await letterOf(p)).l.photoKey).toBeNull();
   });
 
-  it("audio gets the unsupported-media message; menu 0 gives the contact", async () => {
+  it("menu 0 flags the conversation for volunteers, says a volunteer will answer, and still gives the contact", async () => {
     const p = "33611000007";
     await onboard(p);
     const { waText } = await import("@wilson/i18n");
     await t.say(p, "0");
-    expect((await t.outbound(p)).at(-1)).toBe(
-      waText("en", "human_contact", { name: t.config.ASSOCIATION_NAME, contact: t.config.ASSOCIATION_CONTACT }),
-    );
+    const out = await t.outbound(p);
+    expect(out.at(-1)).toBe(waText("en", "human_contact", { name: t.config.ASSOCIATION_NAME, contact: t.config.ASSOCIATION_CONTACT }));
+    expect(out.at(-2)).toContain(waText("en", "chat_handoff"));
+    const { b } = await letterOf(p);
+    const [row] = await t.deps.db.select().from(beneficiaries).where(eq(beneficiaries.id, b.id));
+    expect(row!.chatStatus).toBe("needs_human");
+    // a second "0" does not repeat the hand-off message
+    await t.say(p, "0");
+    expect((await t.outbound(p)).filter((m) => m.includes(waText("en", "chat_handoff")))).toHaveLength(1);
+  });
+
+  it("a photo sent before choosing a language is kept and explained once the language is picked", async () => {
+    const p = "33611000008";
+    t.tllm.nextLanguage = { language: null, confidence: 0 };
+    await t.photo(p);
+    const { LANGUAGE_MENU_HEADER } = await import("@wilson/i18n");
+    expect((await t.outbound(p))[0]).toContain(LANGUAGE_MENU_HEADER);
+    expect(await t.deps.db.select().from(letters)).not.toContainEqual(expect.objectContaining({ beneficiaryId: (await letterOf(p)).b.id }));
+    await t.say(p, "2"); // English
+    const { l, b } = await letterOf(p);
+    expect(l).toBeTruthy();
+    expect(l.status).toBe("pending_review");
+    expect(b.language).toBe("en");
+    expect(b.conversationState).toEqual({ step: "main_menu" });
+  });
+
+  it("after 'delete my data', writing again starts over as a new person instead of silence", async () => {
+    const p = "33611000009";
+    await onboard(p);
+    const before = (await letterOf(p)).b.id;
+    await t.say(p, "9");
+    await t.say(p, "1");
+    t.tllm.nextLanguage = { language: null, confidence: 0 };
+    await t.say(p, "hello again");
+    const { b } = await letterOf(p);
+    expect(b.id).not.toBe(before);
+    expect(b.archivedAt).toBeNull();
+    const { LANGUAGE_MENU_HEADER } = await import("@wilson/i18n");
+    expect((await t.outbound(p))[0]).toContain(LANGUAGE_MENU_HEADER);
+    // the old record is still archived and will be purged on schedule
+    const [old] = await t.deps.db.select().from(beneficiaries).where(eq(beneficiaries.id, before));
+    expect(old!.archivedAt).not.toBeNull();
   });
 });

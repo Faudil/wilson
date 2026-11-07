@@ -1,5 +1,5 @@
 // Source of truth for the synthetic sample letters. All names, addresses and numbers are invented.
-// `pnpm`-free: run `npx tsx samples/build.ts` (writes .md/.html/.expected.json) then `npx tsx samples/render.ts` (writes .png).
+// Run `bun samples/build.ts` (writes .md/.html/.expected.json) then `bun samples/render.ts` (writes .png).
 import type { LetterAnalysis, LetterText } from "@wilson/contracts";
 
 export interface LetterDef {

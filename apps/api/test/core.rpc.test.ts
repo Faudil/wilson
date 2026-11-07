@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { eq } from "drizzle-orm";
 import { contract } from "@wilson/contracts";
 import { accessLog, sessions, volunteerPermissions, volunteers } from "../src/db/schema.js";
@@ -171,7 +171,7 @@ describe("rpc: documents & beneficiaries", () => {
 
   it("system.health is public", async () => {
     const { client } = makeClient(t.deps);
-    expect(await client.system.health()).toEqual({ ok: true, mode: "sandbox", llm: "fake", chat: "review" });
+    expect(await client.system.health()).toEqual({ ok: true, mode: "sandbox", llm: "fake", chat: "review", signup: true });
   });
 });
 

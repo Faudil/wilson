@@ -22,6 +22,10 @@ const EnvSchema = z.object({
   /** 32 bytes, base64. HMAC key for phone-number lookup hashes. */
   LOOKUP_KEY: z.string().refine((v) => Buffer.from(v, "base64").length === 32, "LOOKUP_KEY must be 32 bytes base64"),
   SESSION_TTL_HOURS: z.coerce.number().default(12),
+  /** on = volunteers can request an account from the login page (an admin approves it); off = admins create accounts. */
+  VOLUNTEER_SIGNUP: z.enum(["on", "off"]).default("on"),
+  /** Self-signups waiting for approval are capped (anti-spam): beyond this, new requests are refused. */
+  VOLUNTEER_SIGNUP_MAX_PENDING: z.coerce.number().int().min(1).default(30),
 
   S3_ENDPOINT: z.string().optional(),
   S3_REGION: z.string().default("fr-par"),
@@ -36,6 +40,8 @@ const EnvSchema = z.object({
   WHATSAPP_APP_SECRET: z.string().optional(),
   WHATSAPP_VERIFY_TOKEN: z.string().optional(),
   WHATSAPP_GRAPH_VERSION: z.string().default("v23.0"),
+  /** WhatsApp Business Account id: only needed by `wa:setup` (templates, webhook subscription), not at runtime. */
+  WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional(),
   WHATSAPP_TEMPLATE_EXPLANATION_READY: z.string().default("explanation_ready"),
   WHATSAPP_TEMPLATE_DOCUMENT_REMINDER: z.string().default("document_reminder"),
 

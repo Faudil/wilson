@@ -1,5 +1,5 @@
 // Generates letters/*.md, *.html, *.expected.json and documents/*.html, *.expected.json from the data file.
-// Usage: npx tsx samples/build.ts   (then: npx tsx samples/render.ts for the PNGs)
+// Usage: bun samples/build.ts   (then: bun samples/render.ts for the PNGs)
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

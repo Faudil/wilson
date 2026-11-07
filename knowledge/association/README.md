@@ -11,7 +11,7 @@ Les fichiers `.md` de ce dossier alimentent la base de connaissances de « Mon c
    - `kind` : `contact` (adresse, permanence, téléphone) ou `guide` (explication). Par défaut : `guide`
    - `url` : un lien vers plus d'informations
 3. Écrivez ensuite le contenu. **Chaque titre de niveau 2 (`## Titre`) devient un extrait indépendant** : une idée par section, avec les infos concrètes (lieu, jours, horaires, téléphone, ce qu'il faut apporter).
-4. Enregistrez, puis lancez la synchronisation : `pnpm knowledge:sync association` (ou le bouton « Synchroniser » du back-office). Elle tourne aussi toute seule chaque lundi.
+4. Enregistrez, puis lancez la synchronisation : `bun knowledge:sync association` (ou le bouton « Synchroniser » du back-office). Elle tourne aussi toute seule chaque lundi.
 
 ## Règles
 

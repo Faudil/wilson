@@ -1,5 +1,5 @@
 // Renders samples/{letters,documents}/*.html to PNG (794x1123, scale 1) with Playwright.
-// Usage: npx tsx samples/render.ts
+// Usage: bun samples/render.ts
 import { createRequire } from "node:module";
 import { readdirSync } from "node:fs";
 import { dirname, join } from "node:path";

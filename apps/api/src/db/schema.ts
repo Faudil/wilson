@@ -1,11 +1,11 @@
 /**
  * Drizzle schema — the integration point shared by every batch.
  * Columns suffixed `Enc` hold AES-256-GCM ciphertext under the beneficiary DEK (see src/crypto/keys.ts).
- * Change this file only through a reviewed migration (`pnpm db:generate`).
+ * Change this file only through a reviewed migration (`bun run db:generate`).
  */
 import { sql } from "drizzle-orm";
 import {
-  boolean, customType, date, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
+  type AnyPgColumn, boolean, customType, date, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import {
   DocumentTypeSchema, ExpirySourceSchema, LANGUAGE_CODES, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
@@ -34,7 +34,7 @@ export const messageStatusEnum = pgEnum("message_status", ["received", "queued",
 export const messageAuthorEnum = pgEnum("message_author", ["beneficiary", "bot", "volunteer", "system"]);
 export const chatStateEnum = pgEnum("chat_state", ["received", "draft", "sent", "rejected"]);
 export const chatIntentEnum = pgEnum("chat_intent", ["info", "legal", "urgent", "human", "letter", "document", "smalltalk", "out_of_scope"]);
-export const conversationStatusEnum = pgEnum("conversation_status", ["bot", "pending_review", "needs_human", "resolved"]);
+export const conversationStatusEnum = pgEnum("conversation_status", ["bot", "pending_review", "needs_human", "with_volunteer", "resolved"]);
 export const reminderKindEnum = pgEnum("reminder_kind", ["d30", "d7"]);
 export const knowledgeSourceEnum = pgEnum("knowledge_source", ["service_public", "annuaire", "association", "watizat"]);
 export const knowledgeKindEnum = pgEnum("knowledge_kind", ["procedure", "contact", "guide"]);
@@ -42,7 +42,8 @@ export const reminderStatusEnum = pgEnum("reminder_status", ["scheduled", "sent"
 
 /** Conversation state machine snapshot, owned by src/conversation/engine.ts. */
 export type ConversationState =
-  | { step: "choose_language" }
+  /** pendingFile: a photo/PDF sent before the language was chosen, processed as a letter right after. */
+  | { step: "choose_language"; pendingFile?: { mediaId: string; mime: string } }
   | { step: "main_menu" }
   | { step: "await_letter_photo" }
   | { step: "await_document_file" }
@@ -72,6 +73,8 @@ export const beneficiaries = pgTable("beneficiaries", {
   purgeAt: ts("purge_at"),
   /** Chatbot handoff state, drives the Conversations screen. */
   chatStatus: conversationStatusEnum("chat_status").notNull().default("bot"),
+  /** Volunteer who took the conversation over (chat_status = with_volunteer). The bot stays silent meanwhile. */
+  chatAssigneeId: uuid("chat_assignee_id").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
 });
 
 export const messages = pgTable("messages", {
@@ -167,6 +170,12 @@ export const volunteers = pgTable("volunteers", {
   uiLanguage: languageEnum("ui_language").notNull().default("fr"),
   createdAt: ts("created_at").notNull().defaultNow(),
   disabledAt: ts("disabled_at"),
+  /** Self-signup waiting for an admin: cannot log in, has no session, sees nothing. */
+  pendingApproval: boolean("pending_approval").notNull().default(false),
+  /** Free text from the signup form ("how would you like to help?"), for the approving admin. */
+  signupNote: text("signup_note"),
+  approvedAt: ts("approved_at"),
+  approvedBy: uuid("approved_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
 });
 
 /** Per-volunteer overrides on top of ROLE_PERMISSIONS. Empty in the POC. */

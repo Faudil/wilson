@@ -10,7 +10,7 @@ All content is synthetic: invented names, addresses, reference numbers and phone
 - `build.ts` - generates `.md`, `.html` and `.expected.json` from the data (validates against the contracts' Zod schemas).
 - `render.ts` - renders every `.html` to a 794x1123 PNG with Playwright.
 
-Regenerate: `cd apps/api && npx tsx ../../samples/build.ts && npx tsx ../../samples/render.ts`.
+Regenerate: `cd apps/api && bun ../../samples/build.ts && bun ../../samples/render.ts`.
 
 ## `letters/*.expected.json` shape
 

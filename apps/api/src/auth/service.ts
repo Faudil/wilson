@@ -1,14 +1,14 @@
 import { createHash, randomBytes } from "node:crypto";
-import { hash, verify } from "@node-rs/argon2";
-import { and, eq, gt } from "drizzle-orm";
-import { ROLE_PERMISSIONS, type Permission, type Volunteer, type VolunteerRole } from "@wilson/contracts";
+import { and, eq, gt, sql } from "drizzle-orm";
+import { ROLE_PERMISSIONS, type Permission, type SignupInput, type Volunteer, type VolunteerRole } from "@wilson/contracts";
 import type { Db } from "../db/client.js";
 import { sessions, volunteerPermissions, volunteers } from "../db/schema.js";
 
-// @node-rs/argon2: Algorithm.Argon2id === 2 (default). OWASP-ish params.
-const ARGON = { memoryCost: 19456, timeCost: 2, parallelism: 1 } as const;
+// Bun's built-in argon2id (PHC string), OWASP-ish params: 19 MiB, 2 passes.
+const ARGON = { algorithm: "argon2id", memoryCost: 19456, timeCost: 2 } as const;
 
-export const hashPassword = (password: string): Promise<string> => hash(password, ARGON);
+export const hashPassword = (password: string): Promise<string> => Bun.password.hash(password, ARGON);
+const verify = (hash: string, password: string): Promise<boolean> => Bun.password.verify(password, hash);
 export const sha256Hex = (s: string): string => createHash("sha256").update(s).digest("hex");
 
 type VolunteerRow = typeof volunteers.$inferSelect;
@@ -23,13 +23,26 @@ export function effectivePermissions(role: VolunteerRole, overrides: { permissio
 }
 
 export interface AuthService {
-  login(email: string, password: string): Promise<{ token: string; expires: Date; volunteer: Volunteer } | null>;
+  /** null = unknown email, wrong password or disabled; "pending" = right password, account not approved yet. */
+  login(email: string, password: string): Promise<{ token: string; expires: Date; volunteer: Volunteer } | "pending" | null>;
+  /**
+   * Self-signup: creates a pending account (no permissions until an admin approves it). Silently does nothing when
+   * the email already exists. Throws SignupError when the pending list is full.
+   */
+  signup(input: SignupInput): Promise<void>;
   logout(token: string): Promise<void>;
   resolveVolunteer(token: string): Promise<Volunteer | null>;
   setUiLanguage(volunteerId: string, language: Volunteer["uiLanguage"]): Promise<Volunteer>;
 }
 
-export function createAuthService(deps: { db: Db; config: { SESSION_TTL_HOURS: number }; now: () => Date }): AuthService {
+export class SignupError extends Error {
+  constructor(readonly reason: "too_many_pending") {
+    super(reason);
+    this.name = "SignupError";
+  }
+}
+
+export function createAuthService(deps: { db: Db; config: { SESSION_TTL_HOURS: number; VOLUNTEER_SIGNUP_MAX_PENDING: number }; now: () => Date }): AuthService {
   const { db } = deps;
 
   async function toVolunteer(row: VolunteerRow): Promise<Volunteer> {
@@ -56,10 +69,25 @@ export function createAuthService(deps: { db: Db; config: { SESSION_TTL_HOURS: n
         return null;
       }
       if (!(await verify(row.passwordHash, password).catch(() => false))) return null;
+      if (row.pendingApproval) return "pending";
       const token = randomBytes(32).toString("base64url");
       const expires = new Date(deps.now().getTime() + deps.config.SESSION_TTL_HOURS * 3600_000);
       await db.insert(sessions).values({ idHash: sha256Hex(token), volunteerId: row.id, expiresAt: expires });
       return { token, expires, volunteer: await toVolunteer(row) };
+    },
+
+    async signup(input) {
+      const email = input.email.trim().toLowerCase();
+      // Hash first, whatever happens next, so "already registered" and "new" take the same time.
+      const passwordHash = await hashPassword(input.password);
+      const [existing] = await db.select({ id: volunteers.id }).from(volunteers).where(eq(volunteers.email, email));
+      if (existing) return;
+      const [pending] = await db.select({ n: sql<number>`count(*)::int` }).from(volunteers).where(eq(volunteers.pendingApproval, true));
+      if ((pending?.n ?? 0) >= deps.config.VOLUNTEER_SIGNUP_MAX_PENDING) throw new SignupError("too_many_pending");
+      await db.insert(volunteers).values({
+        email, passwordHash, name: input.name.trim(), role: "responder", uiLanguage: input.uiLanguage,
+        pendingApproval: true, signupNote: input.note?.trim() || null,
+      }).onConflictDoNothing({ target: volunteers.email });
     },
 
     async logout(token) {
@@ -72,7 +100,7 @@ export function createAuthService(deps: { db: Db; config: { SESSION_TTL_HOURS: n
         .from(sessions)
         .innerJoin(volunteers, eq(volunteers.id, sessions.volunteerId))
         .where(and(eq(sessions.idHash, sha256Hex(token)), gt(sessions.expiresAt, deps.now())));
-      if (!r || r.v.disabledAt) return null;
+      if (!r || r.v.disabledAt || r.v.pendingApproval) return null;
       return toVolunteer(r.v);
     },
 

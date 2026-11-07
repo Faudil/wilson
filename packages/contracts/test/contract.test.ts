@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { contract, LANGUAGE_CODES, LetterAnalysisSchema, WaWebhookSchema } from "../src/index.js";
 
 const analysis = {
@@ -37,6 +37,6 @@ describe("contracts", () => {
     expect(WaWebhookSchema.parse(payload).entry[0]?.changes[0]?.value.messages?.[0]?.type).toBe("image");
   });
   it("exposes the expected procedure groups", () => {
-    expect(Object.keys(contract).sort()).toEqual(["auth", "beneficiaries", "conversations", "documents", "knowledge", "letters", "sandbox", "system"]);
+    expect(Object.keys(contract).sort()).toEqual(["auth", "beneficiaries", "conversations", "documents", "knowledge", "letters", "sandbox", "system", "volunteers"]);
   });
 });

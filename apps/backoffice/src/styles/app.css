@@ -644,6 +644,24 @@ button.avatar:hover {
   margin-block-start: 8px;
   background: var(--surface);
 }
+.callout-ok {
+  background: var(--ok-bg);
+  color: var(--ok-ink);
+  border-color: color-mix(in srgb, var(--ok-ink) 25%, transparent);
+}
+.callout-info {
+  background: var(--info-bg);
+  color: var(--info-ink);
+  border-color: color-mix(in srgb, var(--info-ink) 20%, transparent);
+}
+.callout-ok .btn,
+.callout-info .btn {
+  margin-block-start: 8px;
+  background: var(--surface);
+}
+.callout .row {
+  gap: 8px;
+}
 
 /* Empty states */
 .empty {
@@ -1187,6 +1205,71 @@ fieldset:disabled {
   background: var(--brand);
   color: var(--on-brand);
   box-shadow: var(--shadow);
+}
+
+.login-signup {
+  margin-block: 4px 12px;
+}
+.signup-check {
+  align-items: flex-start;
+  font-size: 0.9375rem;
+}
+.signup-check input[type="checkbox"] {
+  margin-block-start: 2px;
+}
+
+/* ---------- Volunteers (admin) ---------- */
+.vol-card {
+  display: grid;
+  gap: 10px;
+}
+.vol-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.vol-main {
+  display: grid;
+  flex: 1;
+  min-inline-size: 0;
+}
+.vol-main > * {
+  overflow-wrap: anywhere;
+}
+.vol-note {
+  margin: 0;
+  padding-block: 8px;
+  padding-inline: 12px;
+  background: var(--muted-bg);
+  border-radius: var(--radius-sm);
+  white-space: pre-wrap;
+}
+.role-picker {
+  display: grid;
+  gap: 8px;
+}
+.role-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.role-option > span {
+  display: grid;
+  gap: 2px;
+}
+.role-option input[type="radio"] {
+  inline-size: 20px;
+  block-size: 20px;
+  margin-block-start: 2px;
+  accent-color: var(--brand);
+}
+.role-option.is-active {
+  border-color: var(--brand);
+  background: var(--brand-soft);
 }
 
 /* ---------- Sheets, toasts, menu ---------- */
@@ -1922,6 +2005,27 @@ blockquote {
   font-size: 0.75rem;
   color: var(--muted);
   padding-block-end: 2px;
+}
+.composer-hint-warn {
+  color: var(--warn-ink);
+  align-items: flex-start;
+}
+.bubble-original,
+.bubble-footer {
+  margin: 6px 0 0;
+}
+.bubble-original summary,
+.bubble-footer summary {
+  cursor: pointer;
+  color: var(--brand-text);
+  list-style-position: inside;
+}
+.bubble-footer summary {
+  color: var(--muted);
+}
+.bubble-footer p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
 }
 .send-btn {
   display: grid;

@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { LANGUAGES, LANGUAGE_CODES, type LanguageCode, type WaInboundMessage } from "@wilson/contracts";
-import { documentTypeName, formatDate, parseUserDate, waText } from "@wilson/i18n";
+import { LANGUAGE_MENU_HEADER, documentTypeName, formatDate, parseUserDate, waText } from "@wilson/i18n";
 import type { BeneficiaryRow } from "../beneficiaries/service.js";
 import { letters, messages, type ConversationState } from "../db/schema.js";
 import { JOBS } from "../jobs/names.js";
@@ -19,7 +19,8 @@ type Input =
   | { type: "voice" } // audio / voice note
   | { type: "media_unsupported" } // video, sticker
   | { type: "other" } // location, contacts, unsupported
-  | { type: "ignore" }; // reactions
+  | { type: "ignore" } // reactions
+  | { type: "button" }; // quick-reply tap on a template (opt-in to receive a waiting message)
 
 interface Ctx {
   deps: WaDeps;
@@ -42,6 +43,7 @@ function classify(msg: WaInboundMessage): Input {
     case "audio": return { type: "voice" };
     case "video": case "sticker": return { type: "media_unsupported" };
     case "reaction": return { type: "ignore" };
+    case "button": return { type: "button" };
     default: return { type: "other" };
   }
 }
@@ -52,6 +54,7 @@ function inboundText(msg: WaInboundMessage): string | null {
     case "image": return msg.image.caption ?? null;
     case "document": return msg.document.caption ?? null;
     case "interactive": return (msg.interactive.button_reply ?? msg.interactive.list_reply)?.title ?? null;
+    case "button": return msg.button.text;
     default: return null;
   }
 }
@@ -71,7 +74,7 @@ export async function processInbound(deps: WaDeps, msg: WaInboundMessage): Promi
   const inserted = await db.insert(messages).values({
     beneficiaryId: beneficiary.id,
     direction: "in",
-    kind: msg.type === "text" || msg.type === "image" || msg.type === "document" || msg.type === "interactive" ? msg.type : "other",
+    kind: msg.type === "text" || msg.type === "image" || msg.type === "document" || msg.type === "interactive" ? msg.type : msg.type === "button" ? "interactive" : "other",
     waMessageId: msg.id,
     bodyEnc: body ? crypto.encrypt(dek, body) : null,
     mediaKey: mediaId?.startsWith("sandbox/") ? mediaId : null,
@@ -84,12 +87,26 @@ export async function processInbound(deps: WaDeps, msg: WaInboundMessage): Promi
   const ctx: Ctx = { deps, b: beneficiary, lang: beneficiary.language, state: beneficiary.conversationState, msgId: msg.id };
 
   // A reviewed explanation (or rejection notice) is waiting behind the opt-in template: any message releases it.
+  const heldChat = input.type === "button" ? await hasHeldChat(deps, beneficiary.id) : false;
   await getChat(deps).flushQueued(beneficiary.id); // chatbot answers held behind the 24 h window
   const released = await releaseAwaiting(ctx);
   if (released && input.type !== "file") return;
   if (input.type === "ignore") return;
+  if (input.type === "button") {
+    // "Recevoir" tapped on a template: it released what was waiting; if nothing was, show the menu.
+    if (!heldChat) await showMainMenu(ctx);
+    return;
+  }
 
   await dispatch(ctx, input);
+}
+
+/** Chatbot / volunteer answers queued behind the 24 h window (same filter as ChatService.flushQueued). */
+async function hasHeldChat(deps: WaDeps, beneficiaryId: string): Promise<boolean> {
+  const rows = await deps.db.select({ id: messages.id }).from(messages)
+    .where(and(eq(messages.beneficiaryId, beneficiaryId), eq(messages.direction, "out"), eq(messages.status, "queued"), eq(messages.chatState, "sent"), isNotNull(messages.author)))
+    .limit(1);
+  return rows.length > 0;
 }
 
 async function releaseAwaiting(ctx: Ctx): Promise<boolean> {
@@ -118,8 +135,9 @@ const setState = async (c: Ctx, s: ConversationState) => {
   await c.deps.beneficiaries.setConversationState(c.b.id, s);
 };
 const showLanguageMenu = async (c: Ctx) => {
-  await setState(c, { step: "choose_language" });
-  await say(c, waText("fr", "language_menu"));
+  const pendingFile = c.state.step === "choose_language" ? c.state.pendingFile : undefined;
+  await setState(c, pendingFile ? { step: "choose_language", pendingFile } : { step: "choose_language" });
+  await say(c, `${LANGUAGE_MENU_HEADER}\n\n${waText("fr", "language_menu")}`);
 };
 const showMainMenu = async (c: Ctx, intro?: Parameters<typeof waText>[1]) => {
   await setState(c, { step: "main_menu" });
@@ -147,15 +165,28 @@ async function dispatch(c: Ctx, input: Input): Promise<void> {
 
 async function setLanguageAndGo(c: Ctx, code: LanguageCode): Promise<void> {
   const first = !c.b.languageConfirmed;
+  const pending = c.state.step === "choose_language" ? c.state.pendingFile : undefined;
   await c.deps.beneficiaries.setLanguage(c.b.id, code, true);
   c.lang = code;
   c.b = { ...c.b, language: code, languageConfirmed: true };
+  if (pending) {
+    // A letter photo came before the language: explain it now instead of asking for it again.
+    if (first) await sayKey(c, "language_set", { language: LANGUAGES[code].nativeName });
+    await setState(c, { step: "main_menu" });
+    return onLetterFile(c, { type: "file", ...pending });
+  }
   if (first) await sayKey(c, "welcome");
   else await sayKey(c, "language_set", { language: LANGUAGES[code].nativeName });
   await showMainMenu(c);
 }
 
 async function onChooseLanguage(c: Ctx, input: Input): Promise<void> {
+  if (input.type === "file") {
+    // Keep the photo (only its media id) until the person has picked a language; nothing is lost.
+    await setState(c, { step: "choose_language", pendingFile: { mediaId: input.mediaId, mime: input.mime } });
+    await say(c, `📷 ✅\n${LANGUAGE_MENU_HEADER}\n\n${waText("fr", "language_menu")}`);
+    return;
+  }
   if (input.type === "text") {
     const n = menuChoice(input.text);
     if (n !== null) {
@@ -219,6 +250,9 @@ async function onFreeState(c: Ctx, input: Input): Promise<void> {
     case "3": return showLanguageMenu(c);
     case "0":
       await setState(c, { step: "main_menu" });
+      // Flag the conversation for volunteers ("a volunteer will answer you personally"), and still give the
+      // association's contact for people who prefer to call or come.
+      await getChat(c.deps).requestHuman(c.b.id);
       return sayKey(c, "human_contact", { name: c.deps.config.ASSOCIATION_NAME, contact: c.deps.config.ASSOCIATION_CONTACT });
     case "9":
       await setState(c, { step: "confirm_delete_all" });

@@ -27,7 +27,7 @@ export async function seed(db: Db, env: NodeJS.ProcessEnv = process.env): Promis
   return { created };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.main) {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL required");
   const { db, pool } = createDb(url);

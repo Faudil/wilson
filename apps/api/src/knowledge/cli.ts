@@ -1,7 +1,7 @@
 /**
  * Re-index the knowledge base from the command line.
- *   pnpm knowledge:sync                 every enabled source
- *   pnpm knowledge:sync service_public  one source
+ *   bun knowledge:sync                 every enabled source
+ *   bun knowledge:sync service_public  one source
  * RUNTIME=local uses the embedded database in DATA_DIR (stop the server first: PGlite is single-process).
  */
 import { KnowledgeSourceIdSchema } from "@wilson/contracts";
