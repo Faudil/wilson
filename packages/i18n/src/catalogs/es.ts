@@ -77,4 +77,7 @@ export const es: Record<WaKey, string> = {
   help_list_empty: "No tiene ninguna cita con un voluntario.",
   help_cancel_confirm: "¿Cancelar esta cita?\n{summary}\n1 - Sí, cancelar\n2 - No",
   help_cancelled: "La cita está cancelada. Se ha avisado al voluntario.",
+  guard_slow_down: "Está enviando muchos mensajes. Por favor, espere unos minutos y vuelva a escribir.",
+  guard_held: "Sus mensajes están en espera por ahora. Un voluntario los revisará y se pondrá en contacto con usted.",
+  guard_released: "Gracias por esperar. Puede volver a escribirnos.",
 };

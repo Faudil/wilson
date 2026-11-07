@@ -77,4 +77,7 @@ export const sq: Record<WaKey, string> = {
   help_list_empty: "Nuk keni asnjë takim me një vullnetar.",
   help_cancel_confirm: "Ta anuloj këtë takim?\n{summary}\n1 - Po, anuloje\n2 - Jo",
   help_cancelled: "Takimi u anulua. Vullnetari u njoftua.",
+  guard_slow_down: "Po dërgoni shumë mesazhe. Ju lutemi prisni disa minuta, pastaj shkruani përsëri.",
+  guard_held: "Mesazhet tuaja janë në pritje për momentin. Një vullnetar do t'i kontrollojë dhe do t'ju kontaktojë.",
+  guard_released: "Faleminderit që pritët. Mund të na shkruani përsëri.",
 };

@@ -34,6 +34,18 @@ export function sessionCookie(token: string | null, expires: Date | undefined, s
   return [`${SESSION_COOKIE}=${encodeURIComponent(token)}`, ...attrs].join("; ");
 }
 
+/**
+ * Visitor IP. The back-office server appends the address it received the request from to X-Forwarded-For, so with
+ * `hops` reverse proxies in front of it the visitor is `hops` entries from the right. Entries further left can be
+ * forged by the visitor and are ignored.
+ */
+export function clientIp(req: IncomingMessage, hops: number): string | null {
+  const header = req.headers["x-forwarded-for"];
+  const list = (Array.isArray(header) ? header.join(",") : (header ?? "")).split(",").map((s) => s.trim()).filter(Boolean);
+  if (!list.length) return req.socket?.remoteAddress ?? null;
+  return list[Math.max(0, list.length - 1 - hops)] ?? null;
+}
+
 export function createHttpServer(deps: WaDeps): Server {
   const secure = deps.config.NODE_ENV === "production";
   const rpc = new RPCHandler<RpcContext>(router, {
@@ -60,7 +72,7 @@ export function createHttpServer(deps: WaDeps): Server {
       const token = readCookie(req.headers.cookie, SESSION_COOKIE);
       const context = await createContext(deps, token, (t, expires) => {
         res.setHeader("Set-Cookie", sessionCookie(t, expires, secure));
-      });
+      }, clientIp(req, deps.config.TRUST_PROXY_HOPS));
       const result = await rpc.handle(req, res, { prefix: "/rpc", context });
       if (result.matched) return;
     }

@@ -9,7 +9,7 @@ import {
   type AnyPgColumn, boolean, customType, date, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import {
-  BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, HelpKindSchema, HelpStatusSchema, HelpTopicSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
+  BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, GuardReasonSchema, GuardStatusSchema, HelpKindSchema, HelpStatusSchema, HelpTopicSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
   type BuddySlot, type BuddyWindow, BuddyMatchStatusSchema, BuddyModePreferenceSchema, BuddyModeSchema, BuddyWindowSchema,
   TaskStatusSchema, UrgencySchema, VOLUNTEER_SKILLS, VolunteerRoleSchema,
 } from "@wilson/contracts";
@@ -54,6 +54,8 @@ export const buddyRequestStatusEnum = pgEnum("buddy_request_status", ["waiting",
 export const buddyMatchStatusEnum = pgEnum("buddy_match_status", tuple(BuddyMatchStatusSchema.options));
 export const buddySessionStatusEnum = pgEnum("buddy_session_status", ["scheduled", "cancelled", "done"]);
 export const buddyPartyEnum = pgEnum("buddy_party", ["beneficiary", "volunteer", "coordinator"]);
+export const guardStatusEnum = pgEnum("guard_status", GuardStatusSchema.options as [string, ...string[]]);
+export const guardReasonEnum = pgEnum("guard_reason", GuardReasonSchema.options as [string, ...string[]]);
 export const reminderStatusEnum = pgEnum("reminder_status", ["scheduled", "sent", "cancelled", "failed"]);
 export const helpKindEnum = pgEnum("help_kind", HelpKindSchema.options as [string, ...string[]]);
 export const helpTopicEnum = pgEnum("help_topic", HelpTopicSchema.options as [string, ...string[]]);
@@ -120,9 +122,15 @@ export const beneficiaries = pgTable("beneficiaries", {
   chatStatus: conversationStatusEnum("chat_status").notNull().default("bot"),
   /** Volunteer who took the conversation over (chat_status = with_volunteer). The bot stays silent meanwhile. */
   chatAssigneeId: uuid("chat_assignee_id").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  /** Flood guard (src/whatsapp/guard.ts): quarantined = held for a volunteer, blocked = every message dropped. */
+  guardStatus: guardStatusEnum("guard_status").notNull().default("none"),
+  guardReason: guardReasonEnum("guard_reason"),
+  guardAt: ts("guard_at"),
+  /** Volunteer who blocked / released the number (null when the guard acted on its own). */
+  guardBy: uuid("guard_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
   /** When the person said yes to announcements (menu 6); null = no announcements (opt-in only, WhatsApp policy). */
   announcementsOptInAt: ts("announcements_opt_in_at"),
-});
+}, (t) => [index("beneficiaries_guard_idx").on(t.guardStatus, t.guardAt).where(sql`${t.guardStatus} <> 'none'`)]);
 
 export const messages = pgTable("messages", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -231,6 +239,17 @@ export const volunteers = pgTable("volunteers", {
   signupNote: text("signup_note"),
   approvedAt: ts("approved_at"),
   approvedBy: uuid("approved_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  /** False only for self-signups that have not clicked the e-mail link yet (when SMTP_URL is set). */
+  emailVerified: boolean("email_verified").notNull().default(true),
+  /** SHA-256 of the e-mail verification token, and its expiry. */
+  emailTokenHash: text("email_token_hash"),
+  emailTokenExpiresAt: ts("email_token_expires_at"),
+  /** TOTP secret, encrypted under its own DEK (wrapped by MASTER_KEY). Enabled once a first code was confirmed. */
+  totpSecretEnc: bytea("totp_secret_enc"),
+  totpWrappedDek: bytea("totp_wrapped_dek"),
+  totpEnabledAt: ts("totp_enabled_at"),
+  /** Last accepted 30-second step: a code cannot be used twice. */
+  totpLastStep: integer("totp_last_step"),
   /** Association the volunteer is with (sign-up form). siren/rna only when picked from the official register. */
   associationName: text("association_name"),
   associationSiren: text("association_siren"),

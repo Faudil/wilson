@@ -13,17 +13,30 @@ export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
+  /** Shown once the password was right for an account with an authenticator app. */
+  const [needCode, setNeedCode] = useState(false);
+  const [totp, setTotp] = useState("");
   const health = useQuery({ ...orpc.system.health.queryOptions(), retry: false, staleTime: 60_000 });
   const login = useMutation({
     ...orpc.auth.login.mutationOptions(),
     onSuccess: (volunteer) => qc.setQueryData(ME_KEY, volunteer),
+    onError: (e) => {
+      if (errorCode(e) === "TWO_FACTOR_REQUIRED") setNeedCode(true);
+    },
   });
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    login.mutate({ email: email.trim(), password });
+    login.mutate({ email: email.trim(), password, totp: needCode && totp ? totp.replace(/\D/g, "") : undefined });
   };
   const code = errorCode(login.error);
+  const wait = code === "TOO_MANY_REQUESTS" ? Math.ceil(((login.error as { data?: { retryAfterSeconds?: number } }).data?.retryAfterSeconds ?? 60) / 60) : 0;
+  const message =
+    code === "UNAUTHORIZED" ? t("login.wrong")
+    : code === "FORBIDDEN" ? t("login.pending")
+    : code === "TOO_MANY_REQUESTS" ? t("login.locked", { n: wait })
+    : code === "TWO_FACTOR_REQUIRED" ? ((login.error as Error).message === "invalid_code" ? t("login.codeWrong") : null)
+    : t("error.generic");
 
   return (
     <div className="login">
@@ -54,10 +67,27 @@ export function Login() {
             </button>
           </span>
         </label>
-        {login.isError && (
+        {needCode && (
+          <label className="field">
+            <span className="field-label">{t("login.code")}</span>
+            <input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9 ]{6,7}"
+              maxLength={7}
+              required
+              autoFocus
+              value={totp}
+              onChange={(e) => setTotp(e.target.value)}
+              dir="ltr"
+            />
+            <span className="muted small">{t("login.codeHint")}</span>
+          </label>
+        )}
+        {login.isError && message && (
           <p className="notice notice-error" role="alert">
             <Icon name="alert" />
-            <span className="notice-body">{code === "UNAUTHORIZED" ? t("login.wrong") : code === "FORBIDDEN" ? t("login.pending") : t("error.generic")}</span>
+            <span className="notice-body">{message}</span>
           </p>
         )}
         <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={login.isPending}>

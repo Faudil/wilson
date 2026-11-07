@@ -25,6 +25,15 @@ for var in MASTER_KEY LOOKUP_KEY POSTGRES_PASSWORD S3_ACCESS_KEY S3_SECRET_KEY P
     *CHANGE_ME*|*change-me*|*example.org*) fail "$var still has its example value in .env" ;;
   esac
 done
+# Off-site backups are only ever sent encrypted: a bucket without an age public key is a configuration error.
+bucket=$(grep -E "^BACKUP_S3_BUCKET=" .env | tail -n 1 | cut -d= -f2-)
+recipient=$(grep -E "^BACKUP_AGE_RECIPIENT=" .env | tail -n 1 | cut -d= -f2-)
+if [ -n "$bucket" ]; then
+  case "$recipient" in
+    age1*) ;;
+    *) fail "BACKUP_S3_BUCKET is set: BACKUP_AGE_RECIPIENT must be the age public key (age1...), see docs/security.md" ;;
+  esac
+fi
 $COMPOSE config -q
 
 # 2. Build first, so a broken build never takes the site down

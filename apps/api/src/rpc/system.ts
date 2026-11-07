@@ -7,5 +7,6 @@ export const systemRouter = {
     llm: context.deps.config.LLM_MODE,
     chat: context.deps.config.CHAT_MODE,
     signup: context.deps.config.VOLUNTEER_SIGNUP === "on",
+    emailVerification: !!context.deps.config.SMTP_URL,
   })),
 };

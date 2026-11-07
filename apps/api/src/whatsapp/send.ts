@@ -70,7 +70,8 @@ export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.
   if (payload.kind === "broadcast") return runBroadcastSend(deps, payload.broadcastId, payload.beneficiaryId);
 
   const b = await beneficiaries.get(payload.beneficiaryId);
-  if (!b) return;
+  // Blocked numbers get nothing from us any more, reminders included.
+  if (!b || b.guardStatus === "blocked") return;
   const to = await beneficiaries.getWaId(b.id);
   /** Window closed: a template instead, when this text has one. Returns false when it has none (plain menu text…). */
   const viaTemplate = async (): Promise<boolean> => {

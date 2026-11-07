@@ -1,6 +1,6 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-import { AssociationRefSchema, AssociationSearchInputSchema, LoginInputSchema, PermissionSchema, SignupInputSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
+import { AssociationRefSchema, AssociationSearchInputSchema, LoginInputSchema, PermissionSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
 import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
@@ -18,12 +18,14 @@ import {
   BuddyReportSchema, BuddyRequestSchema,
 } from "./buddies.js";
 import { AcceptInputSchema, AppointmentDocumentsSchema, AppointmentListInputSchema, AppointmentSchema, SlotCreateSchema, SlotSchema } from "./appointments.js";
+import { GuardStatusSchema, HeldNumbersSchema } from "./guard.js";
 import { ApiKeyAddSchema, ApiKeyListSchema, ApiKeySchema, ApiKeyUpdateSchema, UsageBudgetSchema, UsageSetBudgetSchema, UsageSummarySchema } from "./usage.js";
 
 /**
  * The single source of truth for every back-office ⇄ API call.
  * Server: `implement(contract)` in apps/api. Client: `ContractRouterClient<typeof contract>` in apps/backoffice.
- * All procedures require a volunteer session except `auth.login`, `auth.signup`, `auth.searchAssociations` and `system.health`.
+ * All procedures require a volunteer session except `auth.login`, `auth.signup`, `auth.searchAssociations`, `auth.verifyEmail` and
+ * `system.health`.
  */
 
 const base = oc.errors({
@@ -31,11 +33,13 @@ const base = oc.errors({
   FORBIDDEN: {},
   NOT_FOUND: {},
   CONFLICT: { data: z.object({ reason: z.string() }) },
+  /** Too many attempts (login, signup): try again after `retryAfterSeconds`. */
+  TOO_MANY_REQUESTS: { data: z.object({ retryAfterSeconds: z.number().int() }) },
 });
 
 const auth = {
   /** FORBIDDEN = right password but the account is still waiting for an admin's approval. */
-  login: base.input(LoginInputSchema).output(VolunteerSchema),
+  login: base.errors({ TWO_FACTOR_REQUIRED: {} }).input(LoginInputSchema).output(VolunteerSchema),
   /**
    * Public self-signup → pending account, no access until `volunteers.approve`. Always answers `{ ok: true }` for a
    * well-formed request (also when the email is already taken) so it cannot be used to find who volunteers here.
@@ -51,6 +55,13 @@ const auth = {
   logout: base.output(z.void()),
   me: base.output(VolunteerSchema),
   setUiLanguage: base.input(z.object({ language: LanguageSchema })).output(VolunteerSchema),
+  /** Public: the link in the verification e-mail. Always `{ ok: true }` for a well-formed token (no oracle). */
+  verifyEmail: base.input(z.object({ token: z.string().min(20).max(100) })).output(z.object({ ok: z.literal(true) })),
+  /** New authenticator secret for the logged-in volunteer (not active until twoFactorEnable confirms a code). */
+  twoFactorSetup: base.output(TwoFactorSetupSchema),
+  twoFactorEnable: base.input(z.object({ code: TotpCodeSchema })).output(VolunteerSchema),
+  /** Needs a current code. Admin rights are withheld again afterwards (ADMIN_2FA=required). */
+  twoFactorDisable: base.input(z.object({ code: TotpCodeSchema })).output(VolunteerSchema),
 };
 
 /** Review queue (copilot mode). Nothing reaches a beneficiary without `approve`. */
@@ -106,6 +117,8 @@ const volunteers = {
   setRole: base.input(z.object({ id: IdSchema, role: VolunteerRoleSchema })).output(VolunteerAccountSchema),
   /** Disable (sessions revoked at once) or re-enable an account. Not on yourself. */
   setDisabled: base.input(z.object({ id: IdSchema, disabled: z.boolean() })).output(VolunteerAccountSchema),
+  /** Someone lost their phone: remove their authenticator app (they enrol again at next login). Not on yourself. */
+  resetTwoFactor: base.input(z.object({ id: IdSchema })).output(VolunteerAccountSchema),
   /**
    * Replace a person's per-permission overrides on top of their role bundle (granted: false = revoked). Not on
    * yourself, not on a pending account (CONFLICT). Applies on the person's next request.
@@ -294,9 +307,24 @@ const appointments = {
   removeSlot: base.input(z.object({ id: IdSchema })).output(z.void()),
 };
 
-const system = {
-  health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional() })),
+/**
+ * WhatsApp numbers held by the flood guard, and blocked numbers (`numbers.moderate`). Every call is logged.
+ * Releasing tells the person (fixed text) that they can write again; blocking is silent.
+ */
+const numbers = {
+  list: base.input(z.object({ status: GuardStatusSchema.exclude(["none"]).default("quarantined") })).output(HeldNumbersSchema),
+  /** Held numbers waiting for a decision: the navigation badge polls this. */
+  heldCount: base.output(z.object({ count: z.number().int().nonnegative(), floodMode: z.boolean() })),
+  release: base.input(z.object({ beneficiaryId: IdSchema })).output(z.void()),
+  /** Releases every number held because of a global flood (once the wave is over). */
+  releaseAllGlobal: base.output(z.object({ released: z.number().int().nonnegative() })),
+  block: base.input(z.object({ beneficiaryId: IdSchema })).output(z.void()),
+  unblock: base.input(z.object({ beneficiaryId: IdSchema })).output(z.void()),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, system };
+const system = {
+  health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional(), emailVerification: z.boolean().optional() })),
+};
+
+export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, numbers, system };
 export type Contract = typeof contract;

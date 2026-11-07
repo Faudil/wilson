@@ -52,3 +52,9 @@ export function useAppointmentCounts(enabled: boolean): { open: number; mineSoon
   const q = useQuery({ ...orpc.appointments.counts.queryOptions(), enabled, refetchInterval: 60_000, retry: false });
   return q.data ?? { open: 0, mineSoon: 0 };
 }
+
+/** WhatsApp numbers held by the flood guard, waiting for a volunteer's decision. */
+export function useHeldNumbers(enabled: boolean): number {
+  const q = useQuery({ ...orpc.numbers.heldCount.queryOptions(), enabled, refetchInterval: 60_000, retry: false });
+  return q.data?.count ?? 0;
+}

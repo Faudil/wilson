@@ -28,6 +28,10 @@ const INPUTS: Record<string, unknown> = {
   "auth.logout": undefined,
   "auth.me": undefined,
   "auth.setUiLanguage": { language: "fr" },
+  "auth.verifyEmail": { token: "x".repeat(43) },
+  "auth.twoFactorSetup": undefined,
+  "auth.twoFactorEnable": { code: "123456" },
+  "auth.twoFactorDisable": { code: "123456" },
   "letters.list": { limit: 5 },
   "letters.get": { id },
   "letters.photo": { id },
@@ -61,6 +65,7 @@ const INPUTS: Record<string, unknown> = {
   "volunteers.reject": { id },
   "volunteers.setRole": { id, role: "volunteer" },
   "volunteers.setDisabled": { id, disabled: true },
+  "volunteers.resetTwoFactor": { id },
   "volunteers.setPermissions": { id, overrides: [{ permission: "places.manage", granted: false }] },
   "places.list": { scope: "today" },
   "places.create": { kind: "food", name: "Distribution", startsOn: "2026-11-06" },
@@ -93,6 +98,12 @@ const INPUTS: Record<string, unknown> = {
   "skills.directory": {},
   "skills.suggest": { beneficiaryId: id },
   "skills.updateFor": { volunteerId: id, languages: [], skills: [], note: null },
+  "numbers.list": { status: "quarantined" },
+  "numbers.heldCount": undefined,
+  "numbers.release": { beneficiaryId: id },
+  "numbers.releaseAllGlobal": undefined,
+  "numbers.block": { beneficiaryId: id },
+  "numbers.unblock": { beneficiaryId: id },
   "buddies.myProfile": undefined,
   "buddies.saveProfile": { active: true, languages: ["ar"], slots: [{ weekday: 2, time: "18:30" }], modes: ["meet"], maxBuddies: 1, meetPlace: "Local" },
   "buddies.requests": undefined,
@@ -125,6 +136,7 @@ const INPUTS: Record<string, unknown> = {
 /** The permission(s) each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
 const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "auth.me": null, "auth.setUiLanguage": null,
+  "auth.twoFactorSetup": null, "auth.twoFactorEnable": null, "auth.twoFactorDisable": null,
   "letters.list": "letters.review", "letters.get": "letters.review", "letters.edit": "letters.review",
   "letters.approve": "letters.review", "letters.reject": "letters.review", "letters.photo": "letters.view_photo",
   "beneficiaries.list": "beneficiaries.view", "beneficiaries.get": "beneficiaries.view", "beneficiaries.setLanguage": "beneficiaries.edit",
@@ -136,7 +148,7 @@ const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "conversations.approveDraft": "conversations.reply", "conversations.rejectDraft": "conversations.reply",
   "conversations.reply": "conversations.reply", "conversations.resolve": "conversations.reply", "conversations.takeOver": "conversations.reply",
   "volunteers.list": "volunteers.manage", "volunteers.approve": "volunteers.manage", "volunteers.reject": "volunteers.manage",
-  "volunteers.setRole": "volunteers.manage", "volunteers.setDisabled": "volunteers.manage", "volunteers.setPermissions": "volunteers.manage",
+  "volunteers.setRole": "volunteers.manage", "volunteers.setDisabled": "volunteers.manage", "volunteers.setPermissions": "volunteers.manage", "volunteers.resetTwoFactor": "volunteers.manage",
   "places.list": "places.view", "places.preview": "places.view",
   "places.create": "places.manage", "places.update": "places.manage", "places.remove": "places.manage",
   "broadcasts.list": "broadcasts.view", "broadcasts.estimate": "broadcasts.view", "broadcasts.preview": "broadcasts.view",
@@ -162,9 +174,11 @@ const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "appointments.complete": ["appointments.view", "appointments.accept"], "appointments.cancel": ["appointments.view", "appointments.manage"],
   "appointments.documents": "appointments.documents", "appointments.documentFile": "appointments.documents",
   "appointments.slots": "appointments.slots", "appointments.addSlot": "appointments.slots", "appointments.removeSlot": "appointments.slots",
+  "numbers.list": "numbers.moderate", "numbers.heldCount": "numbers.moderate", "numbers.release": "numbers.moderate",
+  "numbers.releaseAllGlobal": "numbers.moderate", "numbers.block": "numbers.moderate", "numbers.unblock": "numbers.moderate",
 };
 const needs = (req: Permission | Permission[] | null, perm: Permission) => (Array.isArray(req) ? req.includes(perm) : req === perm);
-const PUBLIC = new Set(["auth.login", "auth.signup", "auth.searchAssociations", "system.health"]);
+const PUBLIC = new Set(["auth.login", "auth.signup", "auth.searchAssociations", "auth.verifyEmail", "system.health"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */
 const ANON_OK = new Set([...PUBLIC, "auth.logout"]);
 const ALL = leaves(contract);

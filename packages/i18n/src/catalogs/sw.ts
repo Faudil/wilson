@@ -77,4 +77,7 @@ export const sw: Record<WaKey, string> = {
   help_list_empty: "Huna miadi yoyote na mtu wa kujitolea.",
   help_cancel_confirm: "Ughairi miadi hii?\n{summary}\n1 - Ndiyo, ghairi\n2 - Hapana",
   help_cancelled: "Miadi imeghairiwa. Mtu wa kujitolea amearifiwa.",
+  guard_slow_down: "Unatuma ujumbe mwingi. Tafadhali subiri dakika chache, kisha uandike tena.",
+  guard_held: "Ujumbe wako unasubiri kwa sasa. Mtu wa kujitolea ataukagua na kuwasiliana nawe.",
+  guard_released: "Asante kwa kusubiri. Unaweza kutuandikia tena.",
 };

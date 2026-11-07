@@ -77,4 +77,7 @@ export const tr: Record<WaKey, string> = {
   help_list_empty: "Bir gönüllüyle hiç randevunuz yok.",
   help_cancel_confirm: "Bu randevu iptal edilsin mi?\n{summary}\n1 - Evet, iptal et\n2 - Hayır",
   help_cancelled: "Randevu iptal edildi. Gönüllüye haber verildi.",
+  guard_slow_down: "Çok fazla mesaj gönderiyorsunuz. Lütfen birkaç dakika bekleyin, sonra tekrar yazın.",
+  guard_held: "Mesajlarınız şimdilik beklemede. Bir gönüllü kontrol edip size dönecek.",
+  guard_released: "Beklediğiniz için teşekkürler. Bize tekrar yazabilirsiniz.",
 };

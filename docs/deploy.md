@@ -78,7 +78,9 @@ docker compose -f docker-compose.prod.yml exec backup pg_restore --clean --if-ex
 docker compose -f docker-compose.prod.yml start api
 ```
 
-Les dumps restent sur le même disque : copiez régulièrement le volume `wilson-prod_backups` ailleurs, **dans l'UE** (les données sont sensibles), et la `MASTER_KEY` séparément.
+Les dumps restent sur le même disque : configurez la **copie chiffrée hors du serveur** (`BACKUP_AGE_RECIPIENT`, `BACKUP_S3_*`, voir [security.md](security.md#3-encrypted-off-site-backups)), dans l'UE, et gardez la `MASTER_KEY` séparément, hors ligne.
+
+Avant d'annoncer le numéro WhatsApp, suivez la liste de [security.md](security.md) (protection DDoS, SSH, pare-feu, reverse proxy, double authentification sur les comptes Meta et GitHub).
 
 ## Revenir à une version précédente
 

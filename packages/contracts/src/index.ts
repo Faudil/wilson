@@ -14,6 +14,7 @@ export * from "./notes.js";
 export * from "./skills.js";
 export * from "./buddies.js";
 export * from "./appointments.js";
+export * from "./guard.js";
 export * from "./contract.js";
 export * from "./places.js";
 export * from "./broadcasts.js";

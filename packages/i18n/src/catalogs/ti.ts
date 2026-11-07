@@ -77,4 +77,7 @@ export const ti: Record<WaKey, string> = {
   help_list_empty: "ምስ ወለንተኛ ዝኾነ ቆጸራ የብልካን።",
   help_cancel_confirm: "እዚ ቆጸራ ይሰረዝ?\n{summary}\n1 - እወ፡ ሰርዝ\n2 - ኣይፋል",
   help_cancelled: "ቆጸራ ተሰሪዙ። ወለንተኛ ተሓቢሩ።",
+  guard_slow_down: "ብዙሕ መልእኽትታት ትሰድድ ኣለኻ። በጃኻ ቁሩብ ደቓይቕ ተጸበ፣ ድሕሪኡ እንደገና ጽሓፍ።",
+  guard_held: "መልእኽትታትካ ሕጂ ኣብ ምጽባይ ኣለዉ። ሓደ ወለንታዊ ክርእዮምን ክረኽበካን እዩ።",
+  guard_released: "ስለ ዝተጸበኻ የቐንየልና። እንደገና ክትጽሕፈልና ትኽእል ኢኻ።",
 };

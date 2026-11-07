@@ -7,6 +7,7 @@ import { conversationsRouter } from "./conversations.js";
 import { documentsRouter } from "./documents.js";
 import { knowledgeRouter } from "./knowledge.js";
 import { lettersRouter } from "./letters.js";
+import { numbersRouter } from "./numbers.js";
 import { notesRouter, tasksRouter } from "./notes.js";
 import { sandboxRouter } from "./sandbox.js";
 import { skillsRouter } from "./skills.js";
@@ -34,5 +35,6 @@ export const router = os.router({
   broadcasts: broadcastsRouter,
   buddies: buddiesRouter,
   appointments: appointmentsRouter,
+  numbers: numbersRouter,
 });
 export type AppRouter = typeof router;

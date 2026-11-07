@@ -109,6 +109,13 @@ export function testConfig(overrides: Record<string, string | undefined> = {}): 
     LLM_MODE: "fake",
     // Never call the real association register from tests.
     ASSOCIATION_SEARCH: "off",
+    // The clock is frozen in tests and phones are reused across a file: keep the flood guard out of the way
+    // (guard.test.ts sets its own limits).
+    WA_RATE_PER_MINUTE: "100000", WA_RATE_PER_HOUR: "100000", WA_FILES_PER_DAY: "100000",
+    WA_FLOOD_PER_MINUTE: "100000", WA_FLOOD_PER_HOUR: "100000", WA_FLOOD_PER_DAY: "100000",
+    WA_GLOBAL_PER_MINUTE: "100000", WA_GLOBAL_PER_HOUR: "100000",
+    // Same for account protections (security.test.ts turns them on).
+    ADMIN_2FA: "optional", SIGNUP_PER_DAY: "100000", AUDIT_READS_PER_HOUR: "100000",
     ...overrides,
   });
 }

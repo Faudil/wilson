@@ -67,4 +67,6 @@ export const ConversationDetailSchema = ConversationSummarySchema.extend({
   footer: z.string(),
   /** WhatsApp 24 h window: false = a reply now waits until the person writes again. */
   windowOpen: z.boolean(),
+  /** Flood guard state of this number (quarantined / blocked numbers get no automatic answer). */
+  guard: z.enum(["none", "quarantined", "blocked"]),
 });

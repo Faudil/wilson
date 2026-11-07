@@ -77,4 +77,7 @@ export const pt: Record<WaKey, string> = {
   help_list_empty: "Não tem nenhuma marcação com um voluntário.",
   help_cancel_confirm: "Cancelar esta marcação?\n{summary}\n1 - Sim, cancelar\n2 - Não",
   help_cancelled: "A marcação foi cancelada. O voluntário foi avisado.",
+  guard_slow_down: "Está a enviar muitas mensagens. Por favor, aguarde alguns minutos e depois escreva novamente.",
+  guard_held: "As suas mensagens estão em espera por agora. Um voluntário vai verificar e entrar em contacto consigo.",
+  guard_released: "Obrigado por esperar. Pode voltar a escrever-nos.",
 };

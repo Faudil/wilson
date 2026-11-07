@@ -77,4 +77,7 @@ export const ku: Record<WaKey, string> = {
   help_list_empty: "Randevûyeke te bi dilxwazekî re tune.",
   help_cancel_confirm: "Ev randevû betal bibe?\n{summary}\n1 - Erê, betal bike\n2 - Na",
   help_cancelled: "Randevû hate betalkirin. Dilxwaz hate agahdarkirin.",
+  guard_slow_down: "Tu gelek peyaman dişînî. Ji kerema xwe çend deqeyan bisekine, paşê dîsa binivîse.",
+  guard_held: "Peyamên te niha li bendê ne. Dilxwazek dê kontrol bike û bi te re têkilî dayne.",
+  guard_released: "Spas ji bo sebra te. Tu dikarî dîsa ji me re binivîsî.",
 };

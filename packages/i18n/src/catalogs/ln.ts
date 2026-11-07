@@ -77,4 +77,7 @@ export const ln: Record<WaKey, string> = {
   help_list_empty: "Ozali na rendez-vous moko te na moto ya bolingo.",
   help_cancel_confirm: "Kolongola rendez-vous oyo?\n{summary}\n1 - Iyo, longola\n2 - Te",
   help_cancelled: "Rendez-vous elongolami. Moto ya bolingo ayebisami.",
+  guard_slow_down: "Ozali kotinda bansango mingi. Svp zela miniti moke, sima koma lisusu.",
+  guard_held: "Bansango na yo ezali kozela mpo na sikoyo. Mosali moko ya bolingo akotala yango mpe akoyokisa yo.",
+  guard_released: "Matondi mpo ozelaki. Okoki kokomela biso lisusu.",
 };
