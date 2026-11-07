@@ -46,6 +46,7 @@ const EnvSchema = z.object({
   WHATSAPP_TEMPLATE_DOCUMENT_REMINDER: z.string().default("document_reminder"),
 
   LLM_MODE: z.enum(["anthropic", "fake"]).default("fake"),
+  /** Server key, used after the keys admins add in the back-office (optional when such keys exist). */
   ANTHROPIC_API_KEY: z.string().optional(),
   LLM_MODEL: z.string().default("claude-opus-5-5"),
 
@@ -91,8 +92,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     process.exit(1);
   }
   if (c.LLM_MODE === "anthropic" && !c.ANTHROPIC_API_KEY) {
-    console.error("LLM_MODE=anthropic requires ANTHROPIC_API_KEY");
-    process.exit(1);
+    console.warn("LLM_MODE=anthropic without ANTHROPIC_API_KEY: Claude calls use only the keys added in the back-office (Usage > API keys).");
   }
   return c;
 }

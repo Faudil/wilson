@@ -201,6 +201,59 @@ export const accessLog = pgTable("access_log", {
 });
 
 
+/**
+ * One row per Claude API call (each repair retry counts). Token counts from the API's `usage` block and the
+ * estimated cost; no prompt, no reply, no name or phone. `beneficiaryId` only groups calls by conversation and is
+ * cleared when the person's data is purged.
+ */
+export const llmUsage = pgTable("llm_usage", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  at: ts("at").notNull().defaultNow(),
+  task: text("task").notNull(), // UsageTask (prompt name)
+  model: text("model").notNull(),
+  language: languageEnum("language"),
+  beneficiaryId: uuid("beneficiary_id").references(() => beneficiaries.id, { onDelete: "set null" }),
+  /** Which donated key paid for it; null = the server key (ANTHROPIC_API_KEY) or a deleted key. */
+  apiKeyId: uuid("api_key_id").references((): AnyPgColumn => llmApiKeys.id, { onDelete: "set null" }),
+  inputTokens: integer("input_tokens").notNull(),
+  outputTokens: integer("output_tokens").notNull(),
+  cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
+  cacheWriteTokens: integer("cache_write_tokens").notNull().default(0),
+  /** Estimated cost in millionths of a USD; null = model not in the price list. */
+  costMicroUsd: integer("cost_micro_usd"),
+}, (t) => [index("llm_usage_at_idx").on(t.at)]);
+
+/**
+ * Claude API keys added by admins (e.g. given by donors), each with its own monthly limit. Calls use the oldest
+ * active key that still has budget, then the next one, then the server key. The key itself is encrypted
+ * (own DEK wrapped by MASTER_KEY) and never sent back to the back-office: only its last 4 characters.
+ */
+export const llmApiKeys = pgTable("llm_api_keys", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  label: text("label").notNull(),
+  wrappedDek: bytea("wrapped_dek").notNull(),
+  keyEnc: bytea("key_enc").notNull(),
+  keyLast4: text("key_last4").notNull(),
+  /** USD cents per calendar month; null = no limit of its own. */
+  monthlyLimitCents: integer("monthly_limit_cents"),
+  disabledAt: ts("disabled_at"),
+  /** Last error from the API with this key (invalid key, no credit…): the key is skipped for a while. */
+  lastError: text("last_error"),
+  lastErrorAt: ts("last_error_at"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  createdBy: uuid("created_by").references(() => volunteers.id, { onDelete: "set null" }),
+});
+
+/** Single row (id = 1): the monthly Claude budget set by an admin in the back-office. */
+export const llmBudget = pgTable("llm_budget", {
+  id: integer("id").primaryKey().default(1),
+  /** Monthly limit in USD cents; null = no limit. */
+  monthlyLimitCents: integer("monthly_limit_cents"),
+  hardStop: boolean("hard_stop").notNull().default(false),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+  updatedBy: uuid("updated_by").references(() => volunteers.id, { onDelete: "set null" }),
+});
+
 const tsvector = customType<{ data: string }>({ dataType: () => "tsvector" });
 
 /** Knowledge base (RAG). Public, non-personal content only — never beneficiary data. */

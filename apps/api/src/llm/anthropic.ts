@@ -15,6 +15,8 @@ import {
 import { z } from "zod";
 import { LlmError, type ChatTurn, type LlmFile, type LlmProvider } from "./provider.js";
 import { promptVersion, renderPrompt, type PromptName } from "./prompts.js";
+import type { UsageTask } from "@wilson/contracts";
+import type { UsageMeter } from "../usage/service.js";
 
 /** The subset of the SDK client we use (lets tests inject a mock). */
 export interface AnthropicLike {
@@ -26,6 +28,24 @@ export interface AnthropicProviderOptions {
   model: string;
   client?: AnthropicLike;
   maxTokens?: number;
+  /** Records tokens + estimated cost of every call, picks the API key and enforces budgets (see src/usage). */
+  meter?: UsageMeter;
+  /** Builds the client for an admin-added key (tests inject a mock). */
+  clientForKey?: (apiKey: string) => AnthropicLike;
+}
+
+/** Errors that mean "this key cannot be used" rather than "this request is wrong": try the next key. */
+function isKeyProblem(e: unknown): boolean {
+  const status = (e as { status?: number } | null)?.status;
+  if (status === 401 || status === 403) return true;
+  const msg = e instanceof Error ? e.message : String(e);
+  return (status === 400 || status === 402) && /credit balance|billing|spend limit/i.test(msg);
+}
+
+/** Which task / language a call is for, for usage tracking only. */
+interface CallTag {
+  task: UsageTask;
+  language: LanguageCode | null;
 }
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
@@ -101,14 +121,20 @@ const ChatReplyOutSchema = z.object({
 
 export class AnthropicProvider implements LlmProvider {
   readonly name = "anthropic";
-  private readonly client: AnthropicLike;
+  /** Server-key client (ANTHROPIC_API_KEY, or the test mock); null when the server has no key of its own. */
+  private readonly client: AnthropicLike | null;
+  private readonly keyClients = new Map<string, AnthropicLike>();
+  private readonly makeClient: (apiKey: string) => AnthropicLike;
   private readonly model: string;
   private readonly maxTokens: number;
+  private readonly meter: UsageMeter | undefined;
 
   constructor(opts: AnthropicProviderOptions) {
     this.model = opts.model;
+    this.meter = opts.meter;
     this.maxTokens = opts.maxTokens ?? 16000;
-    this.client = opts.client ?? new Anthropic({ apiKey: opts.apiKey });
+    this.client = opts.client ?? (opts.apiKey ? new Anthropic({ apiKey: opts.apiKey }) : null);
+    this.makeClient = opts.clientForKey ?? ((apiKey) => new Anthropic({ apiKey }));
   }
 
   private fileBlock(file: LlmFile): Anthropic.ContentBlockParam {
@@ -122,8 +148,62 @@ export class AnthropicProvider implements LlmProvider {
     throw new LlmError(`Unsupported mime type for the model: ${file.mimeType}`);
   }
 
+  /**
+   * The only place that calls the API. The meter picks the key (admin-added keys with budget left first, then the
+   * server key), checks the budget, and records tokens + cost after (refusals too: they are billed). If the API
+   * refuses an admin-added key (invalid, revoked, out of credit), the call is retried once on the next key.
+   */
+  private async create(tag: CallTag, messages: Anthropic.MessageParam[]): Promise<Anthropic.Message> {
+    const failed = new Set<string>();
+    for (;;) {
+      const choice = this.meter ? await this.meter.beforeCall(tag.task, failed) : { keyId: null, apiKey: null };
+      const client = this.clientFor(choice.apiKey);
+      let res: Anthropic.Message;
+      try {
+        res = await client.messages.create({ model: this.model, max_tokens: this.maxTokens, messages });
+      } catch (e) {
+        if (choice.keyId && this.meter && isKeyProblem(e)) {
+          await this.meter.keyFailed(choice.keyId, e instanceof Error ? e.message : String(e));
+          failed.add(choice.keyId);
+          continue;
+        }
+        throw e;
+      }
+      const u = res.usage;
+      if (this.meter && u) {
+        await this.meter.record({
+          keyId: choice.keyId,
+          task: tag.task,
+          model: res.model ?? this.model,
+          language: tag.language,
+          tokens: {
+            inputTokens: u.input_tokens ?? 0,
+            outputTokens: u.output_tokens ?? 0,
+            cacheReadTokens: u.cache_read_input_tokens ?? 0,
+            cacheWriteTokens: u.cache_creation_input_tokens ?? 0,
+          },
+        });
+      }
+      return res;
+    }
+  }
+
+  private clientFor(apiKey: string | null): AnthropicLike {
+    if (apiKey === null) {
+      if (!this.client) throw new LlmError("No Claude API key: set ANTHROPIC_API_KEY or add a key in Usage > API keys");
+      return this.client;
+    }
+    let c = this.keyClients.get(apiKey);
+    if (!c) {
+      c = this.makeClient(apiKey);
+      this.keyClients.set(apiKey, c);
+    }
+    return c;
+  }
+
   /** One call, JSON out, Zod-validated, with exactly one repair retry that feeds the validation error back. */
   private async callJson<S extends z.ZodType>(
+    tag: CallTag,
     content: Anthropic.ContentBlockParam[],
     schema: S,
     fixup?: (raw: unknown) => unknown,
@@ -133,7 +213,7 @@ export class AnthropicProvider implements LlmProvider {
     for (let attempt = 0; attempt < 2; attempt++) {
       let text: string;
       try {
-        const res = await this.client.messages.create({ model: this.model, max_tokens: this.maxTokens, messages });
+        const res = await this.create(tag, messages);
         if (res.stop_reason === "refusal") throw new LlmError("Model refused the request");
         text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
       } catch (e) {
@@ -172,6 +252,7 @@ export class AnthropicProvider implements LlmProvider {
       targetLanguageCode: input.targetLanguage,
     });
     return this.callJson(
+      { task: "letter-analysis", language: input.targetLanguage },
       [this.fileBlock(input.file), { type: "text", text: prompt }],
       LetterAnalysisSchema,
       this.withVersion("letter-analysis"),
@@ -181,6 +262,7 @@ export class AnthropicProvider implements LlmProvider {
   async analyzeDocument(input: { file: LlmFile; today: string }): Promise<DocumentAnalysis> {
     const prompt = renderPrompt("document-analysis", { today: input.today });
     return this.callJson(
+      { task: "document-analysis", language: null },
       [this.fileBlock(input.file), { type: "text", text: prompt }],
       DocumentAnalysisSchema,
       this.withVersion("document-analysis"),
@@ -192,7 +274,7 @@ export class AnthropicProvider implements LlmProvider {
       languageList: LANGUAGE_CODES.map((c) => `"${c}"`).join(", "),
       text: input.text.slice(0, 1000),
     });
-    const r = await this.callJson([{ type: "text", text: prompt }], LanguageDetectionSchema);
+    const r = await this.callJson({ task: "language-detect", language: null }, [{ type: "text", text: prompt }], LanguageDetectionSchema);
     return { language: r.language === "unknown" ? null : r.language, confidence: r.confidence };
   }
 
@@ -202,7 +284,7 @@ export class AnthropicProvider implements LlmProvider {
       targetLanguageCode: input.targetLanguage,
       frJson: JSON.stringify(input.fr, null, 2),
     });
-    const out = await this.callJson([{ type: "text", text: prompt }], LetterTextSchema);
+    const out = await this.callJson({ task: "letter-translate", language: input.targetLanguage }, [{ type: "text", text: prompt }], LetterTextSchema);
     if (out.actions.length !== input.fr.actions.length || out.orientation.length !== input.fr.orientation.length) {
       throw new LlmError("Translation changed the number of actions or orientation entries");
     }
@@ -237,16 +319,16 @@ export class AnthropicProvider implements LlmProvider {
       targetLanguageCode: input.targetLanguage,
       inputJson,
     });
-    const out = await this.callJson([{ type: "text", text: prompt }], OrientationOutSchema);
+    const out = await this.callJson({ task: "letter-orientation", language: input.targetLanguage }, [{ type: "text", text: prompt }], OrientationOutSchema);
     if (out.fr.length !== out.target.length) throw new LlmError("Orientation: fr and target have different lengths");
     const known = new Set(input.snippets.map((s) => s.id));
     return { fr: out.fr, target: out.target, usedIds: [...new Set(out.usedIds.filter((id) => known.has(id)))] };
   }
   /** One plain-text call (no JSON), no retry beyond the SDK's own. */
-  private async callText(prompt: string): Promise<string> {
+  private async callText(tag: CallTag, prompt: string): Promise<string> {
     let text: string;
     try {
-      const res = await this.client.messages.create({ model: this.model, max_tokens: this.maxTokens, messages: [{ role: "user", content: prompt }] });
+      const res = await this.create(tag, [{ role: "user", content: prompt }]);
       if (res.stop_reason === "refusal") throw new LlmError("Model refused the request");
       text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
     } catch (e) {
@@ -263,7 +345,7 @@ export class AnthropicProvider implements LlmProvider {
       targetLanguageCode: input.language,
       historyJson: JSON.stringify(input.history, null, 2),
     });
-    const out = await this.callJson([{ type: "text", text: prompt }], ChatPlanSchema);
+    const out = await this.callJson({ task: "chat-plan", language: input.language }, [{ type: "text", text: prompt }], ChatPlanSchema);
     const needsHuman = out.needsHuman || out.intent === "legal" || out.intent === "urgent" || out.intent === "human";
     return { intent: out.intent, frenchQuery: out.frenchQuery.trim(), needsHuman };
   }
@@ -293,7 +375,7 @@ export class AnthropicProvider implements LlmProvider {
       today: input.today,
       inputJson,
     });
-    const out = await this.callJson([{ type: "text", text: prompt }], ChatReplyOutSchema);
+    const out = await this.callJson({ task: "chat-reply", language: input.language }, [{ type: "text", text: prompt }], ChatReplyOutSchema);
     const known = new Set(input.snippets.map((s) => s.id));
     return { text: out.text, textFr: out.textFr, usedIds: [...new Set(out.usedIds.filter((id) => known.has(id)))] };
   }
@@ -306,6 +388,7 @@ export class AnthropicProvider implements LlmProvider {
       targetLanguageCode: input.to,
       text: input.text.slice(0, 4000),
     });
-    return this.callText(prompt);
+    const language = input.to !== "fr" ? input.to : input.from === "auto" ? null : input.from;
+    return this.callText({ task: "chat-translate", language }, prompt);
   }
 }

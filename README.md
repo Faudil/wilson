@@ -30,7 +30,8 @@ Puis ouvrir http://localhost:5173 (compte `admin@example.org` / `change-me-pleas
 
 - Aucun service à installer : la base de données est embarquée (PGlite), les fichiers chiffrés sont dans `.data/`, les clés sont générées dans `.env.local` au premier lancement.
 - Toujours arrêter avec Ctrl+C (la base est fermée proprement ; un seul lancement à la fois sur le même dossier). Pour repartir de zéro : arrêter (Ctrl+C) et supprimer `.data/` et `.env.local`.
-- Pour la vraie IA : dans `.env.local`, mettre `LLM_MODE=anthropic` et `ANTHROPIC_API_KEY=…`.
+- Pour la vraie IA : dans `.env.local`, mettre `LLM_MODE=anthropic` et `ANTHROPIC_API_KEY=…` (ou ajouter des clés depuis le back-office : Plus > Coûts de l'IA).
+- Coûts : chaque appel à Claude est compté (tokens + prix estimé, sans aucun contenu). Les admins voient les totaux du jour et du mois, fixent un budget mensuel (alerte à 80 %, arrêt facultatif) et gèrent plusieurs clés API, chacune avec son propre budget.
 - Mode réservé aux tests : les tâches en attente sont perdues si on arrête le programme.
 
 ### Option B — avec Docker (proche de la production)
@@ -62,7 +63,7 @@ Par défaut, `WHATSAPP_MODE=sandbox` et `LLM_MODE=fake` :
 
 | Variable | Rôle |
 |---|---|
-| `LLM_MODE=anthropic`, `ANTHROPIC_API_KEY`, `LLM_MODEL` | Analyse réelle par Claude (modèle Opus par défaut) |
+| `LLM_MODE=anthropic`, `ANTHROPIC_API_KEY`, `LLM_MODEL` | Analyse réelle par Claude (modèle Opus par défaut). La clé du serveur est facultative si des clés sont ajoutées dans le back-office. |
 | `WHATSAPP_MODE=meta` + `WHATSAPP_*` | WhatsApp Cloud API (Meta). Webhook : `https://<domaine>/webhooks/whatsapp`. **Pas à pas complet (identifiants, webhook, modèles, vrai numéro) : [docs/whatsapp-setup.md](docs/whatsapp-setup.md)** |
 | `WHATSAPP_TEMPLATE_EXPLANATION_READY`, `WHATSAPP_TEMPLATE_DOCUMENT_REMINDER` | Modèles de messages (catégorie « utility ») utilisés quand la personne n'a pas écrit depuis plus de 24 h (règle WhatsApp). Soumis à Meta dans les 16 langues qu'il accepte par `bun run --filter @wilson/api wa:setup templates` |
 | `S3_*` | Stockage S3 hébergé en France/UE (Scaleway, OVH, Clever Cloud…) |
