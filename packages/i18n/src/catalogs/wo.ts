@@ -16,6 +16,7 @@ export const wo: Record<WaKey, string> = {
   letter_offer_save: "Ndax bëgg nga ma denc kayit bii ci Sama dokumaŋ yi?\n1 - Waaw\n2 - Déedéet (dinanu far nataal bi)",
   letter_saved: "Kayit bi denc nañu ko ci Sama dokumaŋ yi.",
   letter_not_saved: "Waaw baax na. Far nanu nataalu sa kayit.",
+  letter_more_details: "3 - Leeral yu gën a bari",
   document_ask_file: "Yónnee nataal walla PDF bu sa dokumaŋ (kart bu sëj, récépissé, ...).",
   document_analyzing: "Maa ngi jàng sa dokumaŋ. Jëfandikoo muñ.",
   document_confirm: "Dokumaŋ: {type}\nXaaju bi mu jeex: {date}\n1 - Dëgg la\n2 - Soppi bés bi",

@@ -15,6 +15,7 @@ import { href, useRoute } from "./lib/router";
 import { SessionContext, type Session } from "./lib/session";
 import { Home } from "./screens/Home";
 import { Login } from "./screens/Login";
+import markUrl from "./brand/mark.svg";
 
 // Every other screen is its own chunk, downloaded the first time it is opened: on a slow phone the first page
 // only waits for the shell, the login and the home screen.
@@ -135,9 +136,7 @@ function Shell({
     <div className={`shell${nav ? " has-nav" : ""}${focus ? " is-focus" : ""}`}>
       <header className="topbar">
         <a className="brand" href="#/">
-          <span className="brand-mark" aria-hidden="true">
-            <Icon name="mail" size={18} />
-          </span>
+          <img className="brand-mark" src={markUrl} alt="" width={38} height={38} />
           <span className="brand-text">
             <span className="brand-name">{t("app.name")}</span>
             <span className="brand-sub">{t("app.tagline")}</span>

@@ -16,6 +16,7 @@ export const sw: Record<WaKey, string> = {
   letter_offer_save: "Unataka kuhifadhi barua hii kwenye Hati zangu?\n1 - Ndiyo\n2 - Hapana (picha itafutwa)",
   letter_saved: "Barua imehifadhiwa kwenye Hati zangu.",
   letter_not_saved: "Sawa. Picha ya barua yako imefutwa.",
+  letter_more_details: "3 - Maelezo zaidi",
   document_ask_file: "Tuma picha au PDF ya hati yako (kibali cha kuishi, récépissé, ...).",
   document_analyzing: "Ninasoma hati yako. Tafadhali subiri.",
   document_confirm: "Hati: {type}\nTarehe ya kuisha muda: {date}\n1 - Ni sahihi\n2 - Badilisha tarehe",

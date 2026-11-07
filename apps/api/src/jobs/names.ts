@@ -14,7 +14,8 @@ export interface JobPayloads {
   [JOBS.documentAnalyze]: { documentId: string };
   /** Outbound text already rendered; the worker decides text vs template from the 24 h window. */
   [JOBS.waSend]:
-    | { kind: "text"; beneficiaryId: string; body: string; letterId?: string; reminderId?: string }
+    /** interactive: a numbered menu, sent as WhatsApp buttons/list when it fits (see whatsapp/interactive.ts). */
+    | { kind: "text"; beneficiaryId: string; body: string; letterId?: string; reminderId?: string; interactive?: boolean }
     | { kind: "letter_reply"; letterId: string }
     /** Chatbot message already stored (encrypted, footer included) in `messages`; the worker sends it and marks it sent. */
     | { kind: "chat"; messageId: string };

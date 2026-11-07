@@ -408,5 +408,7 @@
   "conv.assignedConflict": "Une autre personne suit déjà cette discussion.",
   "conv.showOriginal": "Voir le message en {language}",
   "conv.footerFolded": "Mention « information, pas un conseil juridique » ajoutée",
-  "conv.windowClosed": "Cette personne n'a pas écrit depuis plus de 24 h : votre message lui arrivera quand elle écrira à nouveau."
+  "conv.windowClosed": "Cette personne n'a pas écrit depuis plus de 24 h : votre message lui arrivera quand elle écrira à nouveau.",
+  "sandbox.choices": "Boutons WhatsApp",
+  "letter.detailsLabel": "Envoyé seulement si la personne demande « plus d'explications »"
 }

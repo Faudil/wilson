@@ -16,6 +16,7 @@ export const so: Record<WaKey, string> = {
   letter_offer_save: "Ma rabtaa inaad warqaddan ku hayso Dukumentiyadayda?\n1 - Haa\n2 - Maya (sawirka waa la tirtiri doonaa)",
   letter_saved: "Warqadda waa lagu keydiyay Dukumentiyadayda.",
   letter_not_saved: "Haye. Sawirka warqaddaada waa la tirtiray.",
+  letter_more_details: "3 - Faahfaahin dheeraad ah",
   document_ask_file: "Soo dir sawir ama PDF dukumentigaaga (kaarka degganaanshaha, rasiidka, ...).",
   document_analyzing: "Dukumentigaaga ayaan akhrinayaa. Fadlan sug.",
   document_confirm: "Dukumenti: {type}\nTaariikhda dhicitaanka: {date}\n1 - Waa sax\n2 - Beddel taariikhda",

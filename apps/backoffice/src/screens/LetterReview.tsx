@@ -495,6 +495,22 @@ function Review({ detail }: { detail: LetterDetail }) {
                 {detail.outgoingTextFr}
               </div>
             )}
+            {detail.outgoingDetailsText && (
+              <>
+                <div className="wa-label">
+                  <Icon name="info" size={14} />
+                  <span>{t("letter.detailsLabel")}</span>
+                </div>
+                <div className="wa-bubble long-text" lang={detail.language} dir={target.dir}>
+                  {detail.outgoingDetailsText}
+                </div>
+                {showFr && detail.outgoingDetailsTextFr && (
+                  <div className="wa-bubble wa-bubble-fr" lang="fr" dir="ltr">
+                    {detail.outgoingDetailsTextFr}
+                  </div>
+                )}
+              </>
+            )}
           </div>
           {detail.outgoingTextFr && (
             <button type="button" className="btn btn-quiet btn-small" onClick={() => setShowFr(!showFr)} aria-expanded={showFr}>

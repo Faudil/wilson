@@ -16,6 +16,7 @@ export const fa: Record<WaKey, string> = {
   letter_offer_save: "می‌خواهید این نامه در اسناد من نگه شود؟\n1 - بلی\n2 - نخیر (عکس پاک می‌شود)",
   letter_saved: "نامه در اسناد من ذخیره شد.",
   letter_not_saved: "خوب. عکس نامه‌تان پاک شد.",
+  letter_more_details: "3 - توضیح بیشتر",
   document_ask_file: "عکس یا فایل PDF سندتان را بفرستید (کارت اقامت، رسید، ...).",
   document_analyzing: "سندتان را می‌خوانم. لطفا صبر کنید.",
   document_confirm: "سند: {type}\nتاریخ ختم اعتبار: {date}\n1 - درست است\n2 - تغییر تاریخ",

@@ -16,6 +16,7 @@ export const sq: Record<WaKey, string> = {
   letter_offer_save: "Doni ta ruani këtë letër te Dokumentet e mia?\n1 - Po\n2 - Jo (fotoja do të fshihet)",
   letter_saved: "Letra u ruajt te Dokumentet e mia.",
   letter_not_saved: "Në rregull. Fotoja e letrës suaj u fshi.",
+  letter_more_details: "3 - Më shumë shpjegime",
   document_ask_file: "Dërgoni një foto ose PDF të dokumentit tuaj (leje qëndrimi, récépissé, ...).",
   document_analyzing: "Po e lexoj dokumentin tuaj. Ju lutem prisni.",
   document_confirm: "Dokumenti: {type}\nData e skadimit: {date}\n1 - Është e saktë\n2 - Ndrysho datën",

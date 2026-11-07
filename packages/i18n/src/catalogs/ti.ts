@@ -16,6 +16,7 @@ export const ti: Record<WaKey, string> = {
   letter_offer_save: "እዚ ደብዳቤ ኣብ ሰነዳተይ ክትከናኸኖ ትደሊ ዶ?\n1 - እወ\n2 - ኣይፋል (እቲ ስእሊ ክጠፍእ እዩ)",
   letter_saved: "እቲ ደብዳቤ ኣብ ሰነዳተይ ተዓቂቡ።",
   letter_not_saved: "ጽቡቕ። ስእሊ ደብዳበኻ ተደምሲሱ።",
+  letter_more_details: "3 - ተወሳኺ መብርሂ",
   document_ask_file: "ስእሊ ወይ PDF ናይ ሰነድካ ልኣኽ (ፍቓድ ምንባር፣ ደረሰኝ፣ ...)።",
   document_analyzing: "ሰነድካ ይንብብ ኣለኹ። በጃኻ ተጸበ።",
   document_confirm: "ሰነድ: {type}\nዕለት ምውዳእ: {date}\n1 - ቅኑዕ እዩ\n2 - ዕለት ቀይር",

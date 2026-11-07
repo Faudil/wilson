@@ -16,6 +16,7 @@ export const ht: Record<WaKey, string> = {
   letter_offer_save: "Eske ou vle kenbe lèt sa a nan Dokiman mwen yo?\n1 - Wi\n2 - Non (n ap efase foto a)",
   letter_saved: "Lèt la anrejistre nan Dokiman mwen yo.",
   letter_not_saved: "Dakò. Foto lèt ou a efase.",
+  letter_more_details: "3 - Plis eksplikasyon",
   document_ask_file: "Voye yon foto oswa yon PDF dokiman ou a (kat sejou, récépissé, ...).",
   document_analyzing: "M ap li dokiman ou a. Tanpri tann.",
   document_confirm: "Dokiman: {type}\nDat li fini: {date}\n1 - Se kòrèk\n2 - Chanje dat la",

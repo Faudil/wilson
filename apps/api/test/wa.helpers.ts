@@ -10,6 +10,7 @@ import { LlmError, type LlmProvider } from "../src/llm/provider.js";
 import { adoptServices } from "../src/services.js";
 import type { WaDeps } from "../src/whatsapp/context.js";
 import { SandboxTransport, putSandboxMedia } from "../src/whatsapp/sandbox.js";
+import type { Interactive } from "../src/whatsapp/interactive.js";
 import type { WhatsAppTransport } from "../src/whatsapp/transport.js";
 import { MetaApiError } from "../src/whatsapp/meta.js";
 import { registerWhatsAppWorkers } from "../src/whatsapp/workers.js";
@@ -80,6 +81,11 @@ export class FakeMeta implements WhatsAppTransport {
     }
     this.texts.push({ to, body });
     return { waMessageId: `wamid.out.${randomUUID()}` };
+  }
+  interactives: { to: string; message: Interactive }[] = [];
+  async sendInteractive(to: string, message: Interactive) {
+    this.interactives.push({ to, message });
+    return { waMessageId: `wamid.int.${randomUUID()}` };
   }
   async sendTemplate(to: string, template: string, _l: LanguageCode, params: string[]) {
     this.templates.push({ to, template, params });
