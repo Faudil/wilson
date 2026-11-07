@@ -6,7 +6,7 @@ import { extractPdfText } from "../pdf.js";
 import type { KnowledgeChunkInput, SourceAdapter } from "../types.js";
 
 /** City in the file name (watizat-paris.pdf, Guide Watizat Lyon 2024.pdf…) → INSEE département. */
-export const CITY_DEPARTMENTS: Record<string, string> = {
+const CITY_DEPARTMENTS: Record<string, string> = {
   paris: "75", lyon: "69", marseille: "13", toulouse: "31", bordeaux: "33", strasbourg: "67", lille: "59", nantes: "44",
 };
 

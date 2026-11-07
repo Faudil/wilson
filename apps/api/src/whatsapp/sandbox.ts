@@ -17,7 +17,7 @@ export interface SandboxTransportDeps {
 }
 
 /** Sandbox media ids look like `sandbox/<beneficiaryId>/<uuid>`; the blob is `mime \n bytes`, encrypted with the beneficiary DEK. */
-export const SANDBOX_MEDIA_PREFIX = "sandbox/";
+const SANDBOX_MEDIA_PREFIX = "sandbox/";
 
 export async function putSandboxMedia(deps: SandboxTransportDeps, beneficiaryId: string, bytes: Buffer, mimeType: string): Promise<string> {
   const dek = await deps.beneficiaries.getDek(beneficiaryId);

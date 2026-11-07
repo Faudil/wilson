@@ -6,7 +6,7 @@ import type { WhatsAppTransport } from "./transport.js";
 import type { Interactive } from "./interactive.js";
 
 /** WhatsApp text messages are capped at 4096 characters. */
-export const MAX_TEXT = 4096;
+const MAX_TEXT = 4096;
 
 /** Split a long message on paragraph, then line, then word boundaries so each part fits in one WhatsApp message. */
 export function splitText(body: string, max = MAX_TEXT): string[] {

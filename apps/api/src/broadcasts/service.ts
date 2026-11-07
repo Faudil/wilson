@@ -1,3 +1,4 @@
+import { DomainError } from "../errors.js";
 import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import type { Broadcast, BroadcastEstimate, BroadcastInput, LanguageCode } from "@wilson/contracts";
 import { waText } from "@wilson/i18n";
@@ -11,9 +12,9 @@ import { footerFor, windowOpen } from "../whatsapp/send.js";
 type Row = typeof broadcasts.$inferSelect;
 type BDeps = Pick<Deps, "db" | "llm" | "config" | "now" | "jobs" | "wa">;
 
-export class BroadcastError extends Error {
-  constructor(readonly code: "NOT_FOUND" | "CONFLICT" | "FORBIDDEN", readonly reason?: string) {
-    super(reason ?? code);
+export class BroadcastError extends DomainError {
+  constructor(code: "NOT_FOUND" | "CONFLICT" | "FORBIDDEN", reason?: string) {
+    super(code, reason ?? code);
     this.name = "BroadcastError";
   }
 }
@@ -43,7 +44,7 @@ export function getBroadcasts(deps: BDeps): BroadcastsService {
   return s;
 }
 
-export function createBroadcastsService(deps: BDeps): BroadcastsService {
+function createBroadcastsService(deps: BDeps): BroadcastsService {
   const { db, llm, config, jobs } = deps;
 
   async function mustRow(id: string): Promise<Row> {

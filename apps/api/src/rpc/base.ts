@@ -1,6 +1,7 @@
 import { implement, ORPCError } from "@orpc/server";
 import { contract, type Permission, type Volunteer } from "@wilson/contracts";
 import type { Deps } from "../deps.js";
+import { DomainError } from "../errors.js";
 
 /** Per-request context, built in server.ts from the HTTP request. */
 export interface RpcContext {
@@ -16,14 +17,40 @@ export interface RpcContext {
 /** Every procedure implementation starts from `os`. */
 export const os = implement(contract).$context<RpcContext>();
 
-/** Use on every procedure but auth.login and system.health: `os.letters.list.use(requirePermission("letters.review"))`. */
-export const requirePermission = (...needed: Permission[]) =>
+/** Does this volunteer hold the permission? (Permissions are already effective: role bundle + overrides.) */
+export const can = (v: Volunteer, p: Permission): boolean => v.permissions.includes(p);
+export const canAny = (v: Volunteer, ps: readonly Permission[]): boolean => ps.some((p) => can(v, p));
+
+const gate = (allowed: (v: Volunteer) => boolean) =>
   os.middleware(async ({ context, next }) => {
     const v = context.volunteer;
     if (!v) throw new ORPCError("UNAUTHORIZED");
-    if (!needed.every((p) => v.permissions.includes(p))) throw new ORPCError("FORBIDDEN");
+    if (!allowed(v)) throw new ORPCError("FORBIDDEN");
     return next({ context: { volunteer: v } });
   });
+
+/** Use on every procedure but auth.login and system.health: `os.letters.list.use(requirePermission("letters.review"))`. Needs ALL of them. */
+export const requirePermission = (...needed: Permission[]) => gate((v) => needed.every((p) => can(v, p)));
+
+/** At least ONE of the permissions. */
+export const requireAny = (...any: Permission[]) => gate((v) => canAny(v, any));
+
+/** Service errors become oRPC errors the same way everywhere: CONFLICT carries `data.reason`, all carry the message. */
+export function mapDomainError(e: unknown): never {
+  if (e instanceof DomainError) {
+    throw new ORPCError(e.code, { message: e.message, ...(e.code === "CONFLICT" ? { data: { reason: e.reason } } : {}) });
+  }
+  throw e;
+}
+
+/** Run a service call and translate its DomainError. */
+export async function guard<T>(f: () => Promise<T>): Promise<T> {
+  try {
+    return await f();
+  } catch (e) {
+    return mapDomainError(e);
+  }
+}
 
 /** Append to access_log. Call from procedures that reveal content (photo, file) or change state. */
 export type LogAccess = (ctx: RpcContext, action: string, targetId: string | null) => Promise<void>;

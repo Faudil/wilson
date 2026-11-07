@@ -2,13 +2,13 @@ import { ORPCError } from "@orpc/server";
 import { and, asc, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import type { BuddyMatch, BuddyMatchDetail, BuddyMode, BuddyReport, BuddyRequest, BuddySlot, Permission, Volunteer } from "@wilson/contracts";
 import { maskedLabel } from "../beneficiaries/serviceImpl.js";
-import { BuddyError, getBuddies, OPEN_MATCH, type MatchRow } from "../buddies/service.js";
+import { getBuddies, OPEN_MATCH, type MatchRow } from "../buddies/service.js";
 import { beneficiaries, buddyMatches, buddyMessages, buddyProfiles, buddyReports, buddyRequests, buddySessions, volunteers } from "../db/schema.js";
 import type { Deps } from "../deps.js";
 import { getServices } from "../services.js";
 import { getWaDeps } from "../whatsapp/context.js";
 import { logAccess } from "./logAccess.js";
-import { os, requirePermission, type RpcContext } from "./base.js";
+import { can, guard, os, requireAny, requirePermission, type RpcContext } from "./base.js";
 
 /**
  * French practice buddies. Three permissions, checked here on every call (the UI only hides buttons):
@@ -20,32 +20,7 @@ const BE = "buddies.be_buddy" satisfies Permission;
 const MANAGE = "buddies.manage" satisfies Permission;
 const REPORTS = "buddies.reports" satisfies Permission;
 
-/** At least one of the permissions (requirePermission needs all of them). */
-const requireAny = (...any: Permission[]) =>
-  os.middleware(async ({ context, next }) => {
-    const v = context.volunteer;
-    if (!v) throw new ORPCError("UNAUTHORIZED");
-    if (!any.some((p) => v.permissions.includes(p))) throw new ORPCError("FORBIDDEN");
-    return next({ context: { volunteer: v } });
-  });
-
-const can = (v: Volunteer, p: Permission) => v.permissions.includes(p);
 const svc = () => getBuddies(getWaDeps());
-
-function mapErr(e: unknown): never {
-  if (e instanceof BuddyError) {
-    if (e.code === "CONFLICT") throw new ORPCError("CONFLICT", { data: { reason: e.reason } });
-    throw new ORPCError(e.code);
-  }
-  throw e;
-}
-const guard = async <T>(f: () => Promise<T>): Promise<T> => {
-  try {
-    return await f();
-  } catch (e) {
-    mapErr(e);
-  }
-};
 
 async function matchRow(deps: Deps, id: string): Promise<MatchRow> {
   const [m] = await deps.db.select().from(buddyMatches).where(eq(buddyMatches.id, id)).limit(1);

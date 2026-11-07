@@ -59,7 +59,7 @@ const KEY_COOLDOWN_MS = 30 * 60_000;
 
 type Deps = { db: Db; crypto: Crypto; config: Pick<Config, "TIMEZONE" | "LLM_MODE" | "ANTHROPIC_API_KEY">; now: () => Date };
 
-export function createUsageService({ db, crypto, config, now }: Deps) {
+function createUsageService({ db, crypto, config, now }: Deps) {
   const tz = config.TIMEZONE;
   const monthStart = (d: string) => `${d.slice(0, 7)}-01`;
   const nextMonth = (d: string) => {

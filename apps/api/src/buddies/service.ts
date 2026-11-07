@@ -3,6 +3,7 @@
  * (rpc/buddies.ts) and the buddy.dispatch cron. Permission checks live in the RPC layer; this file enforces the
  * state rules (who can be matched, what each status allows) so no caller can skip them.
  */
+import { DomainError } from "../errors.js";
 import { and, asc, desc, eq, gt, inArray, isNull, lte, lt, sql } from "drizzle-orm";
 import {
   windowOfSlot, type BuddyCandidate, type BuddyMode, type BuddyModePreference, type BuddySlot, type BuddyWindow, type Permission,
@@ -19,9 +20,9 @@ import { getServices } from "../services.js";
 import { addDays, localDate, zonedTime } from "../time.js";
 import { footerFor } from "../whatsapp/send.js";
 
-export class BuddyError extends Error {
-  constructor(readonly code: "NOT_FOUND" | "CONFLICT" | "FORBIDDEN", readonly reason: string) {
-    super(reason);
+export class BuddyError extends DomainError {
+  constructor(code: "NOT_FOUND" | "CONFLICT" | "FORBIDDEN", reason: string) {
+    super(code, reason);
     this.name = "BuddyError";
   }
 }
@@ -34,7 +35,7 @@ export type Party = "beneficiary" | "volunteer" | "coordinator";
 /** Pairings that hold a volunteer's spot and block a new request from the same person. */
 export const OPEN_MATCH: MatchRow["status"][] = ["proposed", "active", "suspended"];
 /** A proposal the beneficiary never answered is dropped after this many days (the request stays on the list). */
-export const PROPOSAL_TTL_DAYS = 7;
+const PROPOSAL_TTL_DAYS = 7;
 /** Reminder this long before a session. */
 const REMINDER_MS = 24 * 3600_000;
 /** A scheduled session is considered held this long after it started. */
@@ -106,7 +107,7 @@ export function getBuddies(deps: Deps): BuddyService {
   return s;
 }
 
-export function createBuddyService(deps: Deps): BuddyService {
+function createBuddyService(deps: Deps): BuddyService {
   const { db, crypto, config, jobs } = deps;
   const ben = getServices(deps).beneficiaries;
   const tz = config.TIMEZONE;

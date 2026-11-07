@@ -1,7 +1,7 @@
 import type { LetterAnalysis, LetterType } from "@wilson/contracts";
 
 /** French keyword hint per letter type, appended to the search query (full-text search is lexical). */
-export const LETTER_TYPE_HINTS: Record<LetterType, string> = {
+const LETTER_TYPE_HINTS: Record<LetterType, string> = {
   prefecture_removal_order: "obligation de quitter le territoire recours tribunal administratif aide juridictionnelle point-justice",
   prefecture_residence_permit: "titre de séjour préfecture rendez-vous récépissé",
   ofpra_convocation: "demande d'asile OFPRA entretien convocation",

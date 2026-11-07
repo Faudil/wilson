@@ -200,7 +200,7 @@ const INTENT_PATTERNS: [ChatIntent, RegExp][] = [
   ["smalltalk", /^(bonjour|bonsoir|salut|merci|hello|hi|thanks|thank you)[\s!.]*$/i],
 ];
 
-export function fakeIntent(text: string): ChatIntent {
+function fakeIntent(text: string): ChatIntent {
   for (const [intent, re] of INTENT_PATTERNS) if (re.test(text)) return intent;
   return "info";
 }
@@ -213,7 +213,7 @@ const WORDS: Record<"fr" | "en" | "so", string[]> = {
   so: ["salaan", "mahadsanid", "waan", "iyo", "ayaa", "fadlan", "kaalmo", "warqad", "waxaan", "maalin", "nabad"],
 };
 
-export function detectLanguageHeuristic(text: string): { language: LanguageCode | null; confidence: number } {
+function detectLanguageHeuristic(text: string): { language: LanguageCode | null; confidence: number } {
   const t = text.trim().toLowerCase();
   if (!t) return { language: null, confidence: 0 };
   const count = (re: RegExp) => (t.match(re) ?? []).length;

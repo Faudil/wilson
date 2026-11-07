@@ -1,3 +1,4 @@
+import { DomainError } from "../errors.js";
 import { randomUUID } from "node:crypto";
 import { and, asc, eq, inArray, isNotNull, lt, sql, type SQL } from "drizzle-orm";
 import type { z } from "zod";
@@ -12,14 +13,14 @@ import type { KnowledgeService } from "../knowledge/types.js";
 import { LlmError } from "../llm/provider.js";
 import { buildRagQuery } from "./ragQuery.js";
 import { footerFor, enqueueText } from "../whatsapp/send.js";
-import { todayIn } from "../whatsapp/context.js";
+import { localDate } from "../time.js";
 import { withUsageContext } from "../usage/context.js";
 
 export type LetterEdit = z.infer<typeof LetterEditSchema>;
 
-export class LettersError extends Error {
-  constructor(readonly code: "NOT_FOUND" | "CONFLICT" | "BAD_REQUEST", message: string) {
-    super(message);
+export class LettersError extends DomainError {
+  constructor(code: "NOT_FOUND" | "CONFLICT" | "BAD_REQUEST", message: string) {
+    super(code, message);
     this.name = "LettersError";
   }
 }
@@ -66,7 +67,7 @@ export const ORIENTATION_WARNING = "Orientation non enrichie (base de connaissan
  */
 export function createLettersService(deps: Deps, beneficiaries: BeneficiariesService, knowledge?: KnowledgeService): LettersService {
   const { db, crypto, blobs, llm, config } = deps;
-  const today = () => todayIn(deps.now(), config.TIMEZONE);
+  const today = () => localDate(deps.now(), config.TIMEZONE);
   const photoKeyOf = (id: string) => `tmp/letters/${id}`;
 
   async function row(id: string): Promise<LetterRow | null> {
