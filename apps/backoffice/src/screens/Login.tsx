@@ -5,6 +5,7 @@ import { orpc, errorCode } from "../lib/api";
 import { useI18n } from "../i18n";
 import { ME_KEY } from "../lib/me";
 import { href } from "../lib/router";
+import logoUrl from "../brand/logo.svg";
 
 export function Login() {
   const { t } = useI18n();
@@ -26,10 +27,8 @@ export function Login() {
 
   return (
     <div className="login">
-      <div className="login-hero" aria-hidden="true">
-        <span className="login-mark">
-          <Icon name="mail" size={34} />
-        </span>
+      <div className="login-hero">
+        <img className="login-logo" src={logoUrl} alt="Solidarité Migrants Wilson" width={168} height={168} />
       </div>
       <h1>{t("login.welcome")}</h1>
       <p className="muted">{t("login.intro")}</p>

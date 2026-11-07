@@ -1,51 +1,62 @@
 /* Logical properties only (margin-inline, padding-block, inset-inline, text-align: start…). A test enforces it. */
 
+/* Visual identity: Solidarité Migrants Wilson. Green (#14450a) and orange (#ff7300) come from the association's logo;
+   headings use Montserrat like the logo, body text stays in Noto Sans (all scripts). Text colours meet WCAG AA (4.5:1). */
 :root {
-  /* Surfaces and text */
-  --bg: #f7f5f1;
+  /* Logo colours (decoration only: orange is too light for text on white) */
+  --logo-green: #14450a;
+  --logo-orange: #ff7300;
+  /* Surfaces and text: warm paper */
+  --bg: #f8f6f1;
   --surface: #ffffff;
-  --surface-2: #f0ede6;
-  --ink: #1f2a2e;
-  --muted: #5c6769;
-  --line: #e4dfd5;
-  --line-strong: #b9b3a6;
-  /* Primary: deep teal */
-  --brand: #0f6e6e;
-  --brand-hover: #0b5a5a;
+  --surface-2: #f1eee7;
+  --ink: #17201a;
+  --muted: #5a6359;
+  --line: #e5e1d7;
+  --line-strong: #b5b0a3;
+  /* Primary: association green */
+  --brand: #1d5c12;
+  --brand-hover: #14450a;
   --on-brand: #ffffff;
-  --brand-soft: #dff0ee;
-  --brand-text: #0b5a5a;
-  /* Warm accent: coral = urgency, amber = attention */
-  --accent: #d9553a;
-  --urgent-bg: #fde6df;
-  --urgent-ink: #8a2a12;
-  --urgent-line: #f0b9a8;
+  --brand-soft: #e6f0de;
+  --brand-text: #1a5210;
+  /* Warm accent: association orange */
+  --orange: #ff7300;
+  --on-orange: #1a1205;
+  --orange-soft: #ffecdb;
+  --orange-ink: #9a4300;
+  /* Urgency stays red so it never reads as brand orange; amber = attention */
+  --accent: #d0341f;
+  --on-accent: #ffffff;
+  --urgent-bg: #fde4df;
+  --urgent-ink: #8f1d12;
+  --urgent-line: #f2b5ab;
   --warn-bg: #fff2d3;
   --warn-ink: #6b4600;
   --warn-line: #ecd08a;
   --ok: #1d7a46;
   --ok-bg: #ddf1e4;
   --ok-ink: #145a33;
-  --info-bg: #e3eef1;
+  --info-bg: #e5edf0;
   --info-ink: #1e4c5c;
   --muted-bg: #ebe8e1;
-  --danger: #b3261e;
+  --danger: #b42318;
   --on-danger: #ffffff;
   --wa-bg: #ece4d8;
   --wa-bubble: #e2f5d6;
-  --wa-ink: #1f2a2e;
-  --focus: #1a8f8f;
-  --overlay: rgba(20, 26, 28, 0.5);
-  --shadow-sm: 0 1px 2px rgba(60, 50, 30, 0.06), 0 1px 1px rgba(60, 50, 30, 0.04);
-  --shadow: 0 4px 16px rgba(60, 50, 30, 0.08), 0 1px 3px rgba(60, 50, 30, 0.06);
-  --shadow-lg: 0 -8px 40px rgba(20, 26, 28, 0.2);
+  --wa-ink: #17201a;
+  --focus: #d95f00;
+  --overlay: rgba(14, 22, 12, 0.5);
+  --shadow-sm: 0 1px 2px rgba(40, 45, 20, 0.06), 0 1px 1px rgba(40, 45, 20, 0.04);
+  --shadow: 0 6px 18px rgba(40, 45, 20, 0.08), 0 1px 3px rgba(40, 45, 20, 0.06);
+  --shadow-lg: 0 -8px 40px rgba(14, 22, 12, 0.2);
   --radius: 18px;
   --radius-sm: 12px;
   --tap: 48px;
   --topbar-h: 60px;
   --tabbar-h: 68px;
   --rail-w: 96px;
-  --ease: 180ms ease;
+  --ease: 160ms ease;
   --fallbacks: "Noto Sans", "Noto Sans Arabic", "Vazirmatn", "Noto Sans Ethiopic", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font: var(--fallbacks);
   color-scheme: light;
@@ -53,37 +64,43 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #111715;
-    --surface: #1a2321;
-    --surface-2: #232e2c;
-    --ink: #ebf1ef;
-    --muted: #a5b2af;
-    --line: #2d3a38;
-    --line-strong: #5a6b68;
-    --brand: #4fb5ae;
-    --brand-hover: #6cc7c0;
-    --on-brand: #07201f;
-    --brand-soft: #1d3a38;
-    --brand-text: #7fd3cc;
-    --accent: #ff8a6b;
-    --urgent-bg: #4a2219;
-    --urgent-ink: #ffc9b9;
-    --urgent-line: #7d3a2b;
+    --logo-green: #3f8f2c;
+    --bg: #0f1411;
+    --surface: #161d18;
+    --surface-2: #1f2821;
+    --ink: #e9efe6;
+    --muted: #a9b4a8;
+    --line: #29332b;
+    --line-strong: #56645a;
+    --brand: #8fd27a;
+    --brand-hover: #a6de94;
+    --on-brand: #0f1511;
+    --brand-soft: #22351d;
+    --brand-text: #a6de94;
+    --orange: #ff8a2b;
+    --on-orange: #2b1206;
+    --orange-soft: #3a2412;
+    --orange-ink: #ffb070;
+    --accent: #ff7a66;
+    --on-accent: #1b0a05;
+    --urgent-bg: #4a1f19;
+    --urgent-ink: #ffc6bb;
+    --urgent-line: #7d342a;
     --warn-bg: #43331a;
     --warn-ink: #ffdc94;
     --warn-line: #7a5f2a;
     --ok: #6fcf97;
     --ok-bg: #1b3a29;
     --ok-ink: #b0e6c5;
-    --info-bg: #1d3540;
+    --info-bg: #1c2f37;
     --info-ink: #b0dbea;
-    --muted-bg: #2b3634;
+    --muted-bg: #262f28;
     --danger: #ff8f84;
     --on-danger: #2b0805;
-    --wa-bg: #16201d;
-    --wa-bubble: #1f4d3c;
+    --wa-bg: #141b16;
+    --wa-bubble: #1f4d2c;
     --wa-ink: #ecf6f0;
-    --focus: #7fd3cc;
+    --focus: #ff9a4a;
     --overlay: rgba(0, 0, 0, 0.62);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
@@ -143,11 +160,22 @@ body {
 .long-text:lang(ps) {
   line-height: 1.9;
 }
+/* Display font for headings and actions. var(--font) keeps each language's script font as fallback. */
+h1,
+h2,
+h3,
+.section-title,
+.brand-name,
+.tile-title,
+.tile-count,
+.btn {
+  font-family: "Montserrat", var(--font);
+}
 h1 {
   font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.25;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   margin-block: 0.2rem 0.4rem;
 }
 h2 {
@@ -216,9 +244,17 @@ a {
   gap: 12px;
   block-size: var(--topbar-h);
   padding-inline: 16px;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  backdrop-filter: blur(10px);
+  background: var(--surface);
   border-block-end: 1px solid var(--line);
+}
+/* Thin orange/green stripe: the two halves of the logo ring (kept as in the logo, not mirrored in RTL). */
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  block-size: 3px;
+  background: linear-gradient(90deg, var(--orange) 0 50%, var(--logo-green) 50% 100%);
 }
 .brand {
   display: flex;
@@ -229,13 +265,9 @@ a {
   min-inline-size: 0;
 }
 .brand-mark {
-  display: grid;
-  place-items: center;
-  inline-size: 36px;
-  block-size: 36px;
-  border-radius: 12px;
-  background: var(--brand);
-  color: var(--on-brand);
+  display: block;
+  inline-size: 38px;
+  block-size: 38px;
   flex: none;
 }
 .brand-text {
@@ -247,6 +279,8 @@ a {
 .brand-name {
   font-weight: 700;
   font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: var(--brand-text);
 }
 .brand-sub {
   font-size: 0.75rem;
@@ -333,8 +367,7 @@ button.avatar:hover {
   z-index: 8;
   display: flex;
   justify-content: space-around;
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--surface);
   border-block-start: 1px solid var(--line);
   padding-block-end: env(safe-area-inset-bottom);
 }
@@ -382,6 +415,9 @@ button.avatar:hover {
 .tab[aria-current="page"] .tab-icon {
   background: var(--brand-soft);
 }
+.tab:hover:not([aria-current="page"]) {
+  color: var(--ink);
+}
 .nav-badge {
   position: absolute;
   inset-block-start: -4px;
@@ -400,7 +436,7 @@ button.avatar:hover {
 }
 .nav-badge-urgent {
   background: var(--accent);
-  color: #1b0a05;
+  color: var(--on-accent);
 }
 
 @media (min-width: 900px) {
@@ -932,8 +968,9 @@ fieldset:disabled {
   gap: 8px;
   min-block-size: var(--tap);
   padding-inline: 20px;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.975rem;
+  font-weight: 700;
+  letter-spacing: 0.005em;
   color: var(--brand-text);
   background: var(--surface);
   border: 1.5px solid var(--line-strong);
@@ -956,6 +993,7 @@ fieldset:disabled {
   background: var(--brand);
   border-color: var(--brand);
   color: var(--on-brand);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--brand) 28%, transparent);
 }
 .btn-primary:hover {
   background: var(--brand-hover);
@@ -1079,12 +1117,43 @@ fieldset:disabled {
 }
 
 /* ---------- Home ---------- */
+/* Greeting banner in the association's green, with the logo's orange/green ring drawn in CSS (no image to load). */
+.hello {
+  position: relative;
+  overflow: hidden;
+  padding: 22px 20px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #1d5c12, #14450a);
+  color: #ffffff;
+  box-shadow: var(--shadow);
+}
+.hello::after {
+  content: "";
+  position: absolute;
+  inset-inline-end: -52px;
+  inset-block-start: -52px;
+  inline-size: 132px;
+  block-size: 132px;
+  border-radius: 50%;
+  border: 18px solid rgba(255, 255, 255, 0.1);
+  border-block-start-color: #ff7300;
+  border-inline-start-color: #ff7300;
+  transform: rotate(-20deg);
+  pointer-events: none;
+}
+.hello > * {
+  position: relative;
+  z-index: 1;
+  max-inline-size: calc(100% - 72px);
+}
 .hello h1 {
   font-size: 1.625rem;
   margin-block-end: 2px;
 }
+.hello .muted,
 .hello-date {
   margin: 0;
+  color: rgba(255, 255, 255, 0.86);
 }
 .tiles {
   display: flex;
@@ -1104,10 +1173,16 @@ fieldset:disabled {
   border: 1px solid var(--line);
   border-radius: 20px;
   box-shadow: var(--shadow-sm);
-  transition: transform var(--ease), box-shadow var(--ease);
+  transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease);
 }
 .tile:hover {
   box-shadow: var(--shadow);
+  border-color: var(--line-strong);
+}
+/* A tile with work waiting gets an accent edge in its tone colour. */
+.tile.has-items {
+  border-inline-start: 4px solid var(--tile-edge, var(--brand));
+  padding-inline-start: 13px;
 }
 .tile:active {
   transform: scale(0.99);
@@ -1122,9 +1197,15 @@ fieldset:disabled {
   background: var(--brand-soft);
   color: var(--brand-text);
 }
+.tile-accent {
+  --tile-edge: var(--orange);
+}
 .tile-accent .tile-icon {
-  background: var(--urgent-bg);
-  color: var(--urgent-ink);
+  background: var(--orange-soft);
+  color: var(--orange-ink);
+}
+.tile-info {
+  --tile-edge: var(--info-ink);
 }
 .tile-info .tile-icon {
   background: var(--info-bg);
@@ -1167,7 +1248,7 @@ fieldset:disabled {
   color: var(--brand-text);
 }
 .tile-accent.has-items .tile-count {
-  color: var(--urgent-ink);
+  color: var(--orange-ink);
 }
 .tile-chevron {
   color: var(--muted);
@@ -1194,17 +1275,13 @@ fieldset:disabled {
 .login-hero {
   display: grid;
   place-items: center;
-  margin-block-end: 12px;
+  margin-block: 4px 8px;
 }
-.login-mark {
-  display: grid;
-  place-items: center;
-  inline-size: 72px;
-  block-size: 72px;
-  border-radius: 24px;
-  background: var(--brand);
-  color: var(--on-brand);
-  box-shadow: var(--shadow);
+.login-logo {
+  display: block;
+  inline-size: min(168px, 44vw);
+  block-size: auto;
+  aspect-ratio: 1;
 }
 
 .login-signup {
@@ -1820,10 +1897,9 @@ blockquote {
   inset-block-end: 0;
   z-index: 9;
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-  background: color-mix(in srgb, var(--surface) 95%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--surface);
   border-block-start: 1px solid var(--line);
-  box-shadow: 0 -6px 20px rgba(60, 50, 30, 0.06);
+  box-shadow: 0 -6px 20px rgba(40, 45, 20, 0.06);
 }
 .actionbar-inner,
 .composer-inner {
