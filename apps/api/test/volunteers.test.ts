@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "bun:test";
 import { and, eq } from "drizzle-orm";
 import { LANGUAGE_CODES } from "@wilson/contracts";
 import { waText } from "@wilson/i18n";

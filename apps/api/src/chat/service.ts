@@ -9,12 +9,13 @@ import {
 } from "@wilson/contracts";
 import { isolate, waText, type Params, type WaKey } from "@wilson/i18n";
 import type { z } from "zod";
-import { beneficiaries, messages, volunteers } from "../db/schema.js";
+import { beneficiaries, letters, messages, volunteers } from "../db/schema.js";
 import type { Deps } from "../deps.js";
 import { JOBS } from "../jobs/names.js";
 import type { ChatTurn } from "../llm/provider.js";
 import { getServices } from "../services.js";
-import { footerFor } from "../whatsapp/send.js";
+import { footerFor, windowOpen } from "../whatsapp/send.js";
+import { looksUrgent } from "./urgent.js";
 import { todayIn } from "../whatsapp/context.js";
 
 type Row = typeof messages.$inferSelect;
@@ -48,6 +49,8 @@ export interface ChatService {
   rejectDraft(messageId: string, volunteerId: string): Promise<string>;
   /** Volunteer writes in French; translated, footer appended. Takes an unassigned conversation over. */
   volunteerReply(beneficiaryId: string, volunteerId: string, textFr: string): Promise<void>;
+  /** Menu "0": flag the conversation for volunteers and tell the person a volunteer will answer (unless already told). */
+  requestHuman(beneficiaryId: string): Promise<void>;
   /** The bot goes silent; the beneficiary is told a volunteer answers personally (unless already told). */
   takeOver(beneficiaryId: string, volunteerId: string, opts?: { force?: boolean }): Promise<void>;
   /** Close the handoff and give the conversation back to the bot. */
@@ -162,6 +165,28 @@ export function createChatService(deps: Deps): ChatService {
     await sendFixed(b.id, lang, key, intent);
   }
 
+  /** Bot drafts left unanswered when a volunteer takes over: discarded, so nobody sends them by mistake. */
+  async function discardDrafts(beneficiaryId: string) {
+    await db.update(messages).set({ chatState: "rejected" }).where(and(eq(messages.beneficiaryId, beneficiaryId), eq(messages.chatState, "draft")));
+  }
+
+  /** A letter of this person still being analysed or checked by a volunteer. */
+  async function hasLetterInProgress(beneficiaryId: string): Promise<boolean> {
+    const rows = await db.select({ id: letters.id }).from(letters)
+      .where(and(eq(letters.beneficiaryId, beneficiaryId), inArray(letters.status, ["received", "analyzing", "pending_review", "approved"])))
+      .limit(1);
+    return rows.length > 0;
+  }
+
+  /** At most one "we received it, a volunteer checks" every 30 seconds, so a burst of messages sent together gets one answer. */
+  // Compared with the database clock, like messages.created_at itself.
+  async function ackedRecently(beneficiaryId: string): Promise<boolean> {
+    const rows = await db.select({ id: messages.id }).from(messages)
+      .where(and(eq(messages.beneficiaryId, beneficiaryId), eq(messages.direction, "out"), eq(messages.author, "system"), sql`${messages.createdAt} > now() - interval '30 seconds'`))
+      .limit(1);
+    return rows.length > 0;
+  }
+
   async function handleMessage(beneficiaryId: string, text: string, opts: { waMessageId?: string } = {}): Promise<void> {
     const b = await mustBeneficiary(beneficiaryId);
     const lang = b.language;
@@ -206,6 +231,13 @@ export function createChatService(deps: Deps): ChatService {
     }
     await tag(inboundId, plan.intent);
 
+    // Safety net: fixed emergency numbers on clear distress words, even if the classifier missed them. It only
+    // adds the fixed message (no LLM text); the question is then handled as usual and flagged for a person.
+    if (plan.intent !== "urgent" && looksUrgent(text, textFrEnc ? dec(dek, textFrEnc) : null)) {
+      await sendFixed(beneficiaryId, lang, "chat_urgent", "urgent");
+      if (!withVolunteer) await setStatus(beneficiaryId, "needs_human");
+    }
+
     // A volunteer holds the conversation: the bot stays silent and the message waits for them. Only the fixed
     // emergency numbers still go out at once (safety net, no LLM text).
     if (withVolunteer) {
@@ -219,7 +251,8 @@ export function createChatService(deps: Deps): ChatService {
       case "human":
       case "legal": return handoff(b, lang, "chat_handoff", plan.intent);
       case "letter":
-        await sendFixed(beneficiaryId, lang, "chat_letter_redirect", "letter");
+        // "Where is my letter?" while one is being checked: say it is in progress rather than "send a photo".
+        await sendFixed(beneficiaryId, lang, (await hasLetterInProgress(beneficiaryId)) ? "letter_received" : "chat_letter_redirect", "letter");
         return;
       case "document":
         await sendFixed(beneficiaryId, lang, "chat_document_redirect", "document");
@@ -257,7 +290,8 @@ export function createChatService(deps: Deps): ChatService {
     const current = await getStatus(beneficiaryId);
     if (plan.needsHuman || current === "needs_human") await setStatus(beneficiaryId, "needs_human");
     else await setStatus(beneficiaryId, "pending_review");
-    if (firstOfBatch) await sendFixed(beneficiaryId, lang, "chat_pending", null);
+    // Every message gets an answer: the first of a batch, and later ones unless we just acknowledged.
+    if (firstOfBatch || !(await ackedRecently(beneficiaryId))) await sendFixed(beneficiaryId, lang, "chat_pending", null);
   }
 
   async function mustDraft(messageId: string): Promise<Row> {
@@ -315,7 +349,17 @@ export function createChatService(deps: Deps): ChatService {
       await sendRow(beneficiaryId, b.language, target, { author: "volunteer", textFr: fr, volunteerId });
       // Answering by hand = taking the conversation: the bot must not talk over the volunteer afterwards.
       const st = await getChatState(beneficiaryId);
-      if (st.status !== "with_volunteer" || !st.assigneeId) await assign(beneficiaryId, volunteerId, "with_volunteer");
+      if (st.status !== "with_volunteer" || !st.assigneeId) {
+        await assign(beneficiaryId, volunteerId, "with_volunteer");
+        await discardDrafts(beneficiaryId);
+      }
+    },
+
+    async requestHuman(beneficiaryId) {
+      const b = await mustBeneficiary(beneficiaryId);
+      const st = await getChatState(beneficiaryId);
+      if (st.status === "with_volunteer" || st.status === "needs_human") return; // already with / waiting for a person
+      await handoff(b, b.language, "chat_handoff", "human");
     },
 
     async takeOver(beneficiaryId, volunteerId, opts = {}) {
@@ -324,6 +368,7 @@ export function createChatService(deps: Deps): ChatService {
       if (st.status === "with_volunteer" && st.assigneeId === volunteerId) return;
       if (st.status === "with_volunteer" && st.assigneeId && !opts.force) throw new ChatError("CONFLICT", "assigned");
       await assign(beneficiaryId, volunteerId, "with_volunteer");
+      await discardDrafts(beneficiaryId);
       // needs_human already sent chat_handoff ("a volunteer will answer you personally"); do not repeat it.
       if (st.status !== "needs_human" && st.status !== "with_volunteer") await sendFixed(beneficiaryId, b.language, "chat_handoff", null);
     },
@@ -390,6 +435,8 @@ export function createChatService(deps: Deps): ChatService {
         assignee: b.chatAssigneeId ? { id: b.chatAssigneeId, name: names.get(b.chatAssigneeId) ?? "?" } : null,
         awaitingReply: awaiting(msgs),
         messages: msgs,
+        footer: footerFor(deps, b.language),
+        windowOpen: windowOpen(deps, b.lastInboundAt),
       };
     },
   };

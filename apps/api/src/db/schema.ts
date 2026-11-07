@@ -42,7 +42,8 @@ export const reminderStatusEnum = pgEnum("reminder_status", ["scheduled", "sent"
 
 /** Conversation state machine snapshot, owned by src/conversation/engine.ts. */
 export type ConversationState =
-  | { step: "choose_language" }
+  /** pendingFile: a photo/PDF sent before the language was chosen, processed as a letter right after. */
+  | { step: "choose_language"; pendingFile?: { mediaId: string; mime: string } }
   | { step: "main_menu" }
   | { step: "await_letter_photo" }
   | { step: "await_document_file" }

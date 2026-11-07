@@ -1,6 +1,6 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 import { LANGUAGES, LANGUAGE_CODES, type LanguageCode, type WaInboundMessage } from "@wilson/contracts";
-import { documentTypeName, formatDate, parseUserDate, waText } from "@wilson/i18n";
+import { LANGUAGE_MENU_HEADER, documentTypeName, formatDate, parseUserDate, waText } from "@wilson/i18n";
 import type { BeneficiaryRow } from "../beneficiaries/service.js";
 import { letters, messages, type ConversationState } from "../db/schema.js";
 import { JOBS } from "../jobs/names.js";
@@ -135,8 +135,9 @@ const setState = async (c: Ctx, s: ConversationState) => {
   await c.deps.beneficiaries.setConversationState(c.b.id, s);
 };
 const showLanguageMenu = async (c: Ctx) => {
-  await setState(c, { step: "choose_language" });
-  await say(c, waText("fr", "language_menu"));
+  const pendingFile = c.state.step === "choose_language" ? c.state.pendingFile : undefined;
+  await setState(c, pendingFile ? { step: "choose_language", pendingFile } : { step: "choose_language" });
+  await say(c, `${LANGUAGE_MENU_HEADER}\n\n${waText("fr", "language_menu")}`);
 };
 const showMainMenu = async (c: Ctx, intro?: Parameters<typeof waText>[1]) => {
   await setState(c, { step: "main_menu" });
@@ -164,15 +165,28 @@ async function dispatch(c: Ctx, input: Input): Promise<void> {
 
 async function setLanguageAndGo(c: Ctx, code: LanguageCode): Promise<void> {
   const first = !c.b.languageConfirmed;
+  const pending = c.state.step === "choose_language" ? c.state.pendingFile : undefined;
   await c.deps.beneficiaries.setLanguage(c.b.id, code, true);
   c.lang = code;
   c.b = { ...c.b, language: code, languageConfirmed: true };
+  if (pending) {
+    // A letter photo came before the language: explain it now instead of asking for it again.
+    if (first) await sayKey(c, "language_set", { language: LANGUAGES[code].nativeName });
+    await setState(c, { step: "main_menu" });
+    return onLetterFile(c, { type: "file", ...pending });
+  }
   if (first) await sayKey(c, "welcome");
   else await sayKey(c, "language_set", { language: LANGUAGES[code].nativeName });
   await showMainMenu(c);
 }
 
 async function onChooseLanguage(c: Ctx, input: Input): Promise<void> {
+  if (input.type === "file") {
+    // Keep the photo (only its media id) until the person has picked a language; nothing is lost.
+    await setState(c, { step: "choose_language", pendingFile: { mediaId: input.mediaId, mime: input.mime } });
+    await say(c, `📷 ✅\n${LANGUAGE_MENU_HEADER}\n\n${waText("fr", "language_menu")}`);
+    return;
+  }
   if (input.type === "text") {
     const n = menuChoice(input.text);
     if (n !== null) {
@@ -236,6 +250,9 @@ async function onFreeState(c: Ctx, input: Input): Promise<void> {
     case "3": return showLanguageMenu(c);
     case "0":
       await setState(c, { step: "main_menu" });
+      // Flag the conversation for volunteers ("a volunteer will answer you personally"), and still give the
+      // association's contact for people who prefer to call or come.
+      await getChat(c.deps).requestHuman(c.b.id);
       return sayKey(c, "human_contact", { name: c.deps.config.ASSOCIATION_NAME, contact: c.deps.config.ASSOCIATION_CONTACT });
     case "9":
       await setState(c, { step: "confirm_delete_all" });

@@ -405,5 +405,8 @@
   "conv.handBack": "Hand back to the assistant",
   "conv.takenToast": "You are now following this conversation.",
   "conv.handedBackToast": "The assistant answers again.",
-  "conv.assignedConflict": "Someone else is already following this conversation."
+  "conv.assignedConflict": "Someone else is already following this conversation.",
+  "conv.showOriginal": "See the message in {language}",
+  "conv.footerFolded": "“Information, not legal advice” notice added",
+  "conv.windowClosed": "This person has not written for more than 24 h: your message will reach them when they write again."
 }

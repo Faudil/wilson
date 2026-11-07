@@ -125,9 +125,16 @@ export function ConversationList() {
   );
 }
 
-function Bubble({ m, language, canAct, busy, onApprove, onReject }: {
+/** Splits off the fixed legal footer so volunteers see the message itself first. */
+function withoutFooter(text: string, footer: string): { body: string; hasFooter: boolean } {
+  const i = footer ? text.lastIndexOf(footer) : -1;
+  return i > 0 && i + footer.length >= text.trimEnd().length ? { body: text.slice(0, i).trimEnd(), hasFooter: true } : { body: text, hasFooter: false };
+}
+
+function Bubble({ m, language, footer, canAct, busy, onApprove, onReject }: {
   m: ChatMessage;
   language: keyof typeof LANGUAGES;
+  footer: string;
   canAct: boolean;
   busy: boolean;
   onApprove: (textFr?: string) => void;
@@ -139,6 +146,8 @@ function Bubble({ m, language, canAct, busy, onApprove, onReject }: {
   const mine = m.author === "beneficiary";
   const draft = m.state === "draft";
   const dir = LANGUAGES[language].dir;
+  const { body, hasFooter } = withoutFooter(m.text, footer);
+  const frFirst = language !== "fr" && !!m.textFr;
   const who = mine ? t("conv.author.beneficiary") : m.author === "volunteer" ? (m.volunteerName ?? t("conv.author.volunteer")) : m.author === "bot" ? t("conv.author.bot") : t("conv.author.system");
   return (
     <li className={`bubble bubble-${m.author}${draft ? " bubble-draft" : ""}${m.state === "rejected" ? " bubble-rejected" : ""}`}>
@@ -157,13 +166,33 @@ function Bubble({ m, language, canAct, busy, onApprove, onReject }: {
         )}
         {m.intent && <span className="pill">{t(`conv.intent.${m.intent satisfies ChatIntent}` as MessageKey)}</span>}
       </div>
-      <p className="bubble-text long-text" lang={language} dir={dir}>
-        {m.text}
-      </p>
-      {m.textFr && language !== "fr" && (
-        <p className="bubble-fr" lang="fr" dir="ltr">
-          <span className="bubble-fr-tag">FR</span> {m.textFr}
+      {/* French first for volunteers; what the person reads (their language) stays one tap away. */}
+      {frFirst ? (
+        <>
+          <p className="bubble-text long-text" lang="fr" dir="ltr">
+            {withoutFooter(m.textFr!, footer).body}
+          </p>
+          <details className="bubble-original">
+            <summary className="small">{t("conv.showOriginal", { language: LANGUAGES[language].nativeName })}</summary>
+            <p className="bubble-fr long-text" lang={language} dir={dir}>
+              {body}
+            </p>
+          </details>
+        </>
+      ) : (
+        <p className="bubble-text long-text" lang={language} dir={dir}>
+          {body}
         </p>
+      )}
+      {hasFooter && (
+        <details className="bubble-footer">
+          <summary className="small muted">
+            <Icon name="info" size={12} /> {t("conv.footerFolded")}
+          </summary>
+          <p className="small muted long-text" lang={language} dir={dir}>
+            {footer}
+          </p>
+        </details>
       )}
       {m.sources.length > 0 && (
         <p className="small bubble-sources">
@@ -387,6 +416,7 @@ export function ConversationDetail({ id }: { id: string }) {
                 key={m.id}
                 m={m}
                 language={c.language}
+                footer={c.footer}
                 canAct={canAct}
                 busy={busy}
                 onApprove={(textFr) => approve.mutate({ messageId: m.id, textFr })}
@@ -427,6 +457,11 @@ export function ConversationDetail({ id }: { id: string }) {
               <span className="composer-hint">
                 <Icon name="globe" size={12} /> {t("conv.composerHint")}
               </span>
+              {!c.windowOpen && (
+                <span className="composer-hint composer-hint-warn">
+                  <Icon name="clock" size={12} /> {t("conv.windowClosed")}
+                </span>
+              )}
             </div>
             <button type="submit" className="send-btn" disabled={busy || !text.trim()} aria-label={t("conv.send")}>
               <Icon name="send" size={22} />

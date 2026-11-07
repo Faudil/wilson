@@ -2006,6 +2006,27 @@ blockquote {
   color: var(--muted);
   padding-block-end: 2px;
 }
+.composer-hint-warn {
+  color: var(--warn-ink);
+  align-items: flex-start;
+}
+.bubble-original,
+.bubble-footer {
+  margin: 6px 0 0;
+}
+.bubble-original summary,
+.bubble-footer summary {
+  cursor: pointer;
+  color: var(--brand-text);
+  list-style-position: inside;
+}
+.bubble-footer summary {
+  color: var(--muted);
+}
+.bubble-footer p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
 .send-btn {
   display: grid;
   place-items: center;

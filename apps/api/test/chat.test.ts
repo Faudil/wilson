@@ -7,9 +7,9 @@ import { waText } from "@wilson/i18n";
 import { FakeProvider } from "../src/llm/fake.js";
 import type { ChatTurn } from "../src/llm/provider.js";
 import { and, eq } from "drizzle-orm";
-import { accessLog, beneficiaries } from "../src/db/schema.js";
+import { accessLog, beneficiaries, messages } from "../src/db/schema.js";
 import { createVolunteer, makeClient } from "./helpers.js";
-import { beneficiaryIdOf, makeE2E, type E2E } from "./e2e.helpers.js";
+import { beneficiaryIdOf, makeE2E, sampleFile, type E2E } from "./e2e.helpers.js";
 
 let t: E2E | undefined;
 afterEach(async () => {
@@ -148,6 +148,43 @@ describe("chatbot", () => {
     await p.say("urgence je dois dormir dehors ce soir");
     expect(await p.last()).toContain("115");
     expect((await t!.client.conversations.get({ beneficiaryId: bid })).status).toBe("needs_human");
+  });
+
+  it("a later question while an answer is pending still gets an acknowledgement (unless sent in the same burst)", async () => {
+    const { p, bid } = await setup("review", "en", "33620000011");
+    await p.say("4");
+    await p.say("Comment renouveler mon titre de séjour ?");
+    // the pending notice is older than 30 seconds: the next message is acknowledged again
+    await t!.deps.db.update(messages).set({ createdAt: new Date(Date.now() - 5 * 60_000) }).where(and(eq(messages.beneficiaryId, bid), eq(messages.author, "system")));
+    await p.say("Où est la préfecture ?");
+    expect((await p.out()).filter((x) => x.startsWith(waText("en", "chat_pending"))).length).toBe(2);
+  });
+
+  it("'where is my letter?' while a letter is being checked says it is in progress", async () => {
+    const { p } = await setup("review", "en", "33620000012");
+    await p.say("1");
+    await p.send(sampleFile("letters", "01-prefecture-convocation-titre-sejour.png"));
+    await p.say("where is my letter?");
+    expect(await p.last()).toContain(waText("en", "letter_received"));
+  });
+
+  it("emergency words get the 115 numbers even when the classifier sees a normal question", async () => {
+    const { p, bid } = await setup("review", "en", "33620000013");
+    await p.say("4");
+    await p.say("I have nowhere to sleep, can you help with my CAF file?");
+    const out = await p.out();
+    expect(out.some((m) => m.includes("115"))).toBe(true);
+    expect((await t!.client.conversations.get({ beneficiaryId: bid })).status).toBe("needs_human");
+  });
+
+  it("taking over a conversation discards the bot's pending drafts", async () => {
+    const { p, bid } = await setup("review", "en", "33620000014");
+    await p.say("4");
+    await p.say("Comment renouveler mon titre de séjour ?");
+    expect((await t!.client.conversations.get({ beneficiaryId: bid })).pendingDrafts).toBe(1);
+    const conv = await t!.client.conversations.takeOver({ beneficiaryId: bid });
+    expect(conv.pendingDrafts).toBe(0);
+    expect(conv.messages.some((m) => m.state === "draft")).toBe(false);
   });
 
   it("letter and document intents redirect to the existing flows", async () => {

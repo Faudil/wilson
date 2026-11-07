@@ -136,7 +136,7 @@ async function runChatSend(deps: WaDeps, messageId: string): Promise<void> {
   await db.update(messages).set({ waMessageId, status: "sent" }).where(eq(messages.id, m.id));
 }
 
-function windowOpen(deps: WaDeps, lastInboundAt: Date | null): boolean {
+export function windowOpen(deps: Pick<WaDeps, "now" | "wa">, lastInboundAt: Date | null): boolean {
   if (deps.wa.mode === "sandbox") return true;
   return !!lastInboundAt && deps.now().getTime() - lastInboundAt.getTime() < WINDOW_MS;
 }

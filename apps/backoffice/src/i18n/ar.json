@@ -405,5 +405,8 @@
   "conv.handBack": "إعادتها إلى المساعد",
   "conv.takenToast": "أنت تتابع هذه المحادثة الآن.",
   "conv.handedBackToast": "المساعد يرد من جديد.",
-  "conv.assignedConflict": "شخص آخر يتابع هذه المحادثة بالفعل."
+  "conv.assignedConflict": "شخص آخر يتابع هذه المحادثة بالفعل.",
+  "conv.showOriginal": "عرض الرسالة بـ {language}",
+  "conv.footerFolded": "أُضيف تنبيه «معلومات وليست استشارة قانونية»",
+  "conv.windowClosed": "لم يكتب هذا الشخص منذ أكثر من 24 ساعة: ستصله رسالتك عندما يكتب من جديد."
 }

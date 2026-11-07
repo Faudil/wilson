@@ -27,7 +27,12 @@ export class BeneficiariesServiceImpl implements BeneficiariesService {
     const { db, crypto } = this.deps;
     const hash = crypto.lookupHash(waId);
     const [existing] = await db.select().from(beneficiaries).where(eq(beneficiaries.waIdHash, hash));
-    if (existing) return { beneficiary: toRow(existing), created: false };
+    if (existing && !existing.archivedAt) return { beneficiary: toRow(existing), created: false };
+    if (existing) {
+      // The person asked to delete everything and writes again: start over as a new person. The archived row is
+      // detached from this number (its hash is no longer a lookup hash) and still purged on schedule.
+      await db.update(beneficiaries).set({ waIdHash: `archived:${existing.id}` }).where(eq(beneficiaries.id, existing.id));
+    }
 
     const { dek, wrapped } = crypto.newDek();
     const inserted = await db

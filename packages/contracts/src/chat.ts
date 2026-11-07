@@ -62,4 +62,8 @@ export type ConversationSummary = z.infer<typeof ConversationSummarySchema>;
 
 export const ConversationDetailSchema = ConversationSummarySchema.extend({
   messages: z.array(ChatMessageSchema),
+  /** The fixed legal footer appended to outbound messages in this person's language (shown folded to volunteers). */
+  footer: z.string(),
+  /** WhatsApp 24 h window: false = a reply now waits until the person writes again. */
+  windowOpen: z.boolean(),
 });
