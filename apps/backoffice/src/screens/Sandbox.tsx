@@ -9,6 +9,14 @@ import { formatDateTime } from "../lib/wilson-i18n";
 
 const FAKE_PHONES = ["33600000001", "33600000002", "33600000003"];
 
+/** The phone shows a menu's options as buttons, not as "1 - …" lines in the text. */
+const withoutOptionLines = (text: string): string =>
+  text
+    .split("\n")
+    .filter((l) => !/^[\u200e\u200f\s]*\d{1,2}\s*-\s/.test(l))
+    .join("\n")
+    .trim();
+
 export function Sandbox() {
   const { t, lang } = useI18n();
   const toast = useToast();
@@ -94,7 +102,16 @@ export function Sandbox() {
             )}
             {m.text && (
               <div dir="auto" className="bubble-text">
-                {m.text}
+                {m.choices.length > 0 ? withoutOptionLines(m.text) : m.text}
+              </div>
+            )}
+            {m.choices.length > 0 && (
+              <div className="wa-choices" role="group" aria-label={t("sandbox.choices")}>
+                {m.choices.map((c) => (
+                  <button key={c.id} type="button" className="wa-choice" disabled={send.isPending || !validPhone} onClick={() => send.mutate({ phone, text: c.id })}>
+                    {c.title}
+                  </button>
+                ))}
               </div>
             )}
             <div className="bubble-time small muted">{formatDateTime(m.at, lang)}</div>

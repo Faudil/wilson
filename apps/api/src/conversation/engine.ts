@@ -5,7 +5,7 @@ import type { BeneficiaryRow } from "../beneficiaries/service.js";
 import { letters, messages, type ConversationState } from "../db/schema.js";
 import { JOBS } from "../jobs/names.js";
 import { todayIn, type WaDeps } from "../whatsapp/context.js";
-import { enqueueText, footerFor } from "../whatsapp/send.js";
+import { enqueueText, footerFor, letterOfferText } from "../whatsapp/send.js";
 import { announceDocumentDetection } from "./documentFlow.js";
 import { getChat } from "../chat/service.js";
 import { isLanguageWord, isMenuWord, menuChoice } from "./text.js";
@@ -37,8 +37,9 @@ function classify(msg: WaInboundMessage): Input {
     case "image": return { type: "file", mediaId: msg.image.id, mime: msg.image.mime_type };
     case "document": return { type: "file", mediaId: msg.document.id, mime: msg.document.mime_type };
     case "interactive": {
+      // Button and list ids are the menu numbers (see whatsapp/interactive.ts): same as typing them.
       const r = msg.interactive.button_reply ?? msg.interactive.list_reply;
-      return r ? { type: "text", text: r.title } : { type: "other" };
+      return r ? { type: "text", text: r.id || r.title } : { type: "other" };
     }
     case "audio": return { type: "voice" };
     case "video": case "sticker": return { type: "media_unsupported" };
@@ -130,6 +131,9 @@ async function releaseAwaiting(ctx: Ctx): Promise<boolean> {
 
 const say = (c: Ctx, text: string) => enqueueText(c.deps, c.b.id, text);
 const sayKey = (c: Ctx, key: Parameters<typeof waText>[1], params?: Parameters<typeof waText>[2]) => say(c, waText(c.lang, key, params));
+/** A numbered menu: sent as WhatsApp buttons or a list when it fits; typing the number keeps working. */
+const sayMenu = (c: Ctx, key: Parameters<typeof waText>[1], params?: Parameters<typeof waText>[2]) =>
+  enqueueText(c.deps, c.b.id, waText(c.lang, key, params), { interactive: true });
 const setState = async (c: Ctx, s: ConversationState) => {
   c.state = s;
   await c.deps.beneficiaries.setConversationState(c.b.id, s);
@@ -142,7 +146,7 @@ const showLanguageMenu = async (c: Ctx) => {
 const showMainMenu = async (c: Ctx, intro?: Parameters<typeof waText>[1]) => {
   await setState(c, { step: "main_menu" });
   if (intro) await sayKey(c, intro);
-  await sayKey(c, "main_menu");
+  await sayMenu(c, "main_menu");
 };
 const today = (c: Ctx) => todayIn(c.deps.now(), c.deps.config.TIMEZONE);
 
@@ -219,7 +223,11 @@ async function onFreeState(c: Ctx, input: Input): Promise<void> {
 
   if (c.state.step === "offer_save_letter") {
     if (choice === "1" || choice === "2") return onOfferAnswer(c, choice === "1", c.state.letterId);
-    return sayKey(c, "letter_offer_save");
+    if (choice === "3") {
+      const out = await c.deps.letters.getOutgoing(c.state.letterId);
+      if (out?.details) await say(c, out.details);
+    }
+    return enqueueText(c.deps, c.b.id, letterOfferText(c.lang), { interactive: true });
   }
   if (isMenuWord(input.text)) return showMainMenu(c);
   // Free text (anything that is not a menu number) goes to the chatbot — also while we wait for a photo/file
@@ -256,7 +264,7 @@ async function onFreeState(c: Ctx, input: Input): Promise<void> {
       return sayKey(c, "human_contact", { name: c.deps.config.ASSOCIATION_NAME, contact: c.deps.config.ASSOCIATION_CONTACT });
     case "9":
       await setState(c, { step: "confirm_delete_all" });
-      return sayKey(c, "delete_confirm");
+      return sayMenu(c, "delete_confirm");
     default:
       return showMainMenu(c, "not_understood");
   }
@@ -339,12 +347,12 @@ async function finishDocument(c: Ctx, documentId: string): Promise<void> {
   await documents.confirm(documentId);
   const doc = await documents.get(documentId);
   await setState(c, { step: "main_menu" });
-  if (!doc) return sayKey(c, "main_menu");
+  if (!doc) return sayMenu(c, "main_menu");
   const type = documentTypeName(doc.type, c.lang);
   const date = doc.expiresAt ? formatDate(doc.expiresAt, c.lang) : "—";
   await sayKey(c, "document_saved", { type, date });
   if (doc.expiresAt && doc.expiresAt < today(c)) await say(c, `${waText(c.lang, "document_expired", { type, date })}\n\n${footerFor(c.deps, c.lang)}`);
-  await sayKey(c, "main_menu");
+  await sayMenu(c, "main_menu");
 }
 
 // ---------------------------------------------------------------- delete all
@@ -357,5 +365,5 @@ async function onConfirmDelete(c: Ctx, input: Input): Promise<void> {
     return c.deps.beneficiaries.archiveAll(c.b.id);
   }
   if (choice === "2") return showMainMenu(c);
-  return sayKey(c, "delete_confirm");
+  return sayMenu(c, "delete_confirm");
 }

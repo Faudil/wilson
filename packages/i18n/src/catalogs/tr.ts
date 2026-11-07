@@ -16,6 +16,7 @@ export const tr: Record<WaKey, string> = {
   letter_offer_save: "Bu mektubu Belgelerim'de saklamak ister misiniz?\n1 - Evet\n2 - Hayır (fotoğraf silinecek)",
   letter_saved: "Mektup Belgelerim'e kaydedildi.",
   letter_not_saved: "Tamam. Mektubunuzun fotoğrafı silindi.",
+  letter_more_details: "3 - Daha fazla açıklama",
   document_ask_file: "Belgenizin fotoğrafını veya PDF'sini gönderin (oturma izni, récépissé, ...).",
   document_analyzing: "Belgenizi okuyorum. Lütfen bekleyin.",
   document_confirm: "Belge: {type}\nGeçerlilik bitiş tarihi: {date}\n1 - Doğru\n2 - Tarihi değiştir",

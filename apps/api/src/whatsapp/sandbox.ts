@@ -6,6 +6,7 @@ import type { Crypto } from "../crypto/keys.js";
 import type { Db } from "../db/client.js";
 import { beneficiaries as beneficiariesTable, messages } from "../db/schema.js";
 import type { BlobStore } from "../storage/blobStore.js";
+import type { Interactive } from "./interactive.js";
 import type { WhatsAppTransport } from "./transport.js";
 
 export interface SandboxTransportDeps {
@@ -30,7 +31,7 @@ export class SandboxTransport implements WhatsAppTransport {
   readonly mode = "sandbox" as const;
   constructor(private readonly deps: SandboxTransportDeps) {}
 
-  private async record(to: string, kind: "text" | "template", body: string): Promise<{ waMessageId: string }> {
+  private async record(to: string, kind: "text" | "template" | "interactive", body: string): Promise<{ waMessageId: string }> {
     const { db, crypto, beneficiaries } = this.deps;
     const [row] = await db.select({ id: beneficiariesTable.id }).from(beneficiariesTable).where(eq(beneficiariesTable.waIdHash, crypto.lookupHash(to))).limit(1);
     if (!row) throw new Error("sandbox: unknown recipient");
@@ -44,6 +45,11 @@ export class SandboxTransport implements WhatsAppTransport {
 
   sendText(to: string, body: string) {
     return this.record(to, "text", body);
+  }
+
+  /** Recorded as the plain menu text, kind "interactive": the sandbox page draws the buttons from it. */
+  sendInteractive(to: string, _m: Interactive, fallbackText: string) {
+    return this.record(to, "interactive", fallbackText);
   }
 
   sendTemplate(to: string, template: string, language: LanguageCode, params: string[]) {

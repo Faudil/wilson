@@ -16,6 +16,7 @@ export const ff: Record<WaKey, string> = {
   letter_offer_save: "Ngiɗ-ɗa mi mooftan ɗaɓɓitirgol ngol e Dokimaa am?\n1 - Ee\n2 - Aa'a (foto ngo ittetee)",
   letter_saved: "Ɗaɓɓitirgol ngol moofteema e Dokimaa am.",
   letter_not_saved: "Wooɗi. Foto ɗaɓɓitirgol maaɗa ittaama.",
+  letter_more_details: "3 - Ɓeydaari firo",
   document_ask_file: "Neldu foto malla PDF dokimaa maaɗa (kaartiire jooɗaago, récépissé, ...).",
   document_analyzing: "Mi ina janngi dokimaa maaɗa. Tiiɗno ɗoftu.",
   document_confirm: "Dokimaa: {type}\nNjal ɗum timmata: {date}\n1 - Ɗum goonga\n2 - Waylu njal ngal",

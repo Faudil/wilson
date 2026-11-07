@@ -16,6 +16,7 @@ export const bm: Record<WaKey, string> = {
   letter_offer_save: "I b'a fɛ ka nin gafe mara N ka sɛbɛnw kɔnɔ wa?\n1 - Ɔwɔ\n2 - Ayi (ja bɛna bɔ)",
   letter_saved: "Gafe marala N ka sɛbɛnw kɔnɔ.",
   letter_not_saved: "A ka ni. I ka gafe ja bɔra.",
+  letter_more_details: "3 - Ɲɛfɔli wɛrɛw",
   document_ask_file: "I ka sɛbɛn ja walima PDF ci n ma (sigiyɔrɔ karti, récépissé, ...).",
   document_analyzing: "N bɛ i ka sɛbɛn kalan. I ka makɔnɔ.",
   document_confirm: "Sɛbɛn: {type}\nA laban don: {date}\n1 - A ye tiɲɛ ye\n2 - Don lakɔrɔ",

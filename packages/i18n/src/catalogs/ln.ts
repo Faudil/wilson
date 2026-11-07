@@ -16,6 +16,7 @@ export const ln: Record<WaKey, string> = {
   letter_offer_save: "Olingi kobomba mokanda oyo na Mikanda na ngai?\n1 - Ee\n2 - Te (elongi ekolongolama)",
   letter_saved: "Mokanda ebombami na Mikanda na ngai.",
   letter_not_saved: "Malamu. Elongi ya mokanda na yo elongolami.",
+  letter_more_details: "3 - Ndimbola mosusu",
   document_ask_file: "Tinda elongi to PDF ya papye na yo (kati ya kovanda, récépissé, ...).",
   document_analyzing: "Nazali kotanga papye na yo. Zela mwa moke.",
   document_confirm: "Papye: {type}\nMokolo ya suka ya papye: {date}\n1 - Ezali malamu\n2 - Bongola mokolo",

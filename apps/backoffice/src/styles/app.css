@@ -2246,3 +2246,26 @@ blockquote {
     animation: none;
   }
 }
+
+/* Sandbox: WhatsApp reply buttons / list rows under a bot message */
+.wa-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-block-start: 8px;
+}
+.wa-choice {
+  font: inherit;
+  font-weight: 600;
+  color: var(--brand-text);
+  background: var(--surface, #fff);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: center;
+}
+.wa-choice:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

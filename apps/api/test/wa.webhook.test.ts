@@ -57,7 +57,9 @@ describe("whatsapp webhook", () => {
     const out = await t.outbound("33600000002");
     expect(out[0]).toBe(waText("ar", "welcome"));
     expect(out).toHaveLength(2); // welcome + main menu, once
-    expect(t.meta!.texts).toHaveLength(2);
+    expect(t.meta!.texts).toHaveLength(1); // welcome
+    expect(t.meta!.interactives).toHaveLength(1); // main menu as a WhatsApp list
+    expect(t.meta!.interactives[0]!.message.choices.map((c) => c.id)).toEqual(["1", "2", "3", "4", "0", "9"]);
   });
 
   it("unknown language on first contact shows the language menu; numbers (Arabic-Indic too) pick a language", async () => {
