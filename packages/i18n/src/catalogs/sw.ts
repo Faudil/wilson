@@ -80,4 +80,12 @@ export const sw: Record<WaKey, string> = {
   guard_slow_down: "Unatuma ujumbe mwingi. Tafadhali subiri dakika chache, kisha uandike tena.",
   guard_held: "Ujumbe wako unasubiri kwa sasa. Mtu wa kujitolea ataukagua na kuwasiliana nawe.",
   guard_released: "Asante kwa kusubiri. Unaweza kutuandikia tena.",
+  nearby_hint: "📍 Ili kuona maeneo yaliyo karibu nawe zaidi, shiriki mahali ulipo (📎 kisha 📍) au andika anwani au jina la kituo.",
+  nearby_title: "📍 Karibu nawe, wazi leo (ndani ya {distance}):",
+  nearby_none: "Sikupata chochote kilicho wazi karibu na mahali hapa leo.",
+  nearby_not_found: "Sikupata anwani hii. Iandike pamoja na jina la mji, au shiriki mahali ulipo (📎 kisha 📍).",
+  nearby_water: "Maji ya kunywa",
+  nearby_toilets: "Vyoo vya umma",
+  nearby_shower: "Bafu ya umma",
+  nearby_pharmacy: "Duka la dawa",
 };

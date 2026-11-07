@@ -80,4 +80,12 @@ export const bm: Record<WaKey, string> = {
   guard_slow_down: "I bɛ cikan caman ci. I ka hakɛ to ka miniti dama makɔnɔ, o kɔ i ka sɛbɛn tugun.",
   guard_held: "I ka cikanw bɛ makɔnɔni na sisan. Baarakɛla dɔ b'u lajɛ ka kuma i fɛ.",
   guard_released: "I ni ce i ka muɲuli la. I bɛ se ka sɛbɛn an ma tugun.",
+  nearby_hint: "📍 Walasa ka yɔrɔ minnu ka surun i la ye, i ka yɔrɔ ci (📎 o kɔfɛ 📍) walima adiresi dɔ walima gari tɔgɔ sɛbɛn.",
+  nearby_title: "📍 I kɛrɛfɛ, dayɛlɛlen bi ({distance} kɔnɔ):",
+  nearby_none: "N ma foyi sɔrɔ min dayɛlɛlen don nin yɔrɔ kɛrɛfɛ bi.",
+  nearby_not_found: "N ma nin adiresi sɔrɔ. A sɛbɛn ni dugu tɔgɔ ye, walima i ka yɔrɔ ci (📎 o kɔfɛ 📍).",
+  nearby_water: "Minji",
+  nearby_toilets: "Jamana ɲɛgɛn",
+  nearby_shower: "Jamana kolondaw",
+  nearby_pharmacy: "Farmasi",
 };

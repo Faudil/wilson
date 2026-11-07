@@ -1,6 +1,7 @@
 import type { Config } from "./config.js";
 import type { Crypto } from "./crypto/keys.js";
 import type { Db } from "./db/client.js";
+import type { GeoProvider } from "./geo/provider.js";
 import type { JobQueue } from "./jobs/names.js";
 import type { LlmProvider } from "./llm/provider.js";
 import type { BlobStore } from "./storage/blobStore.js";
@@ -13,6 +14,8 @@ export interface Deps {
   crypto: Crypto;
   blobs: BlobStore;
   llm: LlmProvider;
+  /** Addresses → points and places around a point (OpenStreetMap, Soliguide). */
+  geo: GeoProvider;
   wa: WhatsAppTransport;
   jobs: JobQueue;
   /** Injectable clock for reminders and the 24 h window. */

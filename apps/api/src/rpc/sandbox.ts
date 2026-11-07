@@ -43,6 +43,9 @@ export const sandboxRouter = {
   send: os.sandbox.send.use(sandboxOnly).use(guard).handler(async ({ input }) => {
     const d = getWaDeps();
     if (input.text) await processWebhookPayload(d, payload(input.phone, { type: "text", text: { body: input.text } }));
+    if (input.location) {
+      await processWebhookPayload(d, payload(input.phone, { type: "location", location: { latitude: input.location.latitude, longitude: input.location.longitude } }));
+    }
     if (input.file) {
       const { beneficiary } = await d.beneficiaries.findOrCreateByWaId(input.phone);
       const mime = input.file.type || "application/octet-stream";

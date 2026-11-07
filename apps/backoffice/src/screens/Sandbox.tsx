@@ -7,6 +7,9 @@ import { orpc } from "../lib/api";
 import { addDays, todayParis } from "../lib/format";
 import { formatDateTime } from "../lib/wilson-i18n";
 
+/** Place de la République, Paris: used when the browser does not give a position. */
+const SAMPLE_POINT = { lat: 48.8674, lon: 2.3636 };
+
 const FAKE_PHONES = ["33600000001", "33600000002", "33600000003"];
 
 /** The phone shows a menu's options as buttons, not as "1 - …" lines in the text. */
@@ -64,6 +67,18 @@ export function Sandbox() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
   }, [count]);
+
+  /** Like WhatsApp's 📎 → Location: the browser's position, or a sample point in Paris if it is refused. */
+  const sendLocation = () => {
+    if (!validPhone) return;
+    const go = (latitude: number, longitude: number) => send.mutate({ phone, location: { latitude, longitude } });
+    if (!navigator.geolocation) return go(SAMPLE_POINT.lat, SAMPLE_POINT.lon);
+    navigator.geolocation.getCurrentPosition(
+      (p) => go(p.coords.latitude, p.coords.longitude),
+      () => go(SAMPLE_POINT.lat, SAMPLE_POINT.lon),
+      { timeout: 8000, maximumAge: 600_000 },
+    );
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -144,6 +159,10 @@ export function Sandbox() {
             <span className="visually-hidden">{t("sandbox.attach")}</span>
             <input ref={fileInput} className="visually-hidden" type="file" accept="image/*,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           </label>
+          <button type="button" className="icon-btn attach-btn" title={t("sandbox.location")} onClick={sendLocation} disabled={send.isPending || !validPhone}>
+            <Icon name="pin" />
+            <span className="visually-hidden">{t("sandbox.location")}</span>
+          </button>
           <div className="composer-field">
             <textarea rows={1} value={text} onChange={(e) => setText(e.target.value)} dir="auto" placeholder={t("sandbox.message")} aria-label={t("sandbox.message")} />
           </div>
