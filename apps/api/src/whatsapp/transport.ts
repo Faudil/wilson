@@ -14,4 +14,6 @@ export interface WhatsAppTransport {
   sendTemplate(to: string, template: string, language: LanguageCode, params: string[]): Promise<{ waMessageId: string }>;
   /** Fetch inbound media bytes by Meta media id. */
   downloadMedia(mediaId: string): Promise<{ bytes: Buffer; mimeType: string }>;
+  /** Mark an inbound message as read (blue ticks). Optional: the sandbox has nothing to mark. */
+  markRead?(waMessageId: string): Promise<void>;
 }

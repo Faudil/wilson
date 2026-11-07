@@ -6,8 +6,11 @@ import { ToastProvider } from "./components/ui";
 import { applyDocumentLanguage, I18nProvider, readStoredLanguage } from "./i18n";
 import { errorCode } from "./lib/api";
 import { ME_KEY } from "./lib/me";
-import "./styles/fonts.css";
 import "./styles/app.css";
+
+// Self-hosted fonts, served as separate files by serve.ts (see fonts.ts) so unicode-range only downloads what a page uses.
+const fontsLink = Object.assign(document.createElement("link"), { rel: "stylesheet", href: "/fonts/fonts.css" });
+document.head.append(fontsLink);
 
 applyDocumentLanguage(readStoredLanguage());
 

@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { createCrypto } from "../src/crypto/keysImpl.js";
 import { testConfig } from "./helpers.js";
 

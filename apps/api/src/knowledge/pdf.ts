@@ -10,7 +10,7 @@ import { inflateSync } from "node:zlib";
  * Limits: no encryption, no LZW/ASCII85 filters, no scanned (image-only) pages, font encodings other than
  * WinAnsi/Latin-1 or ToUnicode are not interpreted, and the per-font CMaps are merged (two fonts reusing the same
  * code for different glyphs can garble text). Page order = order of streams in the file. Always check the
- * extracted text of a guide by eye (`pnpm knowledge:sync watizat`, then the back-office search page).
+ * extracted text of a guide by eye (`bun knowledge:sync watizat`, then the back-office search page).
  */
 
 const CP1252: Record<number, string> = { 0x80: "€", 0x82: "‚", 0x83: "ƒ", 0x84: "„", 0x85: "…", 0x86: "†", 0x87: "‡", 0x88: "ˆ", 0x89: "‰", 0x8a: "Š", 0x8b: "‹", 0x8c: "Œ", 0x8e: "Ž", 0x91: "‘", 0x92: "’", 0x93: "“", 0x94: "”", 0x95: "•", 0x96: "–", 0x97: "—", 0x98: "˜", 0x99: "™", 0x9a: "š", 0x9b: "›", 0x9c: "œ", 0x9e: "ž", 0x9f: "Ÿ" };

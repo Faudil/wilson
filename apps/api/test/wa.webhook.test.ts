@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { handleWhatsAppWebhook } from "../src/whatsapp/webhook.js";
 import { fakeHttp, makeWa, type WaCtx } from "./wa.helpers.js";
 

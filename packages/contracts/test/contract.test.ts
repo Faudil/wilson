@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { contract, LANGUAGE_CODES, LetterAnalysisSchema, WaWebhookSchema } from "../src/index.js";
 
 const analysis = {

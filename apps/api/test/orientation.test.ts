@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it, vi } from "bun:test";
 import type { KnowledgeHit, KnowledgeSourceId } from "@wilson/contracts";
 import { LetterAnalysisSchema } from "@wilson/contracts";
 import { AnthropicProvider, type AnthropicLike } from "../src/llm/anthropic.js";

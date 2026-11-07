@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { eq } from "drizzle-orm";
 import { contract } from "@wilson/contracts";
 import { accessLog, sessions, volunteerPermissions, volunteers } from "../src/db/schema.js";

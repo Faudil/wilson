@@ -1,7 +1,7 @@
 /**
  * Verifies that the bundled fonts really contain the letters we need (Pashto/Dari/Persian, Sorani, Ethiopic, Bengali, Tamil, Georgian, Armenian, African Latin letters).
  * Parses the .woff files from @fontsource directly (zlib tables + cmap formats 4 and 12), no dependency.
- * Run: pnpm --filter @wilson/backoffice check:fonts   (exit code 1 if any required glyph is missing)
+ * Run: bun run --filter @wilson/backoffice check:fonts   (exit code 1 if any required glyph is missing)
  */
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";

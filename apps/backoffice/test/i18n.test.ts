@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import ar from "../src/i18n/ar.json";
 import en from "../src/i18n/en.json";
 import fr from "../src/i18n/fr.json";

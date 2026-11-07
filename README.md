@@ -19,11 +19,11 @@ Langues (28) : français, anglais, arabe, dari, pachto, ourdou, ukrainien, tigri
 
 ### Option A — sur un ordinateur, sans Docker (le plus simple pour tester)
 
-Prérequis : [Node.js 22](https://nodejs.org) et pnpm (`npm install -g pnpm`). Fonctionne sous Windows, macOS et Linux.
+Prérequis : [Bun](https://bun.sh) 1.4 ou plus récent (un seul outil : il installe les dépendances et fait tourner l'application ; Node.js n'est pas nécessaire). Fonctionne sous Windows, macOS et Linux.
 
 ```bash
-pnpm install
-pnpm local
+bun install
+bun local
 ```
 
 Puis ouvrir http://localhost:5173 (compte `admin@example.org` / `change-me-please`) et l'onglet **Bac à sable**.
@@ -63,13 +63,13 @@ Par défaut, `WHATSAPP_MODE=sandbox` et `LLM_MODE=fake` :
 | Variable | Rôle |
 |---|---|
 | `LLM_MODE=anthropic`, `ANTHROPIC_API_KEY`, `LLM_MODEL` | Analyse réelle par Claude (modèle Opus par défaut) |
-| `WHATSAPP_MODE=meta` + `WHATSAPP_*` | WhatsApp Cloud API (Meta). Webhook : `https://<domaine>/webhooks/whatsapp` |
-| `WHATSAPP_TEMPLATE_EXPLANATION_READY`, `WHATSAPP_TEMPLATE_DOCUMENT_REMINDER` | Modèles de messages à faire approuver par Meta (catégorie « utility ») dans les 10 langues. Ils servent quand la personne n'a pas écrit depuis plus de 24 h (règle WhatsApp) |
+| `WHATSAPP_MODE=meta` + `WHATSAPP_*` | WhatsApp Cloud API (Meta). Webhook : `https://<domaine>/webhooks/whatsapp`. **Pas à pas complet (identifiants, webhook, modèles, vrai numéro) : [docs/whatsapp-setup.md](docs/whatsapp-setup.md)** |
+| `WHATSAPP_TEMPLATE_EXPLANATION_READY`, `WHATSAPP_TEMPLATE_DOCUMENT_REMINDER` | Modèles de messages (catégorie « utility ») utilisés quand la personne n'a pas écrit depuis plus de 24 h (règle WhatsApp). Soumis à Meta dans les 16 langues qu'il accepte par `bun run --filter @wilson/api wa:setup templates` |
 | `S3_*` | Stockage S3 hébergé en France/UE (Scaleway, OVH, Clever Cloud…) |
 
 Le back-office doit être servi en **HTTPS** en production (le cookie de session est `Secure`).
 
-Développement sans Docker : `pnpm install`, une base Postgres, puis `pnpm --filter @wilson/api dev` et `pnpm --filter @wilson/backoffice dev`. Tests : `pnpm test` (Postgres requis sur `localhost:5432`, utilisateur `wilson`).
+Développement sans Docker : `bun install`, une base Postgres, puis `bun run --filter @wilson/api dev` et `bun run --filter @wilson/backoffice dev`. Tests : `bun run test` (lance `bun test` dans chaque paquet ; Postgres requis sur `localhost:5432`, utilisateur `wilson`). Vérification des types : `bun run typecheck`.
 
 *Derrière un proxy d'entreprise qui intercepte TLS* : `docker build --secret id=extra_ca,src=<ca.crt> -f docker/api.Dockerfile -t wilson-api .` (idem pour `backoffice`), puis `docker compose up --no-build`.
 
@@ -97,7 +97,7 @@ Pour que les réponses orientent vers de **vraies adresses locales**, l'outil s'
 - **Vos propres notes** : fichiers dans `knowledge/association/` (voir le README de ce dossier). C'est le plus utile : vos permanences, horaires, partenaires.
 - **Watizat** : désactivé. Leurs guides sont « tous droits réservés » : il faut **demander l'autorisation à Watizat**. Ensuite, déposer le PDF dans `knowledge/watizat/` et mettre `KNOWLEDGE_ENABLE=watizat`.
 
-La mise à jour se fait automatiquement chaque semaine (et au premier démarrage), ou avec `pnpm knowledge:sync`, ou le bouton « Synchroniser » de l'écran **Connaissances** (admin). Cet écran permet aussi de tester la recherche. Dans chaque courrier à relire, l'encadré **Sources** montre sur quoi l'orientation s'appuie : vérifiez les adresses avant de valider.
+La mise à jour se fait automatiquement chaque semaine (et au premier démarrage), ou avec `bun knowledge:sync`, ou le bouton « Synchroniser » de l'écran **Connaissances** (admin). Cet écran permet aussi de tester la recherche. Dans chaque courrier à relire, l'encadré **Sources** montre sur quoi l'orientation s'appuie : vérifiez les adresses avant de valider.
 
 La recherche se fait dans notre propre base, sans service extérieur : aucune donnée des personnes n'est envoyée nulle part pour cela.
 

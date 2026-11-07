@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import type { LanguageCode } from "@wilson/contracts";
 import { renderLetterReply } from "@wilson/i18n";
 import { FakeProvider, resolveSamplesDir } from "../src/llm/fake.js";

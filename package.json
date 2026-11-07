@@ -1,21 +1,24 @@
 {
   "name": "wilson",
   "private": true,
-  "packageManager": "pnpm@10.28.0",
   "engines": {
-    "node": ">=22"
+    "bun": ">=1.4"
   },
   "scripts": {
-    "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
-    "dev": "pnpm -r --parallel dev",
-    "local": "node scripts/local.mjs",
-    "knowledge:sync": "node scripts/knowledge-sync.mjs"
+    "build": "bun run --filter '*' build",
+    "typecheck": "bun run --filter '*' typecheck && bun --bun tsc --noEmit -p scripts",
+    "test": "bun run --filter '*' test",
+    "dev": "bun run --filter '*' dev",
+    "local": "bun scripts/local.ts",
+    "knowledge:sync": "bun scripts/knowledge-sync.ts"
   },
   "devDependencies": {
     "typescript": "5.9.3",
-    "vitest": "5.1.0",
-    "@types/node": "^22.10.0"
-  }
+    "@types/bun": "1.4.4"
+  },
+  "packageManager": "bun@1.4.4",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }

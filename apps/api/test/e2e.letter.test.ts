@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "bun:test";
 import { waText } from "@wilson/i18n";
 import { beneficiaryIdOf, makeE2E, sampleFile, type E2E } from "./e2e.helpers.js";
 

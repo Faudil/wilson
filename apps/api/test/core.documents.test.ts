@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { and, eq } from "drizzle-orm";
 import { documentTypeName, formatDate } from "@wilson/i18n";
 import { beneficiaries, documents, letters, reminders } from "../src/db/schema.js";

@@ -21,8 +21,8 @@ wilson/
 │  ├─ contracts/      oRPC contract + Zod schemas (source of truth, no runtime deps besides zod/@orpc/contract)
 │  └─ i18n/           languages, message catalogs (WhatsApp + UI), bidi helpers, date formatting
 ├─ apps/
-│  ├─ api/            Node 22: oRPC server, WhatsApp webhook, workers (pg-boss), Drizzle schema + migrations
-│  └─ backoffice/     React + Vite + TanStack Query, oRPC client, bundled fonts
+│  ├─ api/            Bun: oRPC server, WhatsApp webhook, workers (pg-boss), Drizzle schema + migrations
+│  └─ backoffice/     React + TanStack Query, oRPC client, bundled fonts; built and served by Bun (serve.ts)
 ├─ prompts/           versioned LLM prompts (letter-analysis.v1.md, document-classify.v1.md, language-detect.v1.md)
 └─ samples/letters/   10 synthetic letters (.md source + rendered .png) + expected facts for tests
 ```
@@ -33,7 +33,7 @@ wilson/
  WhatsApp (Meta Cloud API) ──POST /webhooks/whatsapp──┐
  Back-office sandbox page ──oRPC sandbox.send─────────┤  (same parsed WaWebhook payload)
                                                       ▼
-   ┌──────────────────────────── api (Node 22) ────────────────────────────┐
+   ┌────────────────────────────── api (Bun) ──────────────────────────────┐
    │ HTTP: /rpc/* (oRPC) · /webhooks/whatsapp · /health                     │
    │ Conversation engine (state machine per beneficiary)                    │
    │ Workers (pg-boss): letter.analyze · document.analyze · wa.send ·       │
@@ -42,12 +42,12 @@ wilson/
           ▼                       ▼                       ▼
    PostgreSQL 17           SeaweedFS (S3)           LLM provider (default: Anthropic API, Claude Opus)
    data + pg-boss queues   encrypted blobs only     behind the generic LlmProvider interface
-   backoffice (nginx, static build) ──/rpc──▶ api
+   backoffice (Bun.serve: dist/ + headers) ──/rpc──▶ api
 ```
 
 - **Queue: pg-boss**, not BullMQ: it runs in the existing Postgres, so no Redis to host, back up or secure. Jobs are transactional with the data they describe.
 - **Single API process** runs HTTP + workers in the POC (`API_ROLE=all`); can be split later with the same image.
-- `RUNTIME=local` (`pnpm local`): no Docker at all — embedded Postgres (PGlite, WASM) with the same migrations, encrypted blobs on disk (`FsBlobStore`), in-process queue with timer crons. For testing on a laptop only.
+- `RUNTIME=local` (`bun local`): no Docker at all — embedded Postgres (PGlite, WASM) with the same migrations, encrypted blobs on disk (`FsBlobStore`), in-process queue with timer crons. For testing on a laptop only.
 - `WHATSAPP_MODE=sandbox|meta`. In sandbox, outbound messages are written to the `messages` table instead of calling Meta, and the back-office "Sandbox" page shows a fake phone. `LLM_MODE=anthropic|fake`: fake returns fixture analyses from `samples/letters/*.expected.json`, so the whole flow runs with no API keys at all.
 
 ## 4. Flows
@@ -87,7 +87,7 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 ```
 - Menu 2 also lists saved documents with their expiry dates, and lets the user delete one.
 - Reminders are fixed i18n templates (no LLM), so they are sent without review.
-- **24 h window:** outside WhatsApp's customer-service window, the API sends a Meta-approved *utility template* instead of free text: `explanation_ready` ("your explanation is ready, reply OK to receive it"; the reviewed text is sent when they reply) and `document_reminder` (type + written-out date). Template names/languages are configured in env; the sandbox ignores the window.
+- **24 h window:** outside WhatsApp's customer-service window, the API sends a Meta-approved *utility template* instead of free text: `explanation_ready` ("your explanation is ready, reply OK to receive it"; the reviewed text is sent when they reply) and `document_reminder` (type + written-out date). Template names are configured in env; their texts (16 languages Meta supports, with a fallback language for the others) live in `apps/api/src/whatsapp/templates.ts` and are submitted with `wa:setup templates`. A "Receive" quick-reply button on `explanation_ready` releases the waiting message. If Meta still answers 131047 (window closed) to a free-form send, the sender falls back to the template instead of retrying. The sandbox ignores the window. Real-number setup: `docs/whatsapp-setup.md`.
 - Reminders whose date is already past at save time are skipped; an already-expired document triggers an immediate "expired, contact the association" message.
 
 ## 5. Data model (PostgreSQL, Drizzle)
@@ -149,7 +149,7 @@ Goal: the "who to turn to" lines cite real, local, up-to-date offices and proced
 | data·inclusion, Refugies.info | access on request / licence unstated | — | not wired yet |
 
 - **Storage & search:** `knowledge_chunks` table (public content only, never beneficiary data) with a generated French `tsvector` + GIN index; search = French full-text (`to_tsquery` OR of keywords, `ts_rank_cd`), contacts filtered to the département. Works identically on Postgres and PGlite. No embedding model and no external service, so nothing leaves the server. Embeddings (local model + pgvector) can be added behind `KnowledgeService.search` later.
-- **Sync:** weekly cron + first start + `pnpm knowledge:sync [source]` + "Synchroniser" button (admin). Each sync upserts by `(source, external_id)` and deletes stale chunks.
+- **Sync:** weekly cron + first start + `bun knowledge:sync [source]` + "Synchroniser" button (admin). Each sync upserts by `(source, external_id)` and deletes stale chunks.
 - **Orientation step:** after `analyzeLetter`, query = French title + summary + issuer + per-type keywords → top procedures + local contacts → `llm.orientLetter` (prompt `letter-orientation.v1`) rewrites orientation in fr + target using only those snippets (association always first; never invents an address; no legal advice) → `analysis.sources` shown to the reviewer. Any failure keeps the original orientation and adds a reviewer warning.
 
 ## 8c. Chatbot
@@ -188,7 +188,7 @@ The Meta webhook is the one HTTP route outside oRPC (format and signature impose
 |---|---|---|
 | D1 | pg-boss over BullMQ | No Redis; one fewer service holding sensitive job payloads |
 | D2 | App-level envelope encryption (per-user DEK) over S3 SSE-C | Provider-agnostic, provider never sees plaintext, enables crypto-shredding |
-| D3 | Workspace packages export TS sources; api runs with `tsx`, back-office bundles with Vite | No build step between packages in a POC |
+| D3 | Workspace packages export TS sources; Bun everywhere: package manager (`bun.lock`), runtime (api runs `.ts` directly), test runner (`bun test`), bundler and web server for the back-office (`Bun.build`, `Bun.serve`), argon2id via `Bun.password`. `tsc` only type-checks | One tool, no build step between packages in a POC |
 | D4 | Numbered menus, not keywords | Work in every language and keyboard; low literacy friendly |
 | D5 | Outgoing text = template(fields) + fixed footer | Guarantees orientation pointer and structure; LLM never writes the whole message |
 | D6 | Webhook as plain HTTP route with contract-defined Zod schema | Meta imposes format + raw-body signature |

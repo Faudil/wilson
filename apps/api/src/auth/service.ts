@@ -1,14 +1,14 @@
 import { createHash, randomBytes } from "node:crypto";
-import { hash, verify } from "@node-rs/argon2";
 import { and, eq, gt } from "drizzle-orm";
 import { ROLE_PERMISSIONS, type Permission, type Volunteer, type VolunteerRole } from "@wilson/contracts";
 import type { Db } from "../db/client.js";
 import { sessions, volunteerPermissions, volunteers } from "../db/schema.js";
 
-// @node-rs/argon2: Algorithm.Argon2id === 2 (default). OWASP-ish params.
-const ARGON = { memoryCost: 19456, timeCost: 2, parallelism: 1 } as const;
+// Bun's built-in argon2id (PHC string), OWASP-ish params: 19 MiB, 2 passes.
+const ARGON = { algorithm: "argon2id", memoryCost: 19456, timeCost: 2 } as const;
 
-export const hashPassword = (password: string): Promise<string> => hash(password, ARGON);
+export const hashPassword = (password: string): Promise<string> => Bun.password.hash(password, ARGON);
+const verify = (hash: string, password: string): Promise<boolean> => Bun.password.verify(password, hash);
 export const sha256Hex = (s: string): string => createHash("sha256").update(s).digest("hex");
 
 type VolunteerRow = typeof volunteers.$inferSelect;

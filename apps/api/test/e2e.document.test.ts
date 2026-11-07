@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { LANGUAGE_CODES } from "@wilson/contracts";
 import { documentTypeName, formatDate, waText } from "@wilson/i18n";
 import { beneficiaryIdOf, makeE2E, sampleFile, type E2E } from "./e2e.helpers.js";
