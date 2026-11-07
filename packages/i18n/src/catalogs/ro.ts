@@ -16,6 +16,7 @@ export const ro: Record<WaKey, string> = {
   letter_offer_save: "Doriți să păstrați această scrisoare în Documentele mele?\n1 - Da\n2 - Nu (fotografia va fi ștearsă)",
   letter_saved: "Scrisoarea a fost salvată în Documentele mele.",
   letter_not_saved: "Bine. Fotografia scrisorii dumneavoastră a fost ștearsă.",
+  letter_more_details: "3 - Mai multe explicații",
   document_ask_file: "Trimiteți o fotografie sau un PDF al documentului (permis de ședere, récépissé, ...).",
   document_analyzing: "Citesc documentul dumneavoastră. Vă rog să așteptați.",
   document_confirm: "Document: {type}\nData de expirare: {date}\n1 - Este corect\n2 - Schimbă data",

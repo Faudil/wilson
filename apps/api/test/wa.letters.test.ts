@@ -47,7 +47,7 @@ describe("letter flow (sandbox)", () => {
     expect(reply).toContain(t.config.ASSOCIATION_CONTACT); // footer
     expect(reply).toContain(FSI);
     const { waText } = await import("@wilson/i18n");
-    expect(out.at(-1)).toBe(waText("en", "letter_offer_save"));
+    expect(out.at(-1)).toBe(`${waText("en", "letter_offer_save")}\n${waText("en", "letter_more_details")}`);
 
     await t.say(p, "1");
     const { b } = await letterOf(p);

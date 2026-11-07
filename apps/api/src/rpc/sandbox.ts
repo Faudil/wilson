@@ -5,6 +5,7 @@ import type { WaWebhook } from "@wilson/contracts";
 import { beneficiaries, documents, letters, messages } from "../db/schema.js";
 import { dispatchDueReminders } from "../documents/reminders.js";
 import { getWaDeps } from "../whatsapp/context.js";
+import { toInteractive } from "../whatsapp/interactive.js";
 import { putSandboxMedia } from "../whatsapp/sandbox.js";
 import { processWebhookPayload } from "../whatsapp/webhook.js";
 import { os, requirePermission } from "./base.js";
@@ -60,13 +61,18 @@ export const sandboxRouter = {
     const dek = await d.beneficiaries.getDek(b.id);
     const rows = await d.db.select().from(messages).where(eq(messages.beneficiaryId, b.id)).orderBy(asc(messages.createdAt));
     // Bot drafts waiting for review (or rejected) were never sent to the phone.
-    return rows.filter((m) => m.chatState !== "draft" && m.chatState !== "rejected").map((m) => ({
-      id: m.id,
-      direction: m.direction === "in" ? ("inbound" as const) : ("outbound" as const),
-      at: m.createdAt.toISOString(),
-      text: m.bodyEnc ? d.crypto.decrypt(dek, m.bodyEnc).toString("utf8") : null,
-      hasMedia: m.mediaKey !== null,
-    }));
+    return rows.filter((m) => m.chatState !== "draft" && m.chatState !== "rejected").map((m) => {
+      const text = m.bodyEnc ? d.crypto.decrypt(dek, m.bodyEnc).toString("utf8") : null;
+      const menu = m.direction === "out" && m.kind === "interactive" && text ? toInteractive(text) : null;
+      return {
+        id: m.id,
+        direction: m.direction === "in" ? ("inbound" as const) : ("outbound" as const),
+        at: m.createdAt.toISOString(),
+        text,
+        hasMedia: m.mediaKey !== null,
+        choices: menu ? menu.choices.map(({ id, title, description }) => ({ id, title: description ?? title })) : [],
+      };
+    });
   }),
 
   runReminders: os.sandbox.runReminders.use(sandboxOnly).use(guard).handler(async ({ input }) => {

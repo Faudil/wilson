@@ -28,8 +28,10 @@ export interface LetterOutgoing {
   beneficiaryId: string;
   status: LetterStatus;
   awaitingOptIn: boolean;
-  /** Rendered reply (target prose + deadline + footer). Null if there is no analysis. */
+  /** First message: title, date, what to do, footer. Null if there is no analysis. */
   text: string | null;
+  /** Sent on request ("3 - More explanation"): what the letter says, who can help, footer. */
+  details: string | null;
 }
 
 export interface LettersService {
@@ -118,8 +120,8 @@ export function createLettersService(deps: Deps, beneficiaries: BeneficiariesSer
       return null;
     }
   }
-  const render = (lang: LanguageCode, a: LetterAnalysis, which: "fr" | "target") =>
-    renderLetterReply({ lang, text: a[which], deadline: a.deadline, urgency: a.urgency, today: today(), association });
+  const render = (lang: LanguageCode, a: LetterAnalysis, which: "fr" | "target", part: "short" | "details" = "short") =>
+    renderLetterReply({ lang, text: a[which], deadline: a.deadline, urgency: a.urgency, today: today(), association, part });
 
   async function toSummary(r: LetterRow): Promise<LetterSummary> {
     const b = await beneficiaries.get(r.beneficiaryId);
@@ -151,6 +153,8 @@ export function createLettersService(deps: Deps, beneficiaries: BeneficiariesSer
       analysis,
       outgoingText: analysis ? render(summary.language, analysis, "target") : null,
       outgoingTextFr: analysis ? render("fr", analysis, "fr") : null,
+      outgoingDetailsText: analysis ? render(summary.language, analysis, "target", "details") : null,
+      outgoingDetailsTextFr: analysis ? render("fr", analysis, "fr", "details") : null,
       hasPhoto: r.photoKey !== null,
       frEdited: r.frEdited,
       history: events.map((e) => ({ at: e.at.toISOString(), volunteerName: e.name ?? null, action: e.action, note: e.note })),
@@ -336,6 +340,7 @@ export function createLettersService(deps: Deps, beneficiaries: BeneficiariesSer
         status: r.status as LetterStatus,
         awaitingOptIn: r.awaitingOptIn,
         text: a && b ? render(b.language, a, "target") : null,
+        details: a && b ? render(b.language, a, "target", "details") : null,
       };
     },
 

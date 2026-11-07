@@ -16,6 +16,7 @@ export const ps: Record<WaKey, string> = {
   letter_offer_save: "ایا غواړئ دا لیک په زما سندونو کې وساتئ؟\n1 - هو\n2 - نه (انځور به ړنګ شي)",
   letter_saved: "لیک په زما سندونو کې خوندي شو.",
   letter_not_saved: "سمه ده. ستاسو د لیک انځور ړنګ شو.",
+  letter_more_details: "3 - نور وضاحت",
   document_ask_file: "د خپل سند انځور یا PDF ولېږئ (د اقامت کارت، رسید، ...).",
   document_analyzing: "زه ستاسو سند لولم. مهرباني وکړئ انتظار وکړئ.",
   document_confirm: "سند: {type}\nد پای نېټه: {date}\n1 - سم دی\n2 - نېټه بدل کړئ",

@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import { and, count, desc, eq, inArray, isNull, lt, min, or } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, min, sql } from "drizzle-orm";
 import type { LetterSummary } from "@wilson/contracts";
 import { beneficiaries as bTable, documents as dTable, letters as lTable } from "../db/schema.js";
 import { maskedLabel } from "../beneficiaries/serviceImpl.js";
@@ -43,7 +43,9 @@ export const beneficiariesRouter = {
     const digits = input.search?.replace(/\D/g, "");
     if (digits) conds.push(eq(bTable.waIdLast2, digits.slice(-2)));
     const cur = input.cursor ? decodeCursor(input.cursor) : null;
-    if (cur) conds.push(or(lt(bTable.createdAt, cur.at), and(eq(bTable.createdAt, cur.at), lt(bTable.id, cur.id)))!);
+    // Postgres keeps microseconds but a JS Date only milliseconds: compare against the cursor row's exact timestamp,
+    // otherwise rows created in the same millisecond can be skipped.
+    if (cur) conds.push(sql`(${bTable.createdAt}, ${bTable.id}) < (select ${bTable.createdAt}, ${bTable.id} from ${bTable} where ${bTable.id} = ${cur.id})`);
     const rows = await deps.db
       .select()
       .from(bTable)

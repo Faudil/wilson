@@ -231,6 +231,29 @@ describe("renderLetterReply", () => {
     today: "2027-03-02",
     association: { name: "Asso", contact: "+33 1 23 45 67 89" },
   };
+  it("short = title, date, actions (+ who can help only when urgent); details = summary + who can help; both keep the footer", () => {
+    const t = { title: "Courrier de la CAF", summary: "La CAF demande des pièces.", actions: ["Envoyez la pièce"], orientation: ["La CAF de Paris"] };
+    const args = { lang: "fr" as const, text: t, deadline: base.deadline, today: base.today, association: base.association };
+    const short = renderLetterReply({ ...args, urgency: "medium", part: "short" });
+    expect(short).toContain("Courrier de la CAF");
+    expect(short).toContain("Envoyez la pièce");
+    expect(short).toContain("📅");
+    expect(short).not.toContain("La CAF demande des pièces.");
+    expect(short).not.toContain("La CAF de Paris");
+    expect(short).toContain("ℹ️");
+    expect(renderLetterReply({ ...args, urgency: "high", part: "short" })).toContain("La CAF de Paris");
+    const details = renderLetterReply({ ...args, urgency: "high", part: "details" });
+    expect(details).toContain("La CAF demande des pièces.");
+    expect(details).toContain("La CAF de Paris");
+    expect(details).not.toContain("Envoyez la pièce");
+    expect(details).not.toContain("⚠️");
+    expect(details).toContain("ℹ️");
+  });
+
+  it("every catalog offers '3 - …' more explanation", () => {
+    for (const l of LANGUAGE_CODES) expect(CATALOGS[l].letter_more_details.startsWith("3 - "), l).toBe(true);
+  });
+
   it("ar: isolates French address, includes footer, urgency, RLM lines, days left", () => {
     const out = renderLetterReply({ lang: "ar", ...base });
     expect(out).toContain("⁨12 rue de la Paix, 75011 Paris⁩");

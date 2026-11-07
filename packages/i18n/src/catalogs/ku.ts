@@ -16,6 +16,7 @@ export const ku: Record<WaKey, string> = {
   letter_offer_save: "Tu dixwazî vê nameyê di Belgeyên min de biparêzî?\n1 - Erê\n2 - Na (wêne dê were jêbirin)",
   letter_saved: "Name di Belgeyên min de hate tomarkirin.",
   letter_not_saved: "Baş e. Wêneya nameya te hate jêbirin.",
+  letter_more_details: "3 - Ravekirina zêdetir",
   document_ask_file: "Wêne an PDFya belgeya xwe bişîne (destûra rûniştinê, récépissé, ...).",
   document_analyzing: "Ez belgeya te dixwînim. Ji kerema xwe bisekine.",
   document_confirm: "Belge: {type}\nDîroka dawiya derbasdariyê: {date}\n1 - Rast e\n2 - Dîrokê biguherîne",

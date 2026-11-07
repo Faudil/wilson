@@ -16,6 +16,7 @@ export const am: Record<WaKey, string> = {
   letter_offer_save: "ይህን ደብዳቤ በሰነዶቼ ውስጥ ማስቀመጥ ይፈልጋሉ?\n1 - አዎ\n2 - አይ (ፎቶው ይሰረዛል)",
   letter_saved: "ደብዳቤው በሰነዶቼ ውስጥ ተቀምጧል።",
   letter_not_saved: "እሺ። የደብዳቤዎ ፎቶ ተሰርዟል።",
+  letter_more_details: "3 - ተጨማሪ ማብራሪያ",
   document_ask_file: "የሰነድዎን ፎቶ ወይም PDF ይላኩ (የመኖሪያ ፈቃድ፣ ደረሰኝ፣ ...)።",
   document_analyzing: "ሰነድዎን እያነበብኩ ነው። እባክዎ ይጠብቁ።",
   document_confirm: "ሰነድ: {type}\nየሚያበቃበት ቀን: {date}\n1 - ትክክል ነው\n2 - ቀኑን ቀይር",
