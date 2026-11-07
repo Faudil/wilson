@@ -54,15 +54,36 @@
     {
       "idx": 7,
       "version": "7",
-      "when": 1794081012801,
-      "tag": "0007_abuse_guard",
+      "when": 1794080759406,
+      "tag": "0007_places_broadcasts",
       "breakpoints": true
     },
     {
       "idx": 8,
       "version": "7",
-      "when": 1794081602230,
-      "tag": "0008_account_security",
+      "when": 1794081224623,
+      "tag": "0008_buddies",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794081591649,
+      "tag": "0009_appointments",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794082044784,
+      "tag": "0010_volunteer_association",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794082490878,
+      "tag": "0011_security",
       "breakpoints": true
     }
   ]

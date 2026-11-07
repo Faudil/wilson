@@ -107,6 +107,8 @@ export function testConfig(overrides: Record<string, string | undefined> = {}): 
     S3_SECRET_KEY: "y",
     WHATSAPP_MODE: "sandbox",
     LLM_MODE: "fake",
+    // Never call the real association register from tests.
+    ASSOCIATION_SEARCH: "off",
     // The clock is frozen in tests and phones are reused across a file: keep the flood guard out of the way
     // (guard.test.ts sets its own limits).
     WA_RATE_PER_MINUTE: "100000", WA_RATE_PER_HOUR: "100000", WA_FILES_PER_DAY: "100000",

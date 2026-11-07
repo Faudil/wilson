@@ -12,6 +12,8 @@ export interface BeneficiaryRow {
   conversationState: ConversationState;
   lastInboundAt: Date | null;
   archivedAt: Date | null;
+  /** Said yes to announcements (menu 6); null = never sent any. */
+  announcementsOptInAt: Date | null;
   createdAt: Date;
   /** Flood guard: quarantined and blocked numbers are not processed (see whatsapp/guard.ts). */
   guardStatus: "none" | "quarantined" | "blocked";

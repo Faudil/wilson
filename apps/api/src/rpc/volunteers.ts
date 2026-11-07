@@ -1,9 +1,12 @@
 import { ORPCError } from "@orpc/server";
 import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
-import type { VolunteerAccount, VolunteerAccountStatus } from "@wilson/contracts";
-import { beneficiaries, sessions, volunteers } from "../db/schema.js";
+import type { Permission, VolunteerAccount, VolunteerAccountStatus, VolunteerRole } from "@wilson/contracts";
+import { effectivePermissions } from "../auth/service.js";
+import { beneficiaries, sessions, volunteerPermissions, volunteers } from "../db/schema.js";
 import type { Deps } from "../deps.js";
 import { alert } from "../alerts.js";
+import { getBuddies } from "../buddies/service.js";
+import { getWaDeps } from "../whatsapp/context.js";
 import { logAccess } from "./logAccess.js";
 import { os, requirePermission, type RpcContext } from "./base.js";
 
@@ -18,6 +21,12 @@ async function toAccounts(deps: Deps, rows: Row[]): Promise<VolunteerAccount[]> 
   if (approverIds.length) {
     for (const a of await deps.db.select({ id: volunteers.id, name: volunteers.name }).from(volunteers).where(inArray(volunteers.id, approverIds))) names.set(a.id, a.name);
   }
+  const overrides = new Map<string, { permission: Permission; granted: boolean }[]>();
+  if (rows.length) {
+    for (const o of await deps.db.select().from(volunteerPermissions).where(inArray(volunteerPermissions.volunteerId, rows.map((r) => r.id)))) {
+      overrides.set(o.volunteerId, [...(overrides.get(o.volunteerId) ?? []), { permission: o.permission as Permission, granted: o.granted }]);
+    }
+  }
   return rows.map((r) => ({
     id: r.id,
     name: r.name,
@@ -26,11 +35,17 @@ async function toAccounts(deps: Deps, rows: Row[]): Promise<VolunteerAccount[]> 
     status: statusOf(r),
     uiLanguage: r.uiLanguage,
     note: r.signupNote,
+    association: r.associationName
+      ? { name: r.associationName, siren: r.associationSiren, rna: r.associationRna, city: r.associationCity }
+      : null,
     createdAt: r.createdAt.toISOString(),
     approvedAt: r.approvedAt?.toISOString() ?? null,
     approvedByName: r.approvedBy ? (names.get(r.approvedBy) ?? null) : null,
     emailVerified: r.emailVerified,
     twoFactorEnabled: !!r.totpEnabledAt,
+    // A pending account has no access at all, whatever its role says.
+    permissions: r.pendingApproval ? [] : effectivePermissions(r.role as VolunteerRole, overrides.get(r.id) ?? []).sort(),
+    overrides: (overrides.get(r.id) ?? []).sort((a, z) => a.permission.localeCompare(z.permission)),
   }));
 }
 
@@ -49,10 +64,14 @@ async function one(deps: Deps, id: string): Promise<VolunteerAccount> {
   return (await toAccounts(deps, [await mustRow(deps, id)]))[0]!;
 }
 
-/** Revoke every session of an account and release the conversations it held (back to "needs a person"). */
+/**
+ * Revoke every session of an account, release the conversations it held (back to "needs a person") and end its
+ * French practice pairings (the beneficiaries are told and can ask for a new buddy).
+ */
 async function revoke(deps: Deps, id: string) {
   await deps.db.delete(sessions).where(eq(sessions.volunteerId, id));
   await deps.db.update(beneficiaries).set({ chatAssigneeId: null, chatStatus: "needs_human" }).where(eq(beneficiaries.chatAssigneeId, id));
+  await getBuddies(getWaDeps()).endAllForVolunteer(id);
 }
 
 export const volunteersRouter = {
@@ -121,5 +140,22 @@ export const volunteersRouter = {
     await logAccess(context, "volunteers.reset_2fa", r.id);
     void alert(context.deps, `volunteers.reset_2fa:${r.id}`, `${context.volunteer.name} removed the authenticator app of ${r.name}.`);
     return one(context.deps, r.id);
+  }),
+
+  setPermissions: os.volunteers.setPermissions.use(manage).handler(async ({ input, context }) => {
+    notSelf(context, input.id);
+    const r = await mustRow(context.deps, input.id);
+    if (r.pendingApproval) throw new ORPCError("CONFLICT", { data: { reason: "pending" } });
+    // One entry per permission (the last one wins), and none that only repeats what the role already gives.
+    const bundle = new Set(effectivePermissions(r.role as VolunteerRole, []));
+    const wanted = new Map(input.overrides.map((o) => [o.permission, o.granted]));
+    const rows = [...wanted].filter(([p, granted]) => granted !== bundle.has(p)).map(([permission, granted]) => ({ volunteerId: input.id, permission, granted }));
+    await context.deps.db.transaction(async (tx) => {
+      await tx.delete(volunteerPermissions).where(eq(volunteerPermissions.volunteerId, input.id));
+      if (rows.length) await tx.insert(volunteerPermissions).values(rows);
+    });
+    // Resolved per request (auth.resolveVolunteer), so it applies on the person's next click. One log line per change.
+    await logAccess(context, `volunteers.set_permissions:${rows.map((o) => `${o.granted ? "+" : "-"}${o.permission}`).join(",") || "role_default"}`, input.id);
+    return one(context.deps, input.id);
   }),
 };

@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { os, requirePermission } from "./base.js";
+import { getAssociationSearch } from "../associations/search.js";
 import { SignupError } from "../auth/service.js";
 import { getAuth } from "./context.js";
 import { logAccess } from "./logAccess.js";
@@ -33,6 +34,8 @@ export const authRouter = {
     await getAuth(context.deps).verifyEmail(input.token);
     return { ok: true as const };
   }),
+  searchAssociations: os.auth.searchAssociations.handler(({ input, context }) =>
+    context.deps.config.VOLUNTEER_SIGNUP === "on" ? getAssociationSearch(context.deps).search(input.query) : []),
 
   logout: os.auth.logout.handler(async ({ context }) => {
     if (context.sessionToken) await getAuth(context.deps).logout(context.sessionToken);

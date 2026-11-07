@@ -4,11 +4,13 @@
  * Change this file only through a reviewed migration (`bun run db:generate`).
  */
 import { sql } from "drizzle-orm";
+import type { LanguageCode } from "@wilson/contracts";
 import {
   type AnyPgColumn, boolean, customType, date, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import {
-  DocumentTypeSchema, ExpirySourceSchema, GuardReasonSchema, GuardStatusSchema, LANGUAGE_CODES, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
+  BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, GuardReasonSchema, GuardStatusSchema, HelpKindSchema, HelpStatusSchema, HelpTopicSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
+  type BuddySlot, type BuddyWindow, BuddyMatchStatusSchema, BuddyModePreferenceSchema, BuddyModeSchema, BuddyWindowSchema,
   TaskStatusSchema, UrgencySchema, VOLUNTEER_SKILLS, VolunteerRoleSchema,
 } from "@wilson/contracts";
 
@@ -33,16 +35,32 @@ export const messageKindEnum = pgEnum("message_kind", ["text", "image", "documen
 export const messageStatusEnum = pgEnum("message_status", ["received", "queued", "sent", "delivered", "read", "failed"]);
 export const messageAuthorEnum = pgEnum("message_author", ["beneficiary", "bot", "volunteer", "system"]);
 export const chatStateEnum = pgEnum("chat_state", ["received", "draft", "sent", "rejected"]);
-export const chatIntentEnum = pgEnum("chat_intent", ["info", "legal", "urgent", "human", "letter", "document", "smalltalk", "out_of_scope"]);
+export const chatIntentEnum = pgEnum("chat_intent", ["info", "legal", "urgent", "human", "letter", "document", "smalltalk", "out_of_scope", "places"]);
+export const placeKindEnum = pgEnum("place_kind", PlaceKindSchema.options as [string, ...string[]]);
+export const broadcastStatusEnum = pgEnum("broadcast_status", BroadcastStatusSchema.options as [string, ...string[]]);
+export const recipientStatusEnum = pgEnum("broadcast_recipient_status", ["queued", "awaiting_reply", "sent", "failed", "skipped"]);
 export const conversationStatusEnum = pgEnum("conversation_status", ["bot", "pending_review", "needs_human", "with_volunteer", "resolved"]);
 export const reminderKindEnum = pgEnum("reminder_kind", ["d30", "d7"]);
 export const knowledgeSourceEnum = pgEnum("knowledge_source", ["service_public", "annuaire", "association", "watizat"]);
 export const knowledgeKindEnum = pgEnum("knowledge_kind", ["procedure", "contact", "guide"]);
 export const volunteerSkillEnum = pgEnum("volunteer_skill", VOLUNTEER_SKILLS as unknown as [string, ...string[]]);
 export const taskStatusEnum = pgEnum("task_status", TaskStatusSchema.options as [string, ...string[]]);
+/** Typed enum values (casting zod options to string[] would erase the literal types of these columns). */
+const tuple = <T extends string>(xs: readonly T[]) => xs as unknown as [T, ...T[]];
+export const buddyWindowEnum = pgEnum("buddy_window", tuple(BuddyWindowSchema.options));
+export const buddyModeEnum = pgEnum("buddy_mode", tuple(BuddyModeSchema.options));
+export const buddyModePrefEnum = pgEnum("buddy_mode_pref", tuple(BuddyModePreferenceSchema.options));
+export const buddyRequestStatusEnum = pgEnum("buddy_request_status", ["waiting", "matched", "cancelled"]);
+export const buddyMatchStatusEnum = pgEnum("buddy_match_status", tuple(BuddyMatchStatusSchema.options));
+export const buddySessionStatusEnum = pgEnum("buddy_session_status", ["scheduled", "cancelled", "done"]);
+export const buddyPartyEnum = pgEnum("buddy_party", ["beneficiary", "volunteer", "coordinator"]);
 export const guardStatusEnum = pgEnum("guard_status", GuardStatusSchema.options as [string, ...string[]]);
 export const guardReasonEnum = pgEnum("guard_reason", GuardReasonSchema.options as [string, ...string[]]);
 export const reminderStatusEnum = pgEnum("reminder_status", ["scheduled", "sent", "cancelled", "failed"]);
+export const helpKindEnum = pgEnum("help_kind", HelpKindSchema.options as [string, ...string[]]);
+export const helpTopicEnum = pgEnum("help_topic", HelpTopicSchema.options as [string, ...string[]]);
+export const helpStatusEnum = pgEnum("help_status", HelpStatusSchema.options as [string, ...string[]]);
+export const helpReminderKindEnum = pgEnum("help_reminder_kind", ["d1", "h2"]);
 
 /** Conversation state machine snapshot, owned by src/conversation/engine.ts. */
 export type ConversationState =
@@ -55,8 +73,33 @@ export type ConversationState =
   | { step: "enter_document_date"; documentId: string }
   | { step: "offer_save_letter"; letterId: string }
   | { step: "confirm_delete_all" }
+  /** Menu 6: "receive the association's announcements? 1 yes 2 no". */
+  | { step: "announcements" }
+  // — Rendez-vous with a volunteer (menu 8, src/appointments/flow.ts). Personal details live encrypted in the
+  //   help_requests row (status draft while typed), never in this plain-JSON state. —
+  | { step: "help_menu" }
+  | { step: "help_topic"; kind: "accompaniment" | "form_session" }
+  | { step: "help_datetime"; requestId: string }
+  | { step: "help_city"; requestId: string }
+  | { step: "help_confirm"; requestId: string }
+  /** slotIds[i] is option i+1 of the list the person saw. */
+  | { step: "help_slot"; requestId: string; slotIds: string[] }
+  | { step: "help_consent"; requestId: string; slotId?: string }
+  | { step: "help_list"; requestIds: string[] }
+  | { step: "help_cancel"; requestId: string }
   /** Free-form chat ("ask a question"); any non-menu text also goes to the chatbot. */
-  | { step: "chat" };
+  | { step: "chat" }
+  // — French practice buddies (conversation/buddyFlow.ts) —
+  | { step: "buddy_when" }
+  | { step: "buddy_how"; window: BuddyWindow }
+  | { step: "buddy_waiting"; requestId: string }
+  | { step: "buddy_proposal"; matchId: string }
+  /** afterAccept: the person just said yes to the proposal (the welcome text follows the answer). */
+  | { step: "buddy_consent"; matchId: string; afterAccept?: boolean }
+  | { step: "buddy_menu"; matchId: string }
+  | { step: "buddy_write"; matchId: string }
+  | { step: "buddy_stop"; matchId: string }
+  | { step: "buddy_report"; matchId: string };
 
 export const beneficiaries = pgTable("beneficiaries", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -85,6 +128,8 @@ export const beneficiaries = pgTable("beneficiaries", {
   guardAt: ts("guard_at"),
   /** Volunteer who blocked / released the number (null when the guard acted on its own). */
   guardBy: uuid("guard_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  /** When the person said yes to announcements (menu 6); null = no announcements (opt-in only, WhatsApp policy). */
+  announcementsOptInAt: ts("announcements_opt_in_at"),
 }, (t) => [index("beneficiaries_guard_idx").on(t.guardStatus, t.guardAt).where(sql`${t.guardStatus} <> 'none'`)]);
 
 export const messages = pgTable("messages", {
@@ -205,7 +250,66 @@ export const volunteers = pgTable("volunteers", {
   totpEnabledAt: ts("totp_enabled_at"),
   /** Last accepted 30-second step: a code cannot be used twice. */
   totpLastStep: integer("totp_last_step"),
+  /** Association the volunteer is with (sign-up form). siren/rna only when picked from the official register. */
+  associationName: text("association_name"),
+  associationSiren: text("association_siren"),
+  associationRna: text("association_rna"),
+  associationCity: text("association_city"),
 });
+
+/**
+ * Rendez-vous: a beneficiary asks a volunteer to come along to an appointment, or to fill in a form together.
+ * `cityEnc` / `meetingPointEnc` are under the beneficiary DEK (crypto-shredded with the rest of their data).
+ */
+export const helpRequests = pgTable("help_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  beneficiaryId: uuid("beneficiary_id").notNull().references(() => beneficiaries.id, { onDelete: "cascade" }),
+  kind: helpKindEnum("kind").notNull(),
+  topic: helpTopicEnum("topic").notNull(),
+  status: helpStatusEnum("status").notNull().default("draft"),
+  /** Appointment time (accompaniment: given by the person; form session: the slot or the volunteer's proposal). */
+  startsAt: ts("starts_at"),
+  durationMin: integer("duration_min").notNull().default(60),
+  cityEnc: bytea("city_enc"),
+  meetingPointEnc: bytea("meeting_point_enc"),
+  volunteerId: uuid("volunteer_id").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  /** The slot this form session was booked on. */
+  slotId: uuid("slot_id").references((): AnyPgColumn => helpSlots.id, { onDelete: "set null" }),
+  /** The person agreed that the volunteer opens their saved documents for this session (form sessions only). */
+  documentsConsent: boolean("documents_consent").notNull().default(false),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  acceptedAt: ts("accepted_at"),
+  closedAt: ts("closed_at"),
+}, (t) => [
+  index("help_requests_status_idx").on(t.status, t.startsAt),
+  index("help_requests_beneficiary_idx").on(t.beneficiaryId),
+  index("help_requests_volunteer_idx").on(t.volunteerId, t.startsAt),
+]);
+
+/** Form-filling slots a volunteer publishes; people book them on WhatsApp. `place` is the venue, not personal data. */
+export const helpSlots = pgTable("help_slots", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  volunteerId: uuid("volunteer_id").notNull().references((): AnyPgColumn => volunteers.id, { onDelete: "cascade" }),
+  startsAt: ts("starts_at").notNull(),
+  durationMin: integer("duration_min").notNull().default(60),
+  place: text("place").notNull(),
+  /** Set when booked (claimed atomically: `where request_id is null`). */
+  requestId: uuid("request_id"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+}, (t) => [index("help_slots_starts_idx").on(t.startsAt)]);
+
+/** WhatsApp reminders to the person: the day before (d1) and 2 hours before (h2). */
+export const helpReminders = pgTable("help_reminders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  requestId: uuid("request_id").notNull().references(() => helpRequests.id, { onDelete: "cascade" }),
+  kind: helpReminderKindEnum("kind").notNull(),
+  dueAt: ts("due_at").notNull(),
+  status: reminderStatusEnum("status").notNull().default("scheduled"),
+  sentAt: ts("sent_at"),
+}, (t) => [
+  uniqueIndex("help_reminders_req_kind_active_idx").on(t.requestId, t.kind).where(sql`status = 'scheduled'`),
+  index("help_reminders_due_idx").on(t.status, t.dueAt),
+]);
 
 /** Per-volunteer overrides on top of ROLE_PERMISSIONS. Empty in the POC. */
 export const volunteerPermissions = pgTable("volunteer_permissions", {
@@ -357,3 +461,150 @@ export const knowledgeChunks = pgTable("knowledge_chunks", {
   index("knowledge_chunks_tsv_idx").using("gin", t.tsv),
   index("knowledge_chunks_dept_idx").on(t.department),
 ]);
+
+/**
+ * Places for the day posted by volunteers (115, food distributions, showers…). Public information, so in clear.
+ * `translations` caches the name/details per language (cleared on edit) so each language is translated once.
+ */
+export const places = pgTable("places", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  kind: placeKindEnum("kind").notNull(),
+  name: text("name").notNull(),
+  address: text("address"),
+  phone: text("phone"),
+  details: text("details"),
+  startsOn: date("starts_on", { mode: "string" }).notNull(),
+  endsOn: date("ends_on", { mode: "string" }),
+  /** ISO weekdays 1..7; empty = every day. */
+  weekdays: integer("weekdays").array().notNull().default(sql`'{}'::integer[]`),
+  opensAt: text("opens_at"),
+  closesAt: text("closes_at"),
+  translations: jsonb("translations").$type<Partial<Record<LanguageCode, { name: string; details: string | null }>>>().notNull().default({}),
+  createdBy: uuid("created_by").references(() => volunteers.id, { onDelete: "set null" }),
+  updatedBy: uuid("updated_by").references(() => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+  removedAt: ts("removed_at"),
+}, (t) => [index("places_active_idx").on(t.removedAt, t.startsOn)]);
+
+/** Announcements (WhatsApp broadcasts) to beneficiaries who opted in. The text is the association's, not personal. */
+export const broadcasts = pgTable("broadcasts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  textFr: text("text_fr").notNull(),
+  /** null = every language. */
+  languages: languageEnum("languages").array(),
+  status: broadcastStatusEnum("status").notNull().default("draft"),
+  /** Cached translations of textFr (cleared when the draft is edited). */
+  translations: jsonb("translations").$type<Partial<Record<LanguageCode, string>>>().notNull().default({}),
+  /** Estimate taken at approval (recipients, cost). */
+  estimate: jsonb("estimate").$type<import("@wilson/contracts").BroadcastEstimate>(),
+  createdBy: uuid("created_by").references(() => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+  approvedBy: uuid("approved_by").references(() => volunteers.id, { onDelete: "set null" }),
+  approvedAt: ts("approved_at"),
+  sentAt: ts("sent_at"),
+  cancelledAt: ts("cancelled_at"),
+}, (t) => [index("broadcasts_created_idx").on(t.createdAt)]);
+
+/** One row per person and announcement: idempotent sending, and the text held behind the template until they reply. */
+export const broadcastRecipients = pgTable("broadcast_recipients", {
+  broadcastId: uuid("broadcast_id").notNull().references(() => broadcasts.id, { onDelete: "cascade" }),
+  beneficiaryId: uuid("beneficiary_id").notNull().references(() => beneficiaries.id, { onDelete: "cascade" }),
+  status: recipientStatusEnum("status").notNull().default("queued"),
+  /** The announcement template was used (outside the 24 h window): counted in the cost. */
+  viaTemplate: boolean("via_template").notNull().default(false),
+  sentAt: ts("sent_at"),
+  error: text("error"),
+}, (t) => [
+  primaryKey({ columns: [t.broadcastId, t.beneficiaryId] }),
+  index("broadcast_recipients_beneficiary_idx").on(t.beneficiaryId, t.status),
+]);
+
+// ---------------------------------------------------------------- French practice buddies
+
+/**
+ * A volunteer's buddy profile. Spoken languages live here for now; once the skills directory (volunteer_skills)
+ * is merged, matching should read its `languages` column instead.
+ */
+export const buddyProfiles = pgTable("buddy_profiles", {
+  volunteerId: uuid("volunteer_id").primaryKey().references(() => volunteers.id, { onDelete: "cascade" }),
+  active: boolean("active").notNull().default(true),
+  languages: languageEnum("languages").array().notNull().default(sql`'{}'`),
+  slots: jsonb("slots").$type<BuddySlot[]>().notNull().default([]),
+  modes: buddyModeEnum("modes").array().notNull(),
+  maxBuddies: integer("max_buddies").notNull().default(1),
+  /** Public place / association premises; never a home address. Shown to the beneficiary. */
+  meetPlace: text("meet_place"),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const buddyRequests = pgTable("buddy_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  beneficiaryId: uuid("beneficiary_id").notNull().references(() => beneficiaries.id, { onDelete: "cascade" }),
+  windows: buddyWindowEnum("windows").array().notNull(),
+  mode: buddyModePrefEnum("mode").notNull(),
+  status: buddyRequestStatusEnum("status").notNull().default("waiting"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("buddy_requests_status_idx").on(t.status, t.createdAt),
+  // One open request per person.
+  uniqueIndex("buddy_requests_one_waiting_idx").on(t.beneficiaryId).where(sql`status = 'waiting'`),
+]);
+
+export const buddyMatches = pgTable("buddy_matches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  requestId: uuid("request_id").notNull().references(() => buddyRequests.id, { onDelete: "cascade" }),
+  beneficiaryId: uuid("beneficiary_id").notNull().references(() => beneficiaries.id, { onDelete: "cascade" }),
+  volunteerId: uuid("volunteer_id").notNull().references(() => volunteers.id, { onDelete: "cascade" }),
+  status: buddyMatchStatusEnum("status").notNull().default("proposed"),
+  weekday: integer("weekday").notNull(),
+  time: text("time").notNull(),
+  mode: buddyModeEnum("mode").notNull(),
+  place: text("place"),
+  /** Beneficiary said yes on WhatsApp to share their number with this volunteer. Revocable. */
+  contactShared: boolean("contact_shared").notNull().default(false),
+  proposedBy: uuid("proposed_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  acceptedAt: ts("accepted_at"),
+  endedAt: ts("ended_at"),
+  endedBy: buddyPartyEnum("ended_by"),
+}, (t) => [
+  index("buddy_matches_volunteer_idx").on(t.volunteerId, t.status),
+  index("buddy_matches_beneficiary_idx").on(t.beneficiaryId, t.status),
+]);
+
+export const buddySessions = pgTable("buddy_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  matchId: uuid("match_id").notNull().references(() => buddyMatches.id, { onDelete: "cascade" }),
+  startsAt: ts("starts_at").notNull(),
+  status: buddySessionStatusEnum("status").notNull().default("scheduled"),
+  cancelledBy: buddyPartyEnum("cancelled_by"),
+  remindedAt: ts("reminded_at"),
+}, (t) => [
+  uniqueIndex("buddy_sessions_match_start_idx").on(t.matchId, t.startsAt),
+  index("buddy_sessions_due_idx").on(t.status, t.startsAt),
+]);
+
+/** What the two people wrote to each other through Wilson. Encrypted with the beneficiary's DEK (crypto-shredded with them). */
+export const buddyMessages = pgTable("buddy_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  matchId: uuid("match_id").notNull().references(() => buddyMatches.id, { onDelete: "cascade" }),
+  author: buddyPartyEnum("author").notNull(),
+  bodyEnc: bytea("body_enc").notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+}, (t) => [index("buddy_messages_match_idx").on(t.matchId, t.createdAt)]);
+
+/** A problem reported by either side. Text encrypted with the beneficiary's DEK. The pairing is suspended meanwhile. */
+export const buddyReports = pgTable("buddy_reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  matchId: uuid("match_id").notNull().references(() => buddyMatches.id, { onDelete: "cascade" }),
+  by: buddyPartyEnum("by").notNull(),
+  textEnc: bytea("text_enc").notNull(),
+  status: text("status", { enum: ["open", "closed"] }).notNull().default("open"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  resolution: text("resolution", { enum: ["resumed", "ended"] }),
+  noteEnc: bytea("note_enc"),
+  handledBy: uuid("handled_by").references(() => volunteers.id, { onDelete: "set null" }),
+  handledAt: ts("handled_at"),
+}, (t) => [index("buddy_reports_status_idx").on(t.status, t.createdAt)]);

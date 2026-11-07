@@ -229,6 +229,10 @@ export function createAuthService(deps: { db: Db; config: AuthConfig; crypto: Cr
       const inserted = await db.insert(volunteers).values({
         email, passwordHash, name: input.name.trim(), role: "responder", uiLanguage: input.uiLanguage,
         pendingApproval: true, signupNote: input.note?.trim() || null,
+        associationName: input.association?.name.trim() || null,
+        associationSiren: input.association?.siren ?? null,
+        associationRna: input.association?.rna ?? null,
+        associationCity: input.association?.city ?? null,
         emailVerified: !mailer,
         emailTokenHash: token ? sha256Hex(token) : null,
         emailTokenExpiresAt: token ? new Date(now + EMAIL_TOKEN_TTL_MS) : null,

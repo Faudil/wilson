@@ -33,13 +33,14 @@ import { bm } from "./catalogs/bm.js";
 import { ln } from "./catalogs/ln.js";
 import { sw } from "./catalogs/sw.js";
 import { formatDate, normaliseDigits, utcDate } from "./dates.js";
+import { buddyTemplate, isRawBuddyParam, type BuddyKey } from "./buddy/index.js";
 
 /** Every WhatsApp message the bot can send. Each key exists in all 28 catalogs (test-enforced). */
 export type WaKey =
   | "language_menu" // numbered list of languages in native scripts (same text in every catalog)
   | "language_set" // {language}
   | "welcome"
-  | "main_menu" // 1 letter · 2 documents · 3 language · 4 ask a question · 0 human · 9 delete my data
+  | "main_menu" // 1 letter · 2 documents · 3 language · 4 ask a question · 5 sleep/eat/wash today · 6 announcements · 7 practise French · 8 help from a volunteer · 0 human · 9 delete my data
   | "not_understood"
   | "human_contact" // {name} {contact}
   | "letter_ask_photo"
@@ -79,6 +80,37 @@ export type WaKey =
   | "chat_voice_unsupported" // please write your message, voice notes are not supported yet
   | "chat_letter_redirect" // to explain a letter, send a photo (or menu 1)
   | "chat_document_redirect" // for your documents, reply 2
+  | "places_title" // {date} heading of the list of places posted for today
+  | "places_none" // volunteers have not posted places for today
+  | "places_115" // emergency shelter: call 115 (closes every list of places)
+  | "announcements_ask" // {name} receive announcements? 1 yes 2 no (opt-in, WhatsApp policy)
+  | "announcements_ask_on" // {name} already receiving: 1 continue 2 stop
+  | "announcements_on" // confirmed; write STOP to stop
+  | "announcements_off" // stopped; menu 6 to receive again
+  | "broadcast_stop_hint" // under every announcement: write STOP to stop
+  // — Rendez-vous with a volunteer (menu 8). {summary} is filled by the API with pre-isolated lines (topic, date, place). —
+  | "help_menu" // 1 accompany me · 2 fill in a form · 3 my appointments · 0 back
+  | "help_place_menu" // 1–5 = ACCOMPANIMENT_TOPICS order; the option labels double as topic names
+  | "help_form_menu" // 1–4 = FORM_TOPICS order
+  | "help_ask_datetime"
+  | "help_datetime_invalid"
+  | "help_ask_city" // 0 = rather not say
+  | "help_confirm" // {summary} 1 send 2 cancel
+  | "help_request_sent" // sent to volunteers, not guaranteed: go to the appointment anyway
+  | "help_slots_intro" // above the "N - date" slot lines
+  | "help_slots_other" // "0 - none of these" option line
+  | "help_no_slots"
+  | "help_consent" // may the volunteer see your saved documents, for this appointment only? 1 yes 2 no
+  | "help_accepted" // {name} {summary}
+  | "help_reminder" // {name} {summary}; reply 8 then 3 to cancel
+  | "help_volunteer_cancelled" // {summary}; open again for other volunteers
+  | "help_cancelled_by_us" // {summary}
+  | "help_expired" // {summary}; nobody was available
+  | "help_list_intro" // above the "N - appointment" lines
+  | "help_list_back" // "0 - back" option line
+  | "help_list_empty"
+  | "help_cancel_confirm" // {summary} 1 yes 2 no
+  | "help_cancelled"
   | "guard_slow_down" // flood guard: too many messages, wait a few minutes
   | "guard_held" // flood guard: messages on hold until a volunteer checks
   | "guard_released" // flood guard: a volunteer released the number
@@ -88,7 +120,7 @@ export type Params = Record<string, string | number>;
 
 export { LANGUAGE_MENU, LANGUAGE_MENU_HEADER } from "./menu.js";
 // Dates and document type names live in their own modules so the back-office can import them without the WhatsApp catalogs.
-export { formatDate, parseUserDate } from "./dates.js";
+export { formatDate, formatTime, parseUserDate, parseUserDateTime } from "./dates.js";
 export { documentTypeName } from "./doctypes.js";
 
 export const CATALOGS: Record<LanguageCode, Record<WaKey, string>> = {
@@ -127,18 +159,40 @@ function rtlLines(text: string): string {
 /** Params that are already localised catalog text (not user data): not isolated. */
 const RAW_PARAMS = new Set(["relative"]);
 
-function fill(template: string, params: Params): string {
-  return template.replace(/\{(\w+)\}/g, (whole, k: string) => (k in params ? (typeof params[k] === "number" || RAW_PARAMS.has(k) ? String(params[k]) : isolate(String(params[k]))) : whole));
+function fill(template: string, params: Params, raw: (k: string) => boolean = (k) => RAW_PARAMS.has(k)): string {
+  return template.replace(/\{(\w+)\}/g, (whole, k: string) => (k in params ? (typeof params[k] === "number" || raw(k) ? String(params[k]) : isolate(String(params[k]))) : whole));
 }
 
 function renderKey(lang: LanguageCode, key: WaKey, params: Params = {}): string {
   return fill(CATALOGS[lang][key], params);
 }
 
+/**
+ * Name of a numbered option in a menu text ("2 - OFII" → "OFII"): the Rendez-vous topics are named by their menu
+ * labels, so a topic always reads the same in the menu and in later messages.
+ */
+export function menuOptionLabel(lang: LanguageCode, key: WaKey, option: number): string {
+  const line = CATALOGS[lang][key].split("\n").find((l) => l.trim().startsWith(`${option} - `));
+  return line ? line.trim().slice(`${option} - `.length).trim() : String(option);
+}
+
 /** Render a WhatsApp message. Every placeholder value is bidi-isolated automatically; RTL languages get a RLM at each line start. */
 export function waText(lang: LanguageCode, key: WaKey, params: Params = {}): string {
   const out = renderKey(lang, key, params);
   return isRtl(lang) && key !== "language_menu" ? rtlLines(out) : out;
+}
+
+export { BUDDY_CATALOGS, type BuddyKey } from "./buddy/index.js";
+
+/** Render a French-practice-buddies message (same rules as waText). `how` is catalog text and is not isolated. */
+export function buddyText(lang: LanguageCode, key: BuddyKey, params: Params = {}): string {
+  const out = fill(buddyTemplate(lang, key), params, isRawBuddyParam);
+  return isRtl(lang) ? rtlLines(out) : out;
+}
+
+/** "By phone call." / "Meeting place: …", to pass as the `how` param of buddy_proposal and buddy_reminder. */
+export function buddyHow(lang: LanguageCode, mode: "call" | "meet", place: string | null): string {
+  return mode === "call" ? buddyTemplate(lang, "buddy_how_call") : fill(buddyTemplate(lang, "buddy_how_meet"), { place: place || "—" });
 }
 
 /** Lowercase, accent-insensitive key ("Français" -> "francais"). */

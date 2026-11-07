@@ -112,6 +112,9 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 | `llm_usage` | one row per Claude call: at, task (prompt name), model, language, beneficiary_id (opaque, set null on purge), api_key_id, input/output/cache tokens, `cost_micro_usd` (estimate from `llm/pricing.ts`). No prompt, reply, name or phone |
 | `llm_api_keys` | admin-added Claude keys (donors): label, `key_enc` under the key's own DEK (wrapped by MASTER_KEY), last 4 chars, monthly limit, disabled_at, last error. The key is never returned to the back-office |
 | `llm_budget` | single row: global monthly limit (USD cents) + hard stop flag |
+| `help_requests` | Rendez-vous: beneficiary_id, kind (accompaniment/form_session), topic, status (draft/open/accepted/done/cancelled/expired), starts_at, duration_min, `city_enc`, `meeting_point_enc`, volunteer_id, slot_id, documents_consent, created/accepted/closed_at |
+| `help_slots` | form-filling slots a volunteer publishes: volunteer_id, starts_at, duration_min, place (venue, not personal), request_id (claimed atomically when booked) |
+| `help_reminders` | WhatsApp reminders to the person: request_id, kind (d1/h2), due_at, status — unique scheduled (request_id, kind) |
 
 Type, dates, urgency and status stay in clear so the queue can sort and filter; they are low-sensitivity and never include names. Names, phone numbers, letter content and document labels are encrypted.
 
@@ -123,7 +126,7 @@ Every Claude call goes through `AnthropicProvider.create`, which asks the usage 
 - **Encryption at rest, per user.** Each beneficiary gets a random 256-bit data key (DEK), stored only wrapped by `MASTER_KEY` (env/secret manager). Blobs are encrypted by the API with the DEK (AES-256-GCM) **before** upload to S3, and sensitive DB columns use the same DEK. Deleting a beneficiary deletes `wrapped_dek` → all their data is cryptographically unreadable (crypto-shredding), then rows/blobs are purged.
   *Decision:* app-level envelope encryption instead of S3 SSE-C. SSE-C still sends the key to the storage provider on each request and most self-hosted S3 servers only accept it over TLS; app-level encryption works on any EU S3 (Scaleway, OVH, Clever Cloud) and the provider never sees plaintext. The bucket additionally uses provider-side SSE-S3 in production.
 - **Letter photos** are deleted after processing (§4.2), unless the user saves them to My documents.
-- **Third parties:** only Meta (WhatsApp transport) and the LLM provider. No analytics, no CDN, fonts self-hosted, no external calls from the back-office.
+- **Third parties:** only Meta (WhatsApp transport) and the LLM provider. No analytics, no CDN, fonts self-hosted, no external calls from the back-office. The volunteer sign-up's association suggestions query the public French register (API Recherche d'entreprises, DINUM) from the API server, with only the typed name: no beneficiary data, no volunteer identity.
 - **WhatsApp flood guard** (`apps/api/src/whatsapp/guard.ts`): in-memory counters per number and overall, checked before anything reaches the LLM. Too fast → throttled (stored, not processed, one "slow down" notice per 10 min); far too fast → quarantined (nothing stored or processed until a volunteer with `numbers.moderate` releases or blocks it); global wave → first messages of numbers seen in the last 24 h are quarantined while known people are still served. Blocked numbers are dropped before any database write and get nothing from us, reminders included. Limits: `WA_RATE_*`, `WA_FILES_PER_DAY`, `WA_FLOOD_*`, `WA_GLOBAL_*`. In production, the webhook refuses unsigned requests even in sandbox mode.
 - **Security alerts** (`apps/api/src/alerts.ts`): logged, and posted to `ALERT_WEBHOOK_URL` when set; at most one per kind every 10 minutes; counts and opaque ids only.
 - **Accounts** (`apps/api/src/auth/`): login locked per e-mail after `LOGIN_MAX_FAILURES` (15 min, doubling) and per IP; TOTP two-factor authentication (secret encrypted under its own DEK, codes single-use). With `ADMIN_2FA=required`, the permissions in `TWO_FACTOR_PERMISSIONS` are withheld from any account without an authenticator app. Self-signup: honeypot, per-IP and per-day limits, and e-mail verification before approval when `SMTP_URL` is set. Visitor IPs come from `X-Forwarded-For` (`TRUST_PROXY_HOPS`) and are never stored.
@@ -175,6 +178,7 @@ Goal: the "who to turn to" lines cite real, local, up-to-date offices and proced
 ## 8d. Volunteer accounts and self-signup
 
 - `auth.signup` (public, `VOLUNTEER_SIGNUP=on|off`): creates a `volunteers` row with `pending_approval = true`, role `responder`, the free-text `signup_note`. Same `{ ok: true }` answer whether or not the email exists (no enumeration; password hashed in both cases). Pending rows are capped (`VOLUNTEER_SIGNUP_MAX_PENDING`, CONFLICT `too_many_pending`). The form requires a confidentiality/no-legal-advice commitment.
+- **Association** (optional): `auth.searchAssociations` (public, min 3 chars, debounced 350 ms in the form) proxies `recherche-entreprises.api.gouv.fr/search?est_association=true&etat_administratif=A` (open data, no key, associations from the RNA), 8 results with name, SIREN, RNA, city. Server-side only (the browser talks to our API alone), 4 s timeout, 10 min cache, at most 120 upstream calls/min, any failure → `[]`. A picked result stores `association_name/siren/rna/city` on the volunteer; a name typed without a match is stored as free text (no SIREN/RNA). Admins see it in the approval list (RNA chip or "saisie libre"). `ASSOCIATION_SEARCH=off` keeps free text only.
 - A pending account cannot log in (`auth.login` → FORBIDDEN only when the password is right, so the UI can say "waiting for approval") and never resolves a session.
 ### Case notes, follow-up tasks, skills directory
 - **Notes and tasks** live on a person and are encrypted under that person's DEK (crypto-shredded with them). Shown on the person page and in a "Suivi" sheet on the conversation screen. Tasks have a reminder day: from that morning (Europe/Paris) they count in `tasks.dueCount` (badge on Plus > Tâches de suivi and a Home tile). No e-mail/push: reminders are in the back-office only.
@@ -184,6 +188,20 @@ Goal: the "who to turn to" lines cite real, local, up-to-date offices and proced
 
 - Admins (`volunteers.manage`, `volunteers.*`): list, approve with a role (`approved_at`, `approved_by`), reject (row deleted), set role, disable/enable (sessions deleted at once). Not on themselves. Every action in `access_log`.
 - **Roles:** `responder` = `conversations.view`, `conversations.reply`, `knowledge.view` (no letters, photos, documents or beneficiary pages) — least privilege by default for people the association does not know yet; `volunteer` = full volunteer bundle; `admin`. Permissions are resolved per request, so a role change applies on the next click.
+
+## 8d bis. Places for today, announcements, per-person permissions
+
+- **Places** (`places` table, public data in clear, `places.view` / `places.manage`): kind, French name/details, address, phone, opens/closes, first/last day, ISO weekdays. `PlacesService.messageFor(lang)` lists those open today (Europe/Paris) grouped by kind, translated once per language (cached in `places.translations`, cleared on edit), addresses/phones/hours isolated in RTL, 115 line last. WhatsApp: menu `5`, or `planChat` intent `places` (prompt `chat-plan.v2`, new `needsPlaces` flag also set with `urgent`). Sent at once without review (volunteers' own text); nothing posted → normal knowledge-base answer. Every change in `access_log`.
+- **Announcements** (`broadcasts`, `broadcast_recipients`; `broadcasts.view` / `.create` / `.approve`): opt-in only (`beneficiaries.announcements_opt_in_at`, menu `6`, `STOP` or the template's "Stop" button opts out; "delete my data" clears it). Draft by one volunteer, approval by another (`BROADCAST_FOUR_EYES`, default on). Approval snapshots the estimate (recipients per language, in/outside the 24 h window, `WHATSAPP_PRICE_MARKETING_USD` × templates) and queues `broadcast.dispatch`: translations first (a failure retries before anyone gets anything), one recipient row per person (idempotent), one `wa.send {kind: broadcast}` each. In the window: text + stop hint + footer. Outside: the `announcement` **marketing** template once (`awaiting_reply`), the text when they tap "Read" or write.
+- **Per-person permissions**: `volunteers.setPermissions` replaces a volunteer's rows in `volunteer_permissions` (only differences from the role bundle are kept), not on yourself or a pending account; Bénévoles → Droits détaillés lists every permission of `PERMISSIONS` (contracts/values.ts, shared with the browser without zod). `contract.coverage.test.ts` revokes each permission in turn and checks that exactly the procedures needing it answer FORBIDDEN.
+
+## 8f. Rendez-vous (accompaniment, form-filling sessions)
+
+- WhatsApp menu 8 (`src/appointments/flow.ts`): accompaniment (place → date + time → city or 0 → confirm) or form session (which form → up to 9 free slots as a list, or "none" → "may the volunteer see your saved documents for this appointment?"). States `help_*` only carry ids; the city and meeting point are encrypted in `help_requests` (a `draft` row while typed, deleted after 24 h if abandoned).
+- One model for both (`src/appointments/service.ts`): `open` → `accept` (atomic `where status = 'open'`; the volunteer gives a meeting point, and a time for a form session without one) → `accepted` → `done`. `release` puts it back to `open` (a form session also loses its time and slot); the person can cancel from WhatsApp; managers can `cancel`. Booking a slot claims it with `update … where request_id is null`, so two people never get the same slot.
+- Messages to the person (accepted, released, cancelled, expired, reminders) are fixed i18n texts with a `{summary}` (topic from the menu label, date + time written out, place), stored as chat rows so they show in Conversations and wait behind the opt-in template outside the 24 h window.
+- `help.dispatch` cron (every 15 min): reminders D-1 and H-2 (claimed `scheduled → sent`, exactly once), open requests whose time passed → `expired` (person told), accepted ones 24 h after their end → `done`, stale drafts deleted. Volunteers get their reminder from the `.ics` file (alarms D-1 and H-2) and the home tile.
+- Permissions: `appointments.view` (open requests without identity), `.accept` (accept/release/done), `.slots`, `.documents`, `.manage`. The masked label and beneficiary id are only in the DTO for the holder or a manager. `appointments.documents` / `documentFile` additionally require: holder, form session, consent, accepted, and now ≤ end + 24 h; the file must be one of that person's current documents. Every action is in `access_log`.
 
 ## 8e. Performance (low-end phones, slow connections)
 
@@ -219,6 +237,7 @@ oRPC contract, consumed by `implement(contract)` on the server and a typed clien
 | `knowledge` | sources, search (same retrieval as the orientation step), sync (admin) |
 | `conversations` | list (attention / mine / all), get, approveDraft, rejectDraft, reply (French → translated), takeOver, resolve |
 | `volunteers` | list, approve, reject, setRole, setDisabled (admin) |
+| `appointments` | list (open / mine / all), counts, accept, release, complete, cancel, documents, documentFile, slots, addSlot, removeSlot |
 | `system` | health |
 
 The Meta webhook is the one HTTP route outside oRPC (format and signature imposed by Meta); its payload is still defined in `contracts/whatsapp.ts` and validated with Zod.
@@ -244,6 +263,9 @@ The Meta webhook is the one HTTP route outside oRPC (format and signature impose
 | D8 | SeaweedFS as local S3 instead of MinIO | MinIO no longer publishes Docker images; any EU S3 provider works in production (only the endpoint changes) |
 | D9 | Self-signup lands pending with role `responder` (conversations only) | Strangers can register; nothing sensitive is visible until an admin approves, and letters/documents need an explicit promotion |
 | D10 | Take-over silences the bot instead of drafting in parallel | A beneficiary talking to a person must not get interleaved machine answers; the emergency numbers remain the only automatic text |
+| D11 | Places are sent without review; announcements need a second person | Places are the volunteers' own short facts and are needed tonight; an announcement goes to everyone at once and costs money outside the 24 h window |
+| D12 | Announcement template in the Marketing category, text released on reply | Meta only accepts utility templates tied to a user's request; the paid template stays short and the real text goes out free once the window reopens |
+| D13 | Rendez-vous: volunteers see a request's topic, date, city and language, but who it is only after accepting; responders get no appointment right by default | Least privilege: meeting someone in person and opening their documents need an admin's trust and the person's own consent |
 
 ## 12. Answers from the association (2026-11-06)
 

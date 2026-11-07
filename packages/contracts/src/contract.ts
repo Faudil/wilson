@@ -1,23 +1,31 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-import { LoginInputSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
+import { AssociationRefSchema, AssociationSearchInputSchema, LoginInputSchema, PermissionSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
 import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
 import { ConversationDetailSchema, ConversationSummarySchema } from "./chat.js";
 import { KnowledgeHitSchema, KnowledgeSearchInputSchema, KnowledgeSourceIdSchema, KnowledgeSourceSchema } from "./knowledge.js";
 import { LanguageSchema } from "./languages.js";
+import { BroadcastInputSchema, BroadcastEstimateSchema, BroadcastSchema } from "./broadcasts.js";
+import { PlaceInputSchema, PlaceSchema } from "./places.js";
 import { LetterDetailSchema, LetterEditSchema, LetterStatusSchema, LetterSummarySchema } from "./letters.js";
 import { SandboxMessageSchema, SandboxPhoneSchema, SandboxSendInputSchema } from "./sandbox.js";
 import { CaseFileSchema, CaseNoteSchema, CaseTaskSchema, NoteTextSchema, TaskAddSchema, TaskListInputSchema, TaskUpdateSchema } from "./notes.js";
 import { DirectoryEntrySchema, SkillsInputSchema, SuggestionSchema, VolunteerSkillSchema, VolunteerSkillsSchema } from "./skills.js";
+import {
+  BuddyCandidateSchema, BuddyMatchDetailSchema, BuddyMatchSchema, BuddyMatchStatusSchema, BuddyProfileSchema, BuddyProposeInputSchema,
+  BuddyReportSchema, BuddyRequestSchema,
+} from "./buddies.js";
+import { AcceptInputSchema, AppointmentDocumentsSchema, AppointmentListInputSchema, AppointmentSchema, SlotCreateSchema, SlotSchema } from "./appointments.js";
 import { GuardStatusSchema, HeldNumbersSchema } from "./guard.js";
 import { ApiKeyAddSchema, ApiKeyListSchema, ApiKeySchema, ApiKeyUpdateSchema, UsageBudgetSchema, UsageSetBudgetSchema, UsageSummarySchema } from "./usage.js";
 
 /**
  * The single source of truth for every back-office ⇄ API call.
  * Server: `implement(contract)` in apps/api. Client: `ContractRouterClient<typeof contract>` in apps/backoffice.
- * All procedures require a volunteer session except `auth.login`, `auth.signup`, `auth.verifyEmail` and `system.health`.
+ * All procedures require a volunteer session except `auth.login`, `auth.signup`, `auth.searchAssociations`, `auth.verifyEmail` and
+ * `system.health`.
  */
 
 const base = oc.errors({
@@ -38,6 +46,12 @@ const auth = {
    * FORBIDDEN when VOLUNTEER_SIGNUP=off; CONFLICT { reason: "too_many_pending" } when the pending list is full.
    */
   signup: base.input(SignupInputSchema).output(z.object({ ok: z.literal(true) })),
+  /**
+   * Public, for the sign-up form: associations matching a name, from the official register (API Recherche
+   * d'entreprises, RNA), fetched by the server so the browser talks to nobody else. Empty list when the register
+   * is unreachable or ASSOCIATION_SEARCH=off: the form then keeps the typed name as free text.
+   */
+  searchAssociations: base.input(AssociationSearchInputSchema).output(z.array(AssociationRefSchema)),
   logout: base.output(z.void()),
   me: base.output(VolunteerSchema),
   setUiLanguage: base.input(z.object({ language: LanguageSchema })).output(VolunteerSchema),
@@ -105,6 +119,44 @@ const volunteers = {
   setDisabled: base.input(z.object({ id: IdSchema, disabled: z.boolean() })).output(VolunteerAccountSchema),
   /** Someone lost their phone: remove their authenticator app (they enrol again at next login). Not on yourself. */
   resetTwoFactor: base.input(z.object({ id: IdSchema })).output(VolunteerAccountSchema),
+  /**
+   * Replace a person's per-permission overrides on top of their role bundle (granted: false = revoked). Not on
+   * yourself, not on a pending account (CONFLICT). Applies on the person's next request.
+   */
+  setPermissions: base
+    .input(z.object({ id: IdSchema, overrides: z.array(z.object({ permission: PermissionSchema, granted: z.boolean() })).max(64) }))
+    .output(VolunteerAccountSchema),
+};
+
+/** Places for today (shelter, food, showers…): `places.view` to read, `places.manage` to post, edit, remove. */
+const places = {
+  /** today = open on `date` (default today, Europe/Paris); upcoming = not finished yet; all = including past ones. */
+  list: base.input(z.object({ scope: z.enum(["today", "upcoming", "all"]).default("upcoming") })).output(z.array(PlaceSchema)),
+  create: base.input(PlaceInputSchema).output(PlaceSchema),
+  update: base.input(z.object({ id: IdSchema, place: PlaceInputSchema })).output(PlaceSchema),
+  /** Hidden from the bot and the list at once. */
+  remove: base.input(z.object({ id: IdSchema })).output(z.void()),
+  /** The WhatsApp message a person would get today in `language` (translations are cached). */
+  preview: base.input(z.object({ language: LanguageSchema })).output(z.object({ text: z.string() })),
+};
+
+/** WhatsApp announcements to people who opted in (menu 6). */
+const broadcasts = {
+  list: base.output(z.array(BroadcastSchema)),
+  /** Recipients and cost if it were sent now. */
+  estimate: base.input(z.object({ languages: z.array(LanguageSchema).min(1).nullable().default(null) })).output(BroadcastEstimateSchema),
+  create: base.input(BroadcastInputSchema).output(BroadcastSchema),
+  /** Drafts only; the author (or `broadcasts.approve`). */
+  update: base.input(z.object({ id: IdSchema, broadcast: BroadcastInputSchema })).output(BroadcastSchema),
+  /** The text as a person with `language` would read it (translation cached on the draft). */
+  preview: base.input(z.object({ id: IdSchema, language: LanguageSchema })).output(z.object({ text: z.string() })),
+  /**
+   * Approve and send (`broadcasts.approve`). CONFLICT { reason: "own_broadcast" } when four-eyes is on and you wrote
+   * it; { reason: "not_draft" }; { reason: "no_recipients" }.
+   */
+  approve: base.input(z.object({ id: IdSchema })).output(BroadcastSchema),
+  /** Drafts only: the author, or `broadcasts.approve`. */
+  cancel: base.input(z.object({ id: IdSchema })).output(BroadcastSchema),
 };
 
 /** Chatbot conversations: volunteers read them, approve/reject bot drafts, reply themselves, close handoffs. */
@@ -195,6 +247,67 @@ const skills = {
 };
 
 /**
+ * French practice buddies. Each procedure names its permission; "own" = the caller is the pairing's volunteer.
+ * be_buddy: profile, open requests (anonymised), propose oneself, own pairings (detail with messages, message, skip a
+ * session, end, report, see the number only if the beneficiary agreed). manage: every request and pairing, candidates,
+ * propose anyone, end any pairing (no messages, no numbers). reports: reports + the reported pairing's messages.
+ */
+const buddies = {
+  myProfile: base.output(BuddyProfileSchema.nullable()),
+  saveProfile: base.input(BuddyProfileSchema).output(BuddyProfileSchema),
+  /** Waiting requests, oldest first. */
+  requests: base.output(z.array(BuddyRequestSchema)),
+  candidates: base.input(z.object({ requestId: IdSchema })).output(z.array(BuddyCandidateSchema)),
+  /** Sends the proposal to the beneficiary on WhatsApp. CONFLICT: request not waiting, already proposed, volunteer full / not a buddy. */
+  propose: base.input(BuddyProposeInputSchema).output(BuddyMatchSchema),
+  /** The caller's own pairings (proposed, active, suspended), then the 20 most recent ended ones. */
+  mine: base.output(z.array(BuddyMatchSchema)),
+  all: base.input(z.object({ status: BuddyMatchStatusSchema.optional() })).output(z.array(BuddyMatchSchema)),
+  get: base.input(z.object({ id: IdSchema })).output(BuddyMatchDetailSchema),
+  /** Own pairing only; relayed on WhatsApp with the buddy's first name. Active pairings only. */
+  sendMessage: base.input(z.object({ matchId: IdSchema, text: z.string().trim().min(1).max(1000) })).output(BuddyMatchDetailSchema),
+  /** Cancel one upcoming session (own pairing); the beneficiary is told. */
+  skipSession: base.input(z.object({ sessionId: IdSchema })).output(BuddyMatchDetailSchema),
+  end: base.input(z.object({ matchId: IdSchema })).output(BuddyMatchSchema),
+  /** Own pairing; FORBIDDEN unless the beneficiary agreed and the pairing is active. Logged. */
+  contact: base.input(z.object({ matchId: IdSchema })).output(z.object({ phone: z.string() })),
+  /** Own pairing: report a problem. The pairing is paused at once. */
+  report: base.input(z.object({ matchId: IdSchema, text: z.string().trim().min(3).max(2000) })).output(BuddyMatchSchema),
+  reports: base.input(z.object({ status: z.enum(["open", "closed"]).default("open") })).output(z.array(BuddyReportSchema)),
+  resolveReport: base
+    .input(z.object({ id: IdSchema, action: z.enum(["resume", "end"]), note: z.string().trim().max(500).optional() }))
+    .output(BuddyReportSchema),
+  /** Counts for the navigation badge (zeros for what the caller may not see). */
+  counts: base.output(z.object({ waiting: z.number().int(), openReports: z.number().int() })),
+};
+
+/**
+ * Rendez-vous: accompaniment to appointments and form-filling sessions (see appointments.ts). Every procedure checks
+ * its own `appointments.*` permission; holding an appointment is checked on top for release/done/documents.
+ */
+const appointments = {
+  list: base.input(AppointmentListInputSchema).output(z.array(AppointmentSchema)),
+  /** Navigation badge / home tile: requests waiting for a volunteer, and mine in the next 7 days. */
+  counts: base.output(z.object({ open: z.number().int().nonnegative(), mineSoon: z.number().int().nonnegative() })),
+  /** CONFLICT { reason: "taken" } when someone accepted first; { reason: "time_required" } for a form session without a time. */
+  accept: base.input(AcceptInputSchema).output(AppointmentSchema),
+  /** Give it back: the person is told, and the request is open again for another volunteer. Holder or manager. */
+  release: base.input(z.object({ id: IdSchema })).output(AppointmentSchema),
+  /** The session took place. Ends access to the person's documents. Holder or manager. */
+  complete: base.input(z.object({ id: IdSchema })).output(AppointmentSchema),
+  /** Cancel for good (`appointments.manage`); the person is told. */
+  cancel: base.input(z.object({ id: IdSchema })).output(AppointmentSchema),
+  /** The person's saved documents, for the holder of a form session the person consented to (logged). */
+  documents: base.input(z.object({ id: IdSchema })).output(AppointmentDocumentsSchema),
+  documentFile: base.input(z.object({ id: IdSchema, documentId: IdSchema })).output(z.file()),
+  /** Upcoming form-filling slots: mine (`appointments.slots`) or everyone's (`appointments.manage`). */
+  slots: base.input(z.object({ scope: z.enum(["mine", "all"]).default("mine") })).output(z.array(SlotSchema)),
+  addSlot: base.input(SlotCreateSchema).output(SlotSchema),
+  /** Only a slot nobody booked yet; your own, or anyone's with `appointments.manage`. */
+  removeSlot: base.input(z.object({ id: IdSchema })).output(z.void()),
+};
+
+/**
  * WhatsApp numbers held by the flood guard, and blocked numbers (`numbers.moderate`). Every call is logged.
  * Releasing tells the person (fixed text) that they can write again; blocking is silent.
  */
@@ -213,5 +326,5 @@ const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional(), emailVerification: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, numbers, system };
+export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, numbers, system };
 export type Contract = typeof contract;

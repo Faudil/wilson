@@ -26,6 +26,9 @@ const EnvSchema = z.object({
   VOLUNTEER_SIGNUP: z.enum(["on", "off"]).default("on"),
   /** Self-signups waiting for approval are capped (anti-spam): beyond this, new requests are refused. */
   VOLUNTEER_SIGNUP_MAX_PENDING: z.coerce.number().int().min(1).default(30),
+  /** Association autocomplete on the sign-up form (official register, server-side). off = free text only. */
+  ASSOCIATION_SEARCH: z.enum(["on", "off"]).default("on"),
+  ASSOCIATION_SEARCH_URL: z.string().url().default("https://recherche-entreprises.api.gouv.fr/search"),
   /** Signup requests accepted per IP address per hour, and in total per day. */
   SIGNUP_PER_IP_PER_HOUR: z.coerce.number().int().min(1).default(3),
   SIGNUP_PER_DAY: z.coerce.number().int().min(1).default(20),
@@ -70,6 +73,15 @@ const EnvSchema = z.object({
   WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional(),
   WHATSAPP_TEMPLATE_EXPLANATION_READY: z.string().default("explanation_ready"),
   WHATSAPP_TEMPLATE_DOCUMENT_REMINDER: z.string().default("document_reminder"),
+  /** Marketing-category template that announces a broadcast outside the 24 h window ("Read" / "Stop" buttons). */
+  WHATSAPP_TEMPLATE_ANNOUNCEMENT: z.string().default("announcement"),
+  /**
+   * Estimated price of one marketing template message, USD (Meta's rate card for France; check it, it changes).
+   * Only used for the cost shown before an announcement is approved. Messages inside the 24 h window are free.
+   */
+  WHATSAPP_PRICE_MARKETING_USD: z.coerce.number().min(0).default(0.0859),
+  /** on = an announcement must be approved by someone other than its author. */
+  BROADCAST_FOUR_EYES: boolEnv.default(true),
 
   // — Flood guard (src/whatsapp/guard.ts). Counts inbound messages per number and overall. —
   /** Per number: above these, messages are stored but not processed (no LLM) and the person is asked to slow down. */

@@ -35,3 +35,14 @@ export function daysBetween(fromIso: string, toIso: string): number {
   };
   return Math.round((ms(toIso) - ms(fromIso)) / 86_400_000);
 }
+
+/** The instant at which the wall clock in `timeZone` reads `isoDate` `hhmm` ("09:30"). DST-safe. */
+export function zonedDateTime(isoDate: string, hhmm: string, timeZone: string): Date {
+  const [h, m] = hhmm.split(":").map(Number) as [number, number];
+  return new Date(zonedTime(isoDate, h, timeZone).getTime() + m * 60_000);
+}
+
+/** Wall-clock "HH:MM" of an instant in `timeZone`. */
+export function localTime(at: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(at);
+}

@@ -91,7 +91,7 @@ describe("message templates submitted to Meta", () => {
 
   it("exist for every language Meta supports, and every language resolves to one of them", () => {
     expect(TEMPLATE_LANGUAGES).toContain("fr");
-    expect(defs).toHaveLength(TEMPLATE_LANGUAGES.length * 2);
+    expect(defs).toHaveLength(TEMPLATE_LANGUAGES.length * 3);
     for (const l of LANGUAGE_CODES) expect(TEMPLATE_LANGUAGES).toContain(templateLanguageFor(l));
     expect(new Set(defs.map((d) => `${d.name}/${d.language}`)).size).toBe(defs.length);
   });
@@ -108,7 +108,8 @@ describe("message templates submitted to Meta", () => {
       if (vars.length) expect(body.example!.body_text[0]!.length, where).toBe(vars.length);
       const buttons = d.components.find((c) => c.type === "BUTTONS") as { buttons: { text: string }[] } | undefined;
       for (const b of buttons?.buttons ?? []) expect(b.text.length, where).toBeLessThanOrEqual(25);
-      expect(d.category).toBe("UTILITY");
+      // Announcements are not tied to something the person asked for: Meta classifies them as marketing.
+      expect(d.category).toBe(d.name === "announcement" ? "MARKETING" : "UTILITY");
     }
     expect(defs.find((d) => d.language === "pt_PT")).toBeTruthy();
     expect(Object.values(META_TEMPLATE_LANGUAGE).filter(Boolean)).toHaveLength(TEMPLATE_LANGUAGES.length);
@@ -189,7 +190,7 @@ describe("wa:setup CLI", () => {
     const logs: string[] = [];
     await run(["templates"], env, new Graph("tok", "v23.0", f.impl), (l) => logs.push(l));
     const posts = f.calls.filter((c) => c.method === "POST");
-    expect(posts).toHaveLength(TEMPLATE_LANGUAGES.length * 2 - 1);
+    expect(posts).toHaveLength(TEMPLATE_LANGUAGES.length * 3 - 1);
     expect(posts[0]!.body.language).toBe("fr");
     expect(posts[0]!.url).toBe("https://graph.facebook.com/v23.0/WABA1/message_templates");
     expect(posts[0]!.body.components[0].text).toContain("Asso Test");

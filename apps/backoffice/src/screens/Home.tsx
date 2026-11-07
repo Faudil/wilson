@@ -1,7 +1,7 @@
 import { useI18n, type MessageKey } from "../i18n";
 import { Icon, type IconName } from "../components/Icon";
 import { Empty, Skeleton } from "../components/ui";
-import { useAttentionCount, useDueTasks, useLetterStats, usePendingVolunteers, useWeekDeadlines } from "../lib/counts";
+import { useAppointmentCounts, useAttentionCount, useDueTasks, useLetterStats, usePendingVolunteers, useWeekDeadlines } from "../lib/counts";
 import { BudgetNotice, useUsageBudget } from "../components/BudgetNotice";
 import { firstName, longDate } from "../lib/relative";
 import { href } from "../lib/router";
@@ -63,11 +63,13 @@ export function Home() {
   const budget = useUsageBudget(can("usage.manage"));
   const canTasks = can("notes.view");
   const dueTasks = useDueTasks(canTasks);
+  const canAppointments = can("appointments.view");
+  const appointments = useAppointmentCounts(canAppointments);
 
   const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/Paris" }).format(new Date())) % 24;
   const greetKey: MessageKey = hour < 12 ? "home.morning" : hour < 18 ? "home.afternoon" : "home.evening";
   const loading = (canLetters && letters.query.isPending) || (canDeadlines && deadlines.query.isPending);
-  const nothing = !loading && (!canLetters || letters.pending === 0) && (!canChats || chats === 0) && (!canDeadlines || deadlines.count === 0) && dueTasks === 0;
+  const nothing = !loading && (!canLetters || letters.pending === 0) && (!canChats || chats === 0) && (!canDeadlines || deadlines.count === 0) && dueTasks === 0 && (!canAppointments || appointments.open + appointments.mineSoon === 0);
 
   return (
     <section className="stack-lg">
@@ -101,6 +103,18 @@ export function Home() {
             {canChats && <Tile to={href("conversations")} icon="chat" tone="accent" count={chats} loading={false} title={t("home.chats.title")} desc={t("home.chats.desc")} />}
             {canVolunteers && signups > 0 && (
               <Tile to={href("volunteers")} icon="users" tone="info" count={signups} loading={false} title={t("home.volunteers.title")} desc={t("home.volunteers.desc")} />
+            )}
+            {canAppointments && appointments.open + appointments.mineSoon > 0 && (
+              <Tile
+                to={href("appointments")}
+                icon="hand"
+                tone="accent"
+                count={appointments.open}
+                loading={false}
+                title={t("home.appointments.title")}
+                desc={t("home.appointments.desc")}
+                note={appointments.mineSoon > 0 ? t("home.appointments.mine", { n: appointments.mineSoon }) : undefined}
+              />
             )}
             {canDeadlines && <Tile to={href("deadlines")} icon="calendar" tone="info" count={deadlines.count} loading={false} title={t("home.deadlines.title")} desc={t("home.deadlines.desc")} />}
           </div>

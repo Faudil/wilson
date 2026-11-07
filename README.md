@@ -71,6 +71,8 @@ Par défaut, `WHATSAPP_MODE=sandbox` et `LLM_MODE=fake` :
 
 Le back-office doit être servi en **HTTPS** en production (le cookie de session est `Secure`).
 
+**Première mise en ligne, étape par étape** (Meta, serveur, HTTPS, secrets GitHub, clés IA, sécurité) : [docs/mise-en-ligne.md](docs/mise-en-ligne.md).
+
 **Déploiement automatique sur votre serveur** (tests puis déploiement SSH + Docker Compose à chaque push sur `main`, sauvegardes quotidiennes) : voir [docs/deploy.md](docs/deploy.md).
 
 Développement sans Docker : `bun install`, une base Postgres, puis `bun run --filter @wilson/api dev` et `bun run --filter @wilson/backoffice dev`. Tests : `bun run test` (lance `bun test` dans chaque paquet ; Postgres requis sur `localhost:5432`, utilisateur `wilson`). Vérification des types : `bun run typecheck`.
@@ -114,6 +116,20 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
 - Les bénévoles peuvent **répondre eux-mêmes en français** : le message est traduit automatiquement dans la langue de la personne. « Clore » termine une prise en charge.
 - **Prendre une discussion** : le bouton **« Je prends la discussion »** (ou simplement répondre) fait passer la discussion « Avec un·e bénévole » : le robot ne répond plus, la personne reçoit « un bénévole va vous répondre personnellement » dans sa langue, et ses nouveaux messages attendent la·le bénévole (traduction française affichée). Seule exception : en cas d'urgence, le message fixe avec les numéros d'urgence part quand même. **« Rendre à l'assistant »** remet le robot en route. L'onglet **Les miennes** liste les discussions que vous suivez ; une autre personne peut « Prendre le relais ».
 
+## 2c bis. Aide du jour et annonces
+
+- **Aide du jour** (Plus → Aide du jour) : les bénévoles publient les lieux du jour ou de la semaine (hébergement, repas, douches, vêtements, santé) avec horaires, adresse, téléphone et jours d'ouverture. Sur WhatsApp, le menu **5** ou une question comme « où dormir ce soir ? » renvoie la liste du jour, traduite dans la langue de la personne, avec le 115 à la fin. Pas de relecture : le texte est celui des bénévoles (seulement traduit, une fois par langue). Si rien n'est publié, la question passe par la base de connaissances comme les autres. En cas d'urgence (« je dors dehors »), les numéros d'urgence partent d'abord, puis la liste.
+- **Annonces** (Plus → Annonces) : une annonce écrite en français est envoyée, traduite, aux personnes qui ont accepté de les recevoir (menu **6** ; « STOP » pour arrêter). Elle est écrite par un·e bénévole, puis **validée par une autre personne** (droit « Valider et envoyer les annonces », admins par défaut ; `BROADCAST_FOUR_EYES=off` pour une petite équipe). Avant de valider, l'écran montre le nombre de destinataires par langue, combien sont dans la fenêtre gratuite de 24 h et le **coût WhatsApp estimé** des autres (modèle payant). Voir `docs/whatsapp-setup.md`.
+- **Droits détaillés** (Plus → Bénévoles → ⋮ → Droits détaillés) : en plus du rôle, un·e admin peut donner ou retirer chaque droit à une personne (ex. permettre à une répondante de publier les lieux, ou retirer à un bénévole l'envoi d'annonces). Chaque changement est journalisé et s'applique au clic suivant.
+
+| Droit | Répondant·e | Bénévole | Admin |
+|---|---|---|---|
+| Voir les lieux du jour (`places.view`) | ✓ | ✓ | ✓ |
+| Publier, modifier, retirer des lieux (`places.manage`) | | ✓ | ✓ |
+| Voir les annonces (`broadcasts.view`) | | ✓ | ✓ |
+| Écrire des annonces (`broadcasts.create`) | | ✓ | ✓ |
+| Valider et envoyer les annonces (`broadcasts.approve`) | | | ✓ |
+
 ## 2d. Devenir bénévole (inscription en ligne)
 
 - Sur la page de connexion, **« Devenir bénévole »** ouvre un formulaire : nom, e-mail, mot de passe, « comment souhaitez-vous aider ? » et un engagement de confidentialité (pas de conseil juridique).
@@ -122,9 +138,32 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
   - **Bénévole** : tout le travail bénévole (courriers, documents, discussions).
   - **Administrateur·rice** : en plus, gestion des comptes et des sources.
 - L'admin peut ensuite changer le rôle ou **désactiver** un compte (déconnexion immédiate ; ses discussions repassent « Personne demandée »). Une demande refusée est supprimée.
+- **Association** : la personne indique son association. En tapant le nom, des suggestions viennent du registre officiel (API Recherche d'entreprises de l'État, associations du RNA, gratuite et sans clé). Si l'association n'est pas trouvée, le nom tapé est gardé tel quel. Dans **Bénévoles**, l'admin voit l'association avec son numéro RNA (pastille verte) ou la mention « Saisie libre ». `ASSOCIATION_SEARCH=off` désactive les suggestions.
 - Pour fermer les inscriptions en ligne : `VOLUNTEER_SIGNUP=off`. Au-delà de `VOLUNTEER_SIGNUP_MAX_PENDING` demandes en attente (30 par défaut), les nouvelles sont refusées (anti-spam).
 - Les messages vocaux ne sont pas pris en charge (il faudrait un service de transcription tiers) : le robot demande d'écrire.
 - L'historique envoyé à l'IA ne contient que les derniers messages de la discussion (texte), jamais le numéro ni le nom.
+
+## 2e. Rendez-vous : accompagner quelqu'un, remplir un formulaire ensemble
+
+- Sur WhatsApp, menu **8 « Aide d'un bénévole »** :
+  - **1 · Venir avec moi à un rendez-vous** (préfecture, OFII, hôpital, OFPRA/CNDA, autre) : la personne écrit la date et l'heure (« 14/03/2027 9:30 ») et, si elle veut, la ville. La demande part aux bénévoles.
+  - **2 · Remplir un formulaire ensemble** (CAF, ANEF, AME, autre) : la personne choisit un créneau proposé par un·e bénévole (ou « aucun ne me va » : un·e bénévole proposera une heure), puis répond à **« le bénévole peut-il voir vos documents enregistrés ici, pour ce rendez-vous seulement ? »**.
+  - **3 · Mes rendez-vous** : la liste, et l'annulation.
+- Back-office, **Plus → Rendez-vous** (pastille quand une demande attend) : « À pourvoir », « Les miens », « Mes créneaux » (proposer ses horaires) et « Tous » (admins). On ne voit **ni le numéro ni qui c'est** avant d'accepter ; en acceptant on donne un lieu de rendez-vous, et la personne reçoit sur WhatsApp, dans sa langue, le prénom du ou de la bénévole, l'heure et le lieu.
+- **Rappels** : la personne reçoit un rappel WhatsApp la veille et 2 h avant. Le ou la bénévole a « Ajouter à mon agenda » (fichier calendrier avec alarmes la veille et 2 h avant) et la tuile de l'accueil.
+- **Documents** : seulement si la personne a dit oui, seulement pour le ou la bénévole qui tient le rendez-vous, et jusqu'à un jour après la séance. Chaque ouverture est enregistrée.
+- Personne de libre avant l'heure : la demande se ferme et la personne est prévenue. « Je ne peux plus » remet la demande « à pourvoir » et prévient la personne.
+- **Droits** (un par action, attribués par rôle, modifiables personne par personne par un·e admin) :
+
+  | Droit | Répondant·e | Bénévole | Admin |
+  |---|---|---|---|
+  | `appointments.view` voir les demandes (sans savoir qui) | — | ✓ | ✓ |
+  | `appointments.accept` accepter, rendre, marquer « fait » | — | ✓ | ✓ |
+  | `appointments.slots` proposer ses créneaux | — | ✓ | ✓ |
+  | `appointments.documents` voir les documents pendant la séance, avec accord | — | ✓ | ✓ |
+  | `appointments.manage` voir et annuler tous les rendez-vous, supprimer tout créneau | — | — | ✓ |
+
+  Les répondant·es (inscription en ligne) n'ont aucun de ces droits par défaut : accompagner quelqu'un en personne demande la confiance d'un·e admin.
 
 ---
 
@@ -145,11 +184,12 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
 | **Photo d'un courrier** | Stockage S3 | Chiffrée | **Supprimée après traitement** : dès que la personne répond « non » à « garder ce courrier ? », et au plus tard 48 h après l'envoi de l'explication. Conservée seulement si la personne choisit de la garder dans « Mes documents » |
 | Analyse du courrier (texte) | Base de données | Chiffrée | Pas de suppression automatique pour l'instant |
 | Documents (« Mes documents ») | Stockage S3 | Chiffrés | Jusqu'à ce que la personne les supprime ; ils sont alors **archivés 30 jours puis effacés définitivement** |
+| Rendez-vous avec un·e bénévole (sujet, date, ville, lieu de rendez-vous, accord pour les documents) | Base de données | Ville et lieu chiffrés (clé de la personne) ; jamais dans l'état de conversation | Pas de suppression automatique ; annulés et effacés avec le reste au menu 9 |
 | Comptes bénévoles, journal des accès | Base de données | Mots de passe hachés (argon2id) | Durée de l'engagement ; une demande d'inscription refusée est supprimée |
 
 - **Chiffrement** : chaque personne a sa propre clé, elle-même chiffrée par la clé maître (`MASTER_KEY`). Le fournisseur de stockage ne voit jamais les fichiers en clair. Quand une personne demande la suppression de ses données (menu 9), tout est archivé 30 jours, puis sa clé est détruite : ses données deviennent illisibles, puis sont effacées.
 - **Hébergement** : base de données et stockage en UE (France visée).
-- **Tiers** : uniquement **Meta** (transport WhatsApp) et le **fournisseur d'IA** (Anthropic par défaut). L'IA reçoit seulement l'image du courrier et la langue cible : ni nom de la personne, ni numéro, ni historique. Le fournisseur peut être changé (interface générique) pour un hébergement UE. Aucune statistique, aucun CDN, polices hébergées localement.
+- **Tiers** : uniquement **Meta** (transport WhatsApp) et le **fournisseur d'IA** (Anthropic par défaut). L'IA reçoit seulement l'image du courrier et la langue cible : ni nom de la personne, ni numéro, ni historique. Le fournisseur peut être changé (interface générique) pour un hébergement UE. Aucune statistique, aucun CDN, polices hébergées localement. Seule exception, sans donnée personnelle : les suggestions d'association du formulaire d'inscription bénévole interrogent l'annuaire public de l'État (recherche-entreprises.api.gouv.fr) avec le nom tapé, depuis notre serveur.
 - **Accès** : bénévoles connectés au back-office. Les comptes « Bénévole » voient photos et documents ; les comptes « Répondant·e » (inscription en ligne, par défaut) ne voient que les discussions. **Chaque consultation est enregistrée** (qui, quoi, quand). Seuls les admins valident et gèrent les comptes.
 - **Droits des personnes** : la personne peut supprimer un document ou toutes ses données depuis WhatsApp (menu 2 et menu 9).
 
@@ -160,6 +200,7 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
 - **Traductions** : seuls le français et l'anglais ont été rédigés avec soin. Les textes des 26 autres langues sont des **brouillons à faire relire par des locuteurs natifs**. Les dates en tigrinya/somali/amharique utilisent des noms de mois intégrés au code.
 - **Langues de l'interface bénévole** : français, anglais, arabe.
 - **IA** : l'explication peut se tromper (date calculée, type de courrier). C'est pour cela que chaque réponse est relue. Les réponses de l'IA n'ont pas encore été testées sur de vrais courriers ni avec le vrai modèle (exemples synthétiques uniquement).
+- **Rendez-vous hors fenêtre de 24 h** : la confirmation et les rappels passent par le modèle « une réponse vous attend » ; la personne doit répondre pour les lire. Un modèle dédié aux rappels de rendez-vous reste à créer chez Meta.
 - **WhatsApp** : les modèles de messages Meta (hors fenêtre de 24 h) doivent être créés et approuvés dans le compte Meta. Le bac à sable ignore cette règle.
 - **Suppression** : une personne qui a demandé la suppression de ses données ne reçoit plus de réponse pendant les 30 jours d'archivage. La suppression d'un seul document depuis WhatsApp n'est pas encore disponible (possible depuis le back-office).
 - **Ourdou** affiché en Naskh, pas en Nastaliq.

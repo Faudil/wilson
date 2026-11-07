@@ -8,8 +8,15 @@ import { todayIn, type WaDeps } from "../whatsapp/context.js";
 import { enqueueText, footerFor, letterOfferText } from "../whatsapp/send.js";
 import { announceDocumentDetection } from "./documentFlow.js";
 import { getChat } from "../chat/service.js";
-import { isLanguageWord, isMenuWord, menuChoice } from "./text.js";
+import { isLanguageWord, isMenuWord, isStopWord, menuChoice } from "./text.js";
+import { getBroadcasts } from "../broadcasts/service.js";
+import { getPlaces } from "../places/service.js";
+import { isAnnouncementStopButton } from "../whatsapp/templates.js";
 import { withUsageContext } from "../usage/context.js";
+import { getBuddies } from "../buddies/service.js";
+import { buddyEntry, isBuddyStep, onBuddyState, type BuddyFlowCtx } from "./buddyFlow.js";
+import { getAppointments } from "../appointments/service.js";
+import { isHelpState, onHelpState, startHelp, type FlowIo } from "../appointments/flow.js";
 import { getGuard, quarantine, throttleNotice } from "../whatsapp/guard.js";
 
 const MAX_MEDIA_BYTES = 12 * 1024 * 1024;
@@ -22,7 +29,7 @@ type Input =
   | { type: "media_unsupported" } // video, sticker
   | { type: "other" } // location, contacts, unsupported
   | { type: "ignore" } // reactions
-  | { type: "button" }; // quick-reply tap on a template (opt-in to receive a waiting message)
+  | { type: "button"; text: string }; // quick-reply tap on a template (opt-in to receive a waiting message)
 
 interface Ctx {
   deps: WaDeps;
@@ -46,7 +53,7 @@ function classify(msg: WaInboundMessage): Input {
     case "audio": return { type: "voice" };
     case "video": case "sticker": return { type: "media_unsupported" };
     case "reaction": return { type: "ignore" };
-    case "button": return { type: "button" };
+    case "button": return { type: "button", text: msg.button.text };
     default: return { type: "other" };
   }
 }
@@ -99,11 +106,21 @@ export async function processInbound(deps: WaDeps, msg: WaInboundMessage): Promi
   }
   const ctx: Ctx = { deps, b: beneficiary, lang: beneficiary.language, state: beneficiary.conversationState, msgId: msg.id };
 
+  // "Stop" on the announcement template, or STOP typed: no more announcements (WhatsApp opt-out), nothing released.
+  if ((input.type === "button" && isAnnouncementStopButton(input.text)) || (input.type === "text" && isStopWord(input.text))) {
+    if (beneficiary.announcementsOptInAt || input.type === "button") {
+      await getBroadcasts(deps).setOptIn(beneficiary.id, false);
+      return sayKey(ctx, "announcements_off");
+    }
+  }
+
   // A reviewed explanation (or rejection notice) is waiting behind the opt-in template: any message releases it.
   const heldChat = input.type === "button" ? await hasHeldChat(deps, beneficiary.id) : false;
   await getChat(deps).flushQueued(beneficiary.id); // chatbot answers held behind the 24 h window
   const released = await releaseAwaiting(ctx);
-  if (released && input.type !== "file") return;
+  // Announcements sent as a template outside the 24 h window: the text itself, now that they answered.
+  const news = beneficiary.announcementsOptInAt ? await getBroadcasts(deps).releaseFor(beneficiary.id) : 0;
+  if ((released || news > 0) && input.type !== "file") return;
   if (input.type === "ignore") return;
   if (input.type === "button") {
     // "Recevoir" tapped on a template: it released what was waiting; if nothing was, show the menu.
@@ -161,10 +178,27 @@ const showMainMenu = async (c: Ctx, intro?: Parameters<typeof waText>[1]) => {
   await sayMenu(c, "main_menu");
 };
 const today = (c: Ctx) => todayIn(c.deps.now(), c.deps.config.TIMEZONE);
+const buddyCtx = (c: Ctx): BuddyFlowCtx => ({
+  deps: c.deps, beneficiaryId: c.b.id, lang: c.lang, state: c.state,
+  setState: (s) => setState(c, s),
+  say: (text, opts) => enqueueText(c.deps, c.b.id, text, opts?.menu ? { interactive: true } : {}),
+  showMainMenu: () => showMainMenu(c),
+});
 
 // ---------------------------------------------------------------- dispatcher
 
+const helpIo = (c: Ctx): FlowIo => ({
+  deps: c.deps, beneficiaryId: c.b.id, lang: c.lang,
+  setState: (s) => setState(c, s),
+  showMainMenu: () => showMainMenu(c),
+});
+
 async function dispatch(c: Ctx, input: Input): Promise<void> {
+  if (isBuddyStep(c.state)) return onBuddyState(buddyCtx(c), c.state, input);
+  if (isHelpState(c.state)) {
+    if (input.type === "text" && isMenuWord(input.text)) return showMainMenu(c);
+    return onHelpState(helpIo(c), c.state, input.type === "text" ? input.text : null);
+  }
   switch (c.state.step) {
     case "choose_language": return onChooseLanguage(c, input);
     case "main_menu":
@@ -176,6 +210,7 @@ async function dispatch(c: Ctx, input: Input): Promise<void> {
     case "confirm_document": return onConfirmDocument(c, input, c.state.documentId);
     case "enter_document_date": return onEnterDate(c, input, c.state.documentId);
     case "confirm_delete_all": return onConfirmDelete(c, input);
+    case "announcements": return onAnnouncements(c, input);
   }
 }
 
@@ -268,6 +303,12 @@ async function onFreeState(c: Ctx, input: Input): Promise<void> {
       return sayKey(c, "document_ask_file");
     }
     case "3": return showLanguageMenu(c);
+    case "5": return sendPlaces(c);
+    case "6":
+      await setState(c, { step: "announcements" });
+      return sayMenu(c, c.b.announcementsOptInAt ? "announcements_ask_on" : "announcements_ask", { name: c.deps.config.ASSOCIATION_NAME });
+    case "7": return buddyEntry(buddyCtx(c));
+    case "8": return startHelp(helpIo(c));
     case "0":
       await setState(c, { step: "main_menu" });
       // Flag the conversation for volunteers ("a volunteer will answer you personally"), and still give the
@@ -367,6 +408,29 @@ async function finishDocument(c: Ctx, documentId: string): Promise<void> {
   await sayMenu(c, "main_menu");
 }
 
+// ---------------------------------------------------------------- places & announcements
+
+/** Menu 5: places posted for today (shelter, food, showers…), else "nothing posted" + 115. No review: volunteers' own text. */
+async function sendPlaces(c: Ctx): Promise<void> {
+  const text = (await getPlaces(c.deps).messageFor(c.lang, { beneficiaryId: c.b.id })) ?? `${waText(c.lang, "places_none")}\n\n${waText(c.lang, "places_115")}`;
+  await say(c, `${text}\n\n${footerFor(c.deps, c.lang)}`);
+}
+
+async function onAnnouncements(c: Ctx, input: Input): Promise<void> {
+  const choice = input.type === "text" ? menuChoice(input.text) : null;
+  if (choice === "1" || choice === "2") {
+    const on = choice === "1";
+    await getBroadcasts(c.deps).setOptIn(c.b.id, on);
+    c.b = { ...c.b, announcementsOptInAt: on ? c.deps.now() : null };
+    await setState(c, { step: "main_menu" });
+    await sayKey(c, on ? "announcements_on" : "announcements_off");
+    return sayMenu(c, "main_menu");
+  }
+  // Anything else: back to the normal flow (menu numbers, questions), nothing changed.
+  await setState(c, { step: "main_menu" });
+  return onFreeState(c, input);
+}
+
 // ---------------------------------------------------------------- delete all
 
 async function onConfirmDelete(c: Ctx, input: Input): Promise<void> {
@@ -374,6 +438,8 @@ async function onConfirmDelete(c: Ctx, input: Input): Promise<void> {
   if (choice === "1") {
     await setState(c, { step: "main_menu" });
     await say(c, `${waText(c.lang, "delete_done")}\n\n${footerFor(c.deps, c.lang)}`);
+    await getBuddies(c.deps).endAllForBeneficiary(c.b.id); // the buddy can no longer reach them
+    await getAppointments(c.deps).cancelAllFor(c.b.id); // before archiving: nothing stays open or scheduled
     return c.deps.beneficiaries.archiveAll(c.b.id);
   }
   if (choice === "2") return showMainMenu(c);

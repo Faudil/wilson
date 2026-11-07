@@ -11,7 +11,7 @@ export const PROMPT_VERSIONS: Record<PromptName, number> = {
   "language-detect": 1,
   "letter-translate": 1,
   "letter-orientation": 1,
-  "chat-plan": 1,
+  "chat-plan": 2,
   "chat-reply": 1,
   "chat-translate": 1,
 };
