@@ -1,7 +1,7 @@
 /**
  * Drizzle schema — the integration point shared by every batch.
  * Columns suffixed `Enc` hold AES-256-GCM ciphertext under the beneficiary DEK (see src/crypto/keys.ts).
- * Change this file only through a reviewed migration (`pnpm db:generate`).
+ * Change this file only through a reviewed migration (`bun run db:generate`).
  */
 import { sql } from "drizzle-orm";
 import {

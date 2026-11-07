@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
-import { DocumentAnalysisSchema, LANGUAGE_CODES, LetterAnalysisSchema } from "@wilson/contracts";
+import { describe, expect, it, vi } from "bun:test";
+import { DocumentAnalysisSchema, LANGUAGE_CODES, LetterAnalysisSchema, type LanguageCode } from "@wilson/contracts";
 import { AnthropicProvider, type AnthropicLike } from "../src/llm/anthropic.js";
 import { FakeProvider, resolveSamplesDir } from "../src/llm/fake.js";
 import { LlmError } from "../src/llm/provider.js";
@@ -12,7 +12,7 @@ import { loadPrompt, promptVersion, renderPrompt, type PromptName } from "../src
 const samples = resolveSamplesDir();
 const lettersDir = join(samples, "letters");
 const docsDir = join(samples, "documents");
-const slugs = readdirSync(lettersDir).filter((f) => f.endsWith(".expected.json")).map((f) => f.replace(".expected.json", ""));
+const slugs = readdirSync(lettersDir).sort().filter((f) => f.endsWith(".expected.json")).map((f) => f.replace(".expected.json", ""));
 const readJson = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 
 describe("sample letters", () => {
@@ -89,7 +89,7 @@ describe("FakeProvider", () => {
     expect((await fake.analyzeDocument({ file: { bytes: Buffer.from("x"), mimeType: "image/png" }, today: "2026-11-06" })).type).toBe("other");
   });
   it("detects languages", async () => {
-    const cases: [string, string | null][] = [
+    const cases: [string, LanguageCode | null][] = [
       ["Bonjour, j'ai reçu un courrier", "fr"],
       ["Hello, I need help with a letter please", "en"],
       ["مرحبا أريد مساعدة", "ar"],

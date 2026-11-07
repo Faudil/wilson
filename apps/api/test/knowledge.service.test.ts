@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { JOBS } from "../src/jobs/names.js";
 import { createLocalDb } from "../src/local/pglite.js";
 import { createKnowledgeService, enqueueInitialSync } from "../src/knowledge/service.js";

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { LANGUAGE_CODES, LANGUAGES } from "@wilson/contracts";
 import { SAMPLES } from "../src/lib/samples";
 

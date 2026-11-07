@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { LANGUAGES, LANGUAGE_CODES, DocumentTypeSchema } from "@wilson/contracts";
 import {
   CATALOGS,

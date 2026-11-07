@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { documents, letterEvents, letters } from "../src/db/schema.js";
 import { JOBS } from "../src/jobs/names.js";
 import { makeWa, type WaCtx } from "./wa.helpers.js";

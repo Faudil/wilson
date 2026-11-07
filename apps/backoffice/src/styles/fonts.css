@@ -1,5 +1,5 @@
 /* Generated layout: one @font-face per (family, subset, weight), each with a unicode-range so the browser downloads only what a page uses.
-   Files come from the installed @fontsource packages (bundled by Vite, no CDN). */
+   Files come from the installed @fontsource packages (bundled by Bun, no CDN). */
 
 @font-face {
   font-family: "Noto Sans";
