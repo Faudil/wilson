@@ -47,4 +47,7 @@ export const ln: Record<WaKey, string> = {
   chat_voice_unsupported: "Tosengi koma nsango na yo. Nsango ya mongongo endimami naino te.",
   chat_letter_redirect: "Mpo na kolimbola mokanda, tinda elongi na yango (to pesa eyano 1).",
   chat_document_redirect: "Mpo na mikanda na yo, pesa eyano 2.",
+  guard_slow_down: "Ozali kotinda bansango mingi. Svp zela miniti moke, sima koma lisusu.",
+  guard_held: "Bansango na yo ezali kozela mpo na sikoyo. Mosali moko ya bolingo akotala yango mpe akoyokisa yo.",
+  guard_released: "Matondi mpo ozelaki. Okoki kokomela biso lisusu.",
 };

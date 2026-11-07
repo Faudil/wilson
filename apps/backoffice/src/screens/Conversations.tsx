@@ -4,7 +4,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { useEffect, useRef, useState } from "react";
 import { Chip, LangBadge } from "../components/badges";
 import { Icon, type IconName } from "../components/Icon";
-import { BackLink, Empty, ErrorBox, Sheet, Skeleton, useToast } from "../components/ui";
+import { BackLink, ConfirmSheet, Empty, ErrorBox, Sheet, Skeleton, useToast } from "../components/ui";
 import { Segmented } from "./Queue";
 import { useI18n, type MessageKey } from "../i18n";
 import { errorCode, orpc } from "../lib/api";
@@ -290,6 +290,15 @@ export function ConversationDetail({ id }: { id: string }) {
     },
     onError: () => void query.refetch(),
   });
+  const [confirmBlock, setConfirmBlock] = useState(false);
+  const guardDone = (message: string) => () => {
+    toast(message);
+    setConfirmBlock(false);
+    void query.refetch();
+    void qc.invalidateQueries({ queryKey: orpc.numbers.key() });
+  };
+  const block = useMutation({ ...orpc.numbers.block.mutationOptions(), onSuccess: guardDone(t("num.blockedToast")) });
+  const unblock = useMutation({ ...orpc.numbers.unblock.mutationOptions(), onSuccess: guardDone(t("num.unblockedToast")) });
   const canAct = session.can("conversations.reply");
   const busy = approve.isPending || reject.isPending || reply.isPending || resolve.isPending || takeOver.isPending;
   const error = approve.error ?? reject.error ?? reply.error ?? resolve.error ?? takeOver.error;
@@ -335,7 +344,45 @@ export function ConversationDetail({ id }: { id: string }) {
                 <Icon name="users" />
               </a>
             )}
+            {session.can("numbers.moderate") && c.guard !== "blocked" && (
+              <button type="button" className="icon-btn" aria-label={t("num.block")} title={t("num.block")} onClick={() => setConfirmBlock(true)}>
+                <Icon name="shield" />
+              </button>
+            )}
           </header>
+
+          {c.guard !== "none" && (
+            <div className="callout" role="status">
+              <Icon name="shield" size={20} />
+              <div>
+                <strong>{t(c.guard === "blocked" ? "conv.guardBlocked" : "conv.guardHeld")}</strong>
+                {session.can("numbers.moderate") && (
+                  <div className="row wrap" style={{ marginBlockStart: 8 }}>
+                    {c.guard === "blocked" ? (
+                      <button type="button" className="btn btn-small" disabled={unblock.isPending} onClick={() => unblock.mutate({ beneficiaryId: id })}>
+                        <Icon name="undo" size={16} />
+                        {t("num.unblock")}
+                      </button>
+                    ) : (
+                      <a className="btn btn-small" href={href("numbers")}>
+                        {t("nav.numbers")}
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <ConfirmSheet
+            open={confirmBlock}
+            title={t("num.blockTitle")}
+            body={t("num.blockBody")}
+            confirmLabel={t("num.block")}
+            tone="danger"
+            busy={block.isPending}
+            onConfirm={() => block.mutate({ beneficiaryId: id })}
+            onClose={() => setConfirmBlock(false)}
+          />
 
           {c.status === "needs_human" && (
             <div className="callout callout-urgent">

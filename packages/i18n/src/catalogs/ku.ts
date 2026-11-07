@@ -47,4 +47,7 @@ export const ku: Record<WaKey, string> = {
   chat_voice_unsupported: "Ez hê nikarim peyamên dengî bibihîzim. Ji kerema xwe peyama xwe binivîse.",
   chat_letter_redirect: "Ji bo ravekirina nameyekê, wêneya nameyê ji min re bişîne (an di menûyê de 1 binivîse).",
   chat_document_redirect: "Ji bo belgeyên xwe di menûyê de 2 binivîse.",
+  guard_slow_down: "Tu gelek peyaman dişînî. Ji kerema xwe çend deqeyan bisekine, paşê dîsa binivîse.",
+  guard_held: "Peyamên te niha li bendê ne. Dilxwazek dê kontrol bike û bi te re têkilî dayne.",
+  guard_released: "Spas ji bo sebra te. Tu dikarî dîsa ji me re binivîsî.",
 };

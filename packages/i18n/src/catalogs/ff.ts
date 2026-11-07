@@ -47,4 +47,7 @@ export const ff: Record<WaKey, string> = {
   chat_voice_unsupported: "Tiiɗno winndu tinndinoore maaɗa. Tinndinooje daande njaɓaaka tawo.",
   chat_letter_redirect: "Ngam sifaago ɗaɓɓitirgol, neldu foto ngol (malla jaabo 1).",
   chat_document_redirect: "Ngam dokimaa maaɗa, jaabo 2.",
+  guard_slow_down: "Aɗa neldude mesaasaaji keewɗi. Tiiɗno habbo seɗɗa minitiiji, refti winndu kadi.",
+  guard_held: "Mesaasaaji maaɗa ina ndaarii jooni. Ɓeydaaɗo goɗɗo ƴeewto ɗi, jokkondira e maaɗa.",
+  guard_released: "Jarama e muñal maaɗa. A waawi winndude men kadi.",
 };

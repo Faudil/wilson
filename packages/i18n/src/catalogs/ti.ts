@@ -47,4 +47,7 @@ export const ti: Record<WaKey, string> = {
   chat_voice_unsupported: "ድምጺ መልእኽቲ ገና ክሰምዕ ኣይክእልን። በጃኻ መልእኽትኻ ጽሓፍ።",
   chat_letter_redirect: "ደብዳቤ ንምብራህ፡ ፎቶ ደብዳቤ ስደድለይ (ወይ ኣብ ሜኑ 1 መልስ)።",
   chat_document_redirect: "ንሰነዳትካ፡ ኣብ ሜኑ 2 መልስ።",
+  guard_slow_down: "ብዙሕ መልእኽትታት ትሰድድ ኣለኻ። በጃኻ ቁሩብ ደቓይቕ ተጸበ፣ ድሕሪኡ እንደገና ጽሓፍ።",
+  guard_held: "መልእኽትታትካ ሕጂ ኣብ ምጽባይ ኣለዉ። ሓደ ወለንታዊ ክርእዮምን ክረኽበካን እዩ።",
+  guard_released: "ስለ ዝተጸበኻ የቐንየልና። እንደገና ክትጽሕፈልና ትኽእል ኢኻ።",
 };

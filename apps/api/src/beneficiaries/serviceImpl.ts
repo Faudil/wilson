@@ -16,6 +16,8 @@ const toRow = (r: Row): BeneficiaryRow => ({
   conversationState: r.conversationState,
   lastInboundAt: r.lastInboundAt,
   archivedAt: r.archivedAt,
+  createdAt: r.createdAt,
+  guardStatus: r.guardStatus as BeneficiaryRow["guardStatus"],
 });
 
 export class BeneficiariesServiceImpl implements BeneficiariesService {
@@ -37,7 +39,12 @@ export class BeneficiariesServiceImpl implements BeneficiariesService {
     const { dek, wrapped } = crypto.newDek();
     const inserted = await db
       .insert(beneficiaries)
-      .values({ waIdHash: hash, waIdEnc: crypto.encrypt(dek, waId), waIdLast2: waId.replace(/\D/g, "").slice(-2), wrappedDek: wrapped })
+      .values({
+        waIdHash: hash, waIdEnc: crypto.encrypt(dek, waId), waIdLast2: waId.replace(/\D/g, "").slice(-2), wrappedDek: wrapped,
+        createdAt: this.deps.now(), // the flood guard compares it with the injectable clock
+        // A blocked number stays blocked even after "delete my data".
+        ...(existing?.guardStatus === "blocked" ? { guardStatus: "blocked" as const, guardReason: existing.guardReason, guardAt: existing.guardAt } : {}),
+      })
       .onConflictDoNothing({ target: beneficiaries.waIdHash })
       .returning();
     if (inserted[0]) {

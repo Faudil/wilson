@@ -47,4 +47,7 @@ export const tr: Record<WaKey, string> = {
   chat_voice_unsupported: "Henüz sesli mesajları dinleyemiyorum. Lütfen mesajınızı yazın.",
   chat_letter_redirect: "Bir mektubu açıklamak için bana mektubun fotoğrafını gönderin (veya menüde 1 yazın).",
   chat_document_redirect: "Belgeleriniz için menüde 2 yazın.",
+  guard_slow_down: "Çok fazla mesaj gönderiyorsunuz. Lütfen birkaç dakika bekleyin, sonra tekrar yazın.",
+  guard_held: "Mesajlarınız şimdilik beklemede. Bir gönüllü kontrol edip size dönecek.",
+  guard_released: "Beklediğiniz için teşekkürler. Bize tekrar yazabilirsiniz.",
 };

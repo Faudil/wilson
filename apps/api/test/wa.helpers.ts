@@ -115,10 +115,13 @@ export interface WaCtx extends TestCtx {
 let seq = 0;
 const base = (from: string) => ({ id: `wamid.${++seq}.${randomUUID()}`, from, timestamp: "1" });
 
-export async function makeWa(opts: { meta?: boolean; now?: string } = {}): Promise<WaCtx> {
-  const config: Record<string, string> = opts.meta
-    ? { WHATSAPP_MODE: "meta", WHATSAPP_ACCESS_TOKEN: "tok", WHATSAPP_APP_SECRET: "appsecret", WHATSAPP_PHONE_NUMBER_ID: "123", WHATSAPP_VERIFY_TOKEN: "verify-me" }
-    : {};
+export async function makeWa(opts: { meta?: boolean; now?: string; config?: Record<string, string> } = {}): Promise<WaCtx> {
+  const config: Record<string, string> = {
+    ...(opts.meta
+      ? { WHATSAPP_MODE: "meta", WHATSAPP_ACCESS_TOKEN: "tok", WHATSAPP_APP_SECRET: "appsecret", WHATSAPP_PHONE_NUMBER_ID: "123", WHATSAPP_VERIFY_TOKEN: "verify-me" }
+      : {}),
+    ...opts.config,
+  };
   const ctx = await makeTestDeps({ now: opts.now, config });
   const tllm = new TestLlm();
   const meta = opts.meta ? new FakeMeta() : null;

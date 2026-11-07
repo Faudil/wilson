@@ -79,6 +79,12 @@ const INPUTS: Record<string, unknown> = {
   "skills.directory": {},
   "skills.suggest": { beneficiaryId: id },
   "skills.updateFor": { volunteerId: id, languages: [], skills: [], note: null },
+  "numbers.list": { status: "quarantined" },
+  "numbers.heldCount": undefined,
+  "numbers.release": { beneficiaryId: id },
+  "numbers.releaseAllGlobal": undefined,
+  "numbers.block": { beneficiaryId: id },
+  "numbers.unblock": { beneficiaryId: id },
   "system.health": undefined,
 };
 /** The permission each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
@@ -102,6 +108,8 @@ const REQUIRES: Record<string, Permission | null> = {
   "tasks.list": "notes.view", "tasks.dueCount": "notes.view", "tasks.add": "notes.write", "tasks.update": "notes.write",
   "skills.mine": "skills.edit_own", "skills.updateMine": "skills.edit_own", "skills.directory": "skills.view",
   "skills.suggest": "skills.view", "skills.updateFor": "volunteers.manage",
+  "numbers.list": "numbers.moderate", "numbers.heldCount": "numbers.moderate", "numbers.release": "numbers.moderate",
+  "numbers.releaseAllGlobal": "numbers.moderate", "numbers.block": "numbers.moderate", "numbers.unblock": "numbers.moderate",
 };
 const PUBLIC = new Set(["auth.login", "auth.signup", "system.health"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */

@@ -47,4 +47,7 @@ export const am: Record<WaKey, string> = {
   chat_voice_unsupported: "የድምጽ መልዕክቶችን ገና ማዳመጥ አልችልም። እባክዎ መልዕክትዎን ይጻፉ።",
   chat_letter_redirect: "ደብዳቤ ለማስረዳት የደብዳቤውን ፎቶ ይላኩልኝ (ወይም በምናሌው 1 ብለው ይመልሱ)።",
   chat_document_redirect: "ለሰነዶችዎ በምናሌው 2 ብለው ይመልሱ።",
+  guard_slow_down: "ብዙ መልዕክቶችን እየላኩ ነው። እባክዎ ጥቂት ደቂቃዎች ይጠብቁ፣ ከዚያ እንደገና ይጻፉ።",
+  guard_held: "መልዕክቶችዎ ለጊዜው በመጠባበቅ ላይ ናቸው። አንድ በጎ ፈቃደኛ አይቶ ያገኝዎታል።",
+  guard_released: "ስለጠበቁ እናመሰግናለን። እንደገና ሊጽፉልን ይችላሉ።",
 };

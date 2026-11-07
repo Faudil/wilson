@@ -12,4 +12,5 @@ export * from "./chat.js";
 export * from "./usage.js";
 export * from "./notes.js";
 export * from "./skills.js";
+export * from "./guard.js";
 export * from "./contract.js";

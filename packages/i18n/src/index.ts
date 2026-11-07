@@ -79,6 +79,9 @@ export type WaKey =
   | "chat_voice_unsupported" // please write your message, voice notes are not supported yet
   | "chat_letter_redirect" // to explain a letter, send a photo (or menu 1)
   | "chat_document_redirect" // for your documents, reply 2
+  | "guard_slow_down" // flood guard: too many messages, wait a few minutes
+  | "guard_held" // flood guard: messages on hold until a volunteer checks
+  | "guard_released" // flood guard: a volunteer released the number
   | "footer"; // {name} {contact} — appended to every reply, never optional
 
 export type Params = Record<string, string | number>;

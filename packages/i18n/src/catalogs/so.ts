@@ -47,4 +47,7 @@ export const so: Record<WaKey, string> = {
   chat_voice_unsupported: "Weli ma dhegeysan karo farriimaha codka. Fadlan qor farriintaada.",
   chat_letter_redirect: "Si aan kuugu sharaxo warqad, ii soo dir sawirka warqadda (ama ku jawaab 1 liiska).",
   chat_document_redirect: "Dukumentiyadaada, ku jawaab 2 liiska.",
+  guard_slow_down: "Waxaad soo diraysaa farriimo badan. Fadlan sug dhowr daqiiqo, kadibna mar kale qor.",
+  guard_held: "Farriimahaagu hadda way sugayaan. Mutadawac ayaa eegi doona oo kula soo xiriiri doona.",
+  guard_released: "Waad ku mahadsan tahay sugitaanka. Mar kale ayaad noo qori kartaa.",
 };

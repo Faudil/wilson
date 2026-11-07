@@ -8,7 +8,7 @@ import {
   type AnyPgColumn, boolean, customType, date, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import {
-  DocumentTypeSchema, ExpirySourceSchema, LANGUAGE_CODES, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
+  DocumentTypeSchema, ExpirySourceSchema, GuardReasonSchema, GuardStatusSchema, LANGUAGE_CODES, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
   TaskStatusSchema, UrgencySchema, VOLUNTEER_SKILLS, VolunteerRoleSchema,
 } from "@wilson/contracts";
 
@@ -40,6 +40,8 @@ export const knowledgeSourceEnum = pgEnum("knowledge_source", ["service_public",
 export const knowledgeKindEnum = pgEnum("knowledge_kind", ["procedure", "contact", "guide"]);
 export const volunteerSkillEnum = pgEnum("volunteer_skill", VOLUNTEER_SKILLS as unknown as [string, ...string[]]);
 export const taskStatusEnum = pgEnum("task_status", TaskStatusSchema.options as [string, ...string[]]);
+export const guardStatusEnum = pgEnum("guard_status", GuardStatusSchema.options as [string, ...string[]]);
+export const guardReasonEnum = pgEnum("guard_reason", GuardReasonSchema.options as [string, ...string[]]);
 export const reminderStatusEnum = pgEnum("reminder_status", ["scheduled", "sent", "cancelled", "failed"]);
 
 /** Conversation state machine snapshot, owned by src/conversation/engine.ts. */
@@ -77,7 +79,13 @@ export const beneficiaries = pgTable("beneficiaries", {
   chatStatus: conversationStatusEnum("chat_status").notNull().default("bot"),
   /** Volunteer who took the conversation over (chat_status = with_volunteer). The bot stays silent meanwhile. */
   chatAssigneeId: uuid("chat_assignee_id").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
-});
+  /** Flood guard (src/whatsapp/guard.ts): quarantined = held for a volunteer, blocked = every message dropped. */
+  guardStatus: guardStatusEnum("guard_status").notNull().default("none"),
+  guardReason: guardReasonEnum("guard_reason"),
+  guardAt: ts("guard_at"),
+  /** Volunteer who blocked / released the number (null when the guard acted on its own). */
+  guardBy: uuid("guard_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+}, (t) => [index("beneficiaries_guard_idx").on(t.guardStatus, t.guardAt).where(sql`${t.guardStatus} <> 'none'`)]);
 
 export const messages = pgTable("messages", {
   id: uuid("id").primaryKey().defaultRandom(),

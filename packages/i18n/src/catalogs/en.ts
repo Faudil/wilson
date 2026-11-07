@@ -46,4 +46,7 @@ export const en: Record<WaKey, string> = {
   chat_voice_unsupported: "I cannot listen to voice messages yet. Please write your message.",
   chat_letter_redirect: "To explain a letter, send me a photo of the letter (or reply 1 in the menu).",
   chat_document_redirect: "For your documents, reply 2 in the menu.",
+  guard_slow_down: "You are sending a lot of messages. Please wait a few minutes, then write again.",
+  guard_held: "Your messages are on hold for now. A volunteer will check and get back to you.",
+  guard_released: "Thank you for waiting. You can write to us again.",
 };

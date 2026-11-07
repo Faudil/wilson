@@ -47,4 +47,7 @@ export const ro: Record<WaKey, string> = {
   chat_voice_unsupported: "Vă rog scrieți mesajul. Mesajele vocale nu sunt acceptate încă.",
   chat_letter_redirect: "Pentru a explica o scrisoare, trimiteți fotografia ei (sau răspundeți 1).",
   chat_document_redirect: "Pentru documentele dumneavoastră, răspundeți 2.",
+  guard_slow_down: "Trimiteți multe mesaje. Vă rugăm să așteptați câteva minute, apoi scrieți din nou.",
+  guard_held: "Mesajele dumneavoastră sunt în așteptare deocamdată. Un voluntar le va verifica și vă va contacta.",
+  guard_released: "Vă mulțumim pentru răbdare. Ne puteți scrie din nou.",
 };

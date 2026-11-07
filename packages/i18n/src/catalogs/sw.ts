@@ -47,4 +47,7 @@ export const sw: Record<WaKey, string> = {
   chat_voice_unsupported: "Tafadhali andika ujumbe wako. Ujumbe wa sauti bado hautumiki.",
   chat_letter_redirect: "Ili kueleza barua, tuma picha yake (au jibu 1).",
   chat_document_redirect: "Kwa hati zako, jibu 2.",
+  guard_slow_down: "Unatuma ujumbe mwingi. Tafadhali subiri dakika chache, kisha uandike tena.",
+  guard_held: "Ujumbe wako unasubiri kwa sasa. Mtu wa kujitolea ataukagua na kuwasiliana nawe.",
+  guard_released: "Asante kwa kusubiri. Unaweza kutuandikia tena.",
 };

@@ -47,4 +47,7 @@ export const bm: Record<WaKey, string> = {
   chat_voice_unsupported: "I ka cikan sɛbɛn. An ma kumakan cikan sɔrɔ folo.",
   chat_letter_redirect: "Ka gafe ɲɛfɔ, a ja ci n ma (walima jaabi 1).",
   chat_document_redirect: "I ka sɛbɛnw kama, jaabi 2.",
+  guard_slow_down: "I bɛ cikan caman ci. I ka hakɛ to ka miniti dama makɔnɔ, o kɔ i ka sɛbɛn tugun.",
+  guard_held: "I ka cikanw bɛ makɔnɔni na sisan. Baarakɛla dɔ b'u lajɛ ka kuma i fɛ.",
+  guard_released: "I ni ce i ka muɲuli la. I bɛ se ka sɛbɛn an ma tugun.",
 };

@@ -11,6 +11,7 @@ import { LetterDetailSchema, LetterEditSchema, LetterStatusSchema, LetterSummary
 import { SandboxMessageSchema, SandboxPhoneSchema, SandboxSendInputSchema } from "./sandbox.js";
 import { CaseFileSchema, CaseNoteSchema, CaseTaskSchema, NoteTextSchema, TaskAddSchema, TaskListInputSchema, TaskUpdateSchema } from "./notes.js";
 import { DirectoryEntrySchema, SkillsInputSchema, SuggestionSchema, VolunteerSkillSchema, VolunteerSkillsSchema } from "./skills.js";
+import { GuardStatusSchema, HeldNumbersSchema } from "./guard.js";
 import { ApiKeyAddSchema, ApiKeyListSchema, ApiKeySchema, ApiKeyUpdateSchema, UsageBudgetSchema, UsageSetBudgetSchema, UsageSummarySchema } from "./usage.js";
 
 /**
@@ -182,9 +183,24 @@ const skills = {
   updateFor: base.input(SkillsInputSchema.extend({ volunteerId: IdSchema })).output(VolunteerSkillsSchema),
 };
 
+/**
+ * WhatsApp numbers held by the flood guard, and blocked numbers (`numbers.moderate`). Every call is logged.
+ * Releasing tells the person (fixed text) that they can write again; blocking is silent.
+ */
+const numbers = {
+  list: base.input(z.object({ status: GuardStatusSchema.exclude(["none"]).default("quarantined") })).output(HeldNumbersSchema),
+  /** Held numbers waiting for a decision: the navigation badge polls this. */
+  heldCount: base.output(z.object({ count: z.number().int().nonnegative(), floodMode: z.boolean() })),
+  release: base.input(z.object({ beneficiaryId: IdSchema })).output(z.void()),
+  /** Releases every number held because of a global flood (once the wave is over). */
+  releaseAllGlobal: base.output(z.object({ released: z.number().int().nonnegative() })),
+  block: base.input(z.object({ beneficiaryId: IdSchema })).output(z.void()),
+  unblock: base.input(z.object({ beneficiaryId: IdSchema })).output(z.void()),
+};
+
 const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, system };
+export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, numbers, system };
 export type Contract = typeof contract;

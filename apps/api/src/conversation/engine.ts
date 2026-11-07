@@ -10,6 +10,7 @@ import { announceDocumentDetection } from "./documentFlow.js";
 import { getChat } from "../chat/service.js";
 import { isLanguageWord, isMenuWord, menuChoice } from "./text.js";
 import { withUsageContext } from "../usage/context.js";
+import { getGuard, quarantine, throttleNotice } from "../whatsapp/guard.js";
 
 const MAX_MEDIA_BYTES = 12 * 1024 * 1024;
 const SUPPORTED_MIME = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"]);
@@ -69,6 +70,8 @@ export async function processInbound(deps: WaDeps, msg: WaInboundMessage): Promi
   const { beneficiaries, db, crypto } = deps;
   const { beneficiary } = await beneficiaries.findOrCreateByWaId(msg.from);
   if (beneficiary.archivedAt) return; // asked for deletion: stay silent
+  // Blocked, or held by the flood guard until a volunteer looks: drop before storing or processing anything.
+  if (beneficiary.guardStatus !== "none") return;
 
   const dek = await beneficiaries.getDek(beneficiary.id);
   const body = inboundText(msg);
@@ -86,6 +89,14 @@ export async function processInbound(deps: WaDeps, msg: WaInboundMessage): Promi
   await beneficiaries.touchInbound(beneficiary.id, deps.now());
 
   const input = classify(msg);
+  if (input.type !== "ignore") {
+    const verdict = getGuard(deps).check(beneficiary, input.type === "file", deps.now());
+    if (verdict.kind === "quarantine") return quarantine(deps, beneficiary, verdict.reason);
+    if (verdict.kind === "throttle") {
+      if (verdict.notify) await throttleNotice(deps, beneficiary);
+      return;
+    }
+  }
   const ctx: Ctx = { deps, b: beneficiary, lang: beneficiary.language, state: beneficiary.conversationState, msgId: msg.id };
 
   // A reviewed explanation (or rejection notice) is waiting behind the opt-in template: any message releases it.

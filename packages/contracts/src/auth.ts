@@ -28,6 +28,7 @@ export const PermissionSchema = z.enum([
   "tasks.assign", // give a task to another volunteer (without it: only to yourself or to nobody)
   "skills.view", // browse the skills directory and the "who can help" suggestions
   "skills.edit_own", // fill in your own languages and skills
+  "numbers.moderate", // release a number held by the flood guard, block or unblock a number
 ]);
 export type Permission = z.infer<typeof PermissionSchema>;
 
@@ -55,6 +56,7 @@ const VOLUNTEER: Permission[] = [
   "tasks.assign",
   "skills.view",
   "skills.edit_own",
+  "numbers.moderate",
 ];
 /** Responders fill in their own skills (so hard cases can be routed to them) but see no case notes by default. */
 const RESPONDER: Permission[] = ["conversations.view", "conversations.reply", "knowledge.view", "skills.edit_own"];

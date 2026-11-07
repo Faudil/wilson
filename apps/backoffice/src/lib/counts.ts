@@ -46,3 +46,9 @@ export function usePendingVolunteers(enabled: boolean): number {
   const q = useQuery({ ...orpc.volunteers.list.queryOptions({ input: { status: "pending" } }), enabled, refetchInterval: 60_000, retry: false });
   return q.data?.length ?? 0;
 }
+
+/** WhatsApp numbers held by the flood guard, waiting for a volunteer's decision. */
+export function useHeldNumbers(enabled: boolean): number {
+  const q = useQuery({ ...orpc.numbers.heldCount.queryOptions(), enabled, refetchInterval: 60_000, retry: false });
+  return q.data?.count ?? 0;
+}

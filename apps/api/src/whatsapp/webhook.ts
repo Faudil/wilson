@@ -55,6 +55,9 @@ export async function handleWhatsAppWebhook(req: IncomingMessage, res: ServerRes
     return reply(res, 403);
   }
   if (req.method !== "POST") return reply(res, 405);
+  // Sandbox mode has no Meta signature to check: in production the public webhook would let anyone inject messages
+  // (and spend the Claude budget). The sandbox page talks to the API through oRPC, not through this URL.
+  if (config.WHATSAPP_MODE === "sandbox" && config.NODE_ENV === "production") return reply(res, 403);
 
   let body: Buffer;
   try {

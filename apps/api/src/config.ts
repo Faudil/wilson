@@ -45,6 +45,27 @@ const EnvSchema = z.object({
   WHATSAPP_TEMPLATE_EXPLANATION_READY: z.string().default("explanation_ready"),
   WHATSAPP_TEMPLATE_DOCUMENT_REMINDER: z.string().default("document_reminder"),
 
+  // — Flood guard (src/whatsapp/guard.ts). Counts inbound messages per number and overall. —
+  /** Per number: above these, messages are stored but not processed (no LLM) and the person is asked to slow down. */
+  WA_RATE_PER_MINUTE: z.coerce.number().int().min(1).default(8),
+  WA_RATE_PER_HOUR: z.coerce.number().int().min(1).default(60),
+  /** Per number: photos and PDFs in 24 h (each one is an expensive vision call). Above it, files are not analysed. */
+  WA_FILES_PER_DAY: z.coerce.number().int().min(1).default(20),
+  /** Per number: above these, the number is quarantined until a volunteer releases or blocks it. */
+  WA_FLOOD_PER_MINUTE: z.coerce.number().int().min(2).default(20),
+  WA_FLOOD_PER_HOUR: z.coerce.number().int().min(2).default(150),
+  WA_FLOOD_PER_DAY: z.coerce.number().int().min(2).default(400),
+  /** All numbers together: above these, first messages from numbers seen in the last 24 h are held for review. */
+  WA_GLOBAL_PER_MINUTE: z.coerce.number().int().min(1).default(120),
+  WA_GLOBAL_PER_HOUR: z.coerce.number().int().min(1).default(1500),
+
+  /**
+   * Optional security alerts (flood, quarantined numbers, unusual reads of personal data, login attacks): a webhook URL
+   * receiving `{ "text": "...", "content": "..." }` (Mattermost, Slack, Discord, Rocket.Chat, ntfy…). Alerts never
+   * contain names, phone numbers or message content. Unset = alerts only go to the server log.
+   */
+  ALERT_WEBHOOK_URL: z.url().optional(),
+
   LLM_MODE: z.enum(["anthropic", "fake"]).default("fake"),
   /** Server key, used after the keys admins add in the back-office (optional when such keys exist). */
   ANTHROPIC_API_KEY: z.string().optional(),

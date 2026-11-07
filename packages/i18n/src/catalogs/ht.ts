@@ -47,4 +47,7 @@ export const ht: Record<WaKey, string> = {
   chat_voice_unsupported: "Tanpri ekri mesaj ou a. Nou poko aksepte mesaj vokal.",
   chat_letter_redirect: "Pou eksplike yon lèt, voye foto li (oswa reponn 1).",
   chat_document_redirect: "Pou dokiman ou yo, reponn 2.",
+  guard_slow_down: "Ou ap voye anpil mesaj. Tanpri tann kèk minit, epi ekri ankò.",
+  guard_held: "Mesaj ou yo an atant pou kounye a. Yon volontè pral verifye epi kontakte w.",
+  guard_released: "Mèsi paske ou te tann. Ou ka ekri nou ankò.",
 };

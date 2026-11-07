@@ -47,4 +47,7 @@ export const wo: Record<WaKey, string> = {
   chat_voice_unsupported: "Bindal sa bataaxal. Manunu jàng bataaxal yu baat tey.",
   chat_letter_redirect: "Ngir ma firil la kayit, yónnee nataalam (walla tontul 1).",
   chat_document_redirect: "Ngir sa dokumaŋ yi, tontul 2.",
+  guard_slow_down: "Yaa ngi yónnee bataaxal yu bari. Bal nu, xaaral ay simili, ba noppi nga bindaat.",
+  guard_held: "Sa bataaxal yi ngi xaar léegi. Benn volontëër dina leen seetlu te dina la jokkoo.",
+  guard_released: "Jërëjëf ci sa muñ. Mën nga nu bindaat.",
 };

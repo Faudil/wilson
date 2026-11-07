@@ -8,7 +8,7 @@ import { useI18n, type MessageKey } from "./i18n";
 import { UI_LANGUAGES } from "./i18n/core";
 import { orpc } from "./lib/api";
 import { fetchMe, ME_KEY } from "./lib/me";
-import { useAttentionCount, useDueTasks, useLetterStats, usePendingVolunteers } from "./lib/counts";
+import { useAttentionCount, useDueTasks, useHeldNumbers, useLetterStats, usePendingVolunteers } from "./lib/counts";
 import { LazyBoundary, lazyScreens, prefetchScreens } from "./lib/lazy";
 import { initials } from "./lib/relative";
 import { href, useRoute } from "./lib/router";
@@ -32,6 +32,7 @@ const { Volunteers } = lazyScreens(() => import("./screens/Volunteers"), "Volunt
 const { Usage } = lazyScreens(() => import("./screens/Usage"), "Usage");
 const { Tasks } = lazyScreens(() => import("./screens/Tasks"), "Tasks");
 const { Skills } = lazyScreens(() => import("./screens/Skills"), "Skills");
+const { Numbers } = lazyScreens(() => import("./screens/Numbers"), "Numbers");
 
 function useLanguageChange() {
   const { lang, setLang } = useI18n();
@@ -119,6 +120,7 @@ const MORE: NavItem[] = [
   { key: "deadlines", label: "nav.deadlines", icon: "calendar", desc: "more.deadlines", permission: "documents.view_metadata" },
   { key: "knowledge", label: "nav.knowledge", icon: "book", desc: "more.knowledge", permission: "knowledge.view" },
   { key: "volunteers", label: "nav.volunteers", icon: "users", desc: "more.volunteers", permission: "volunteers.manage" },
+  { key: "numbers", label: "nav.numbers", icon: "shield", desc: "more.numbers", permission: "numbers.moderate" },
   { key: "usage", label: "nav.usage", icon: "chart", desc: "more.usage", permission: "usage.manage" },
   { key: "languages", label: "nav.languages", icon: "globe", desc: "more.languages", permission: null },
   { key: "sandbox", label: "nav.sandbox", icon: "flask", desc: "more.sandbox", permission: "sandbox.use", sandboxOnly: true },
@@ -277,6 +279,7 @@ export function App() {
 
   const pendingVolunteers = usePendingVolunteers(!!session && session.can("volunteers.manage"));
   const dueTasks = useDueTasks(!!session && session.can("notes.view"));
+  const heldNumbers = useHeldNumbers(!!session && session.can("numbers.moderate"));
   const loggedIn = session !== null;
   useEffect(() => {
     if (loggedIn) prefetchScreens();
@@ -337,9 +340,10 @@ export function App() {
   else if (section === "usage" && allowed("usage")) screen = <Usage />;
   else if (section === "tasks" && allowed("tasks")) screen = <Tasks />;
   else if (section === "skills" && allowed("skills")) screen = <Skills />;
+  else if (section === "numbers" && allowed("numbers")) screen = <Numbers />;
   else screen = <Home />;
 
-  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters", "volunteers", "usage", "tasks", "skills"];
+  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters", "volunteers", "usage", "tasks", "skills", "numbers"];
   const current = section === "letters" ? "queue" : known.includes(section) ? section : "";
   const focus = (section === "letters" || section === "conversations") && !!arg;
 
@@ -356,10 +360,10 @@ export function App() {
               more={moreItems.length > 0}
               current={current}
               badges={{ queue: letterStats.pending, conversations: attention }}
-              moreBadge={pendingVolunteers + dueTasks}
+              moreBadge={pendingVolunteers + dueTasks + heldNumbers}
               onMore={() => setMoreOpen(true)}
             />
-            <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} badges={{ volunteers: pendingVolunteers, tasks: dueTasks }} />
+            <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} badges={{ volunteers: pendingVolunteers, tasks: dueTasks, numbers: heldNumbers }} />
           </>
         }
       >
