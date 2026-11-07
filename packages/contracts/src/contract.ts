@@ -9,6 +9,8 @@ import { KnowledgeHitSchema, KnowledgeSearchInputSchema, KnowledgeSourceIdSchema
 import { LanguageSchema } from "./languages.js";
 import { LetterDetailSchema, LetterEditSchema, LetterStatusSchema, LetterSummarySchema } from "./letters.js";
 import { SandboxMessageSchema, SandboxPhoneSchema, SandboxSendInputSchema } from "./sandbox.js";
+import { CaseFileSchema, CaseNoteSchema, CaseTaskSchema, NoteTextSchema, TaskAddSchema, TaskListInputSchema, TaskUpdateSchema } from "./notes.js";
+import { DirectoryEntrySchema, SkillsInputSchema, SuggestionSchema, VolunteerSkillSchema, VolunteerSkillsSchema } from "./skills.js";
 import { ApiKeyAddSchema, ApiKeyListSchema, ApiKeySchema, ApiKeyUpdateSchema, UsageBudgetSchema, UsageSetBudgetSchema, UsageSummarySchema } from "./usage.js";
 
 /**
@@ -137,9 +139,52 @@ const usage = {
   removeKey: base.input(z.object({ id: IdSchema })).output(z.void()),
 };
 
+/**
+ * Case notes on a person. Each procedure needs exactly one permission; ownership rules (edit your own note unless
+ * notes.moderate) answer FORBIDDEN. Every call is written to access_log.
+ */
+const notes = {
+  /** Notes (newest first) and tasks of one person. notes.view. */
+  list: base.input(z.object({ beneficiaryId: IdSchema })).output(CaseFileSchema),
+  add: base.input(z.object({ beneficiaryId: IdSchema, text: NoteTextSchema })).output(CaseNoteSchema),
+  /** Own note, or anyone's with notes.moderate. */
+  edit: base.input(z.object({ id: IdSchema, text: NoteTextSchema })).output(CaseNoteSchema),
+  remove: base.input(z.object({ id: IdSchema })).output(z.void()),
+};
+
+/**
+ * Follow-up tasks with a reminder day ("call back after the OFPRA interview"). Due tasks show on Home and as a badge.
+ * CONFLICT { reason: "assignee_cannot_view" } when the assignee is inactive or lacks notes.view.
+ */
+const tasks = {
+  /** Across all persons, for the Tâches screen. notes.view. */
+  list: base.input(TaskListInputSchema).output(z.array(CaseTaskSchema)),
+  /** My open tasks due today or earlier: the badge polls this. notes.view. */
+  dueCount: base.output(z.object({ count: z.number().int().nonnegative() })),
+  /** notes.write; an assignee other than yourself also needs tasks.assign. */
+  add: base.input(TaskAddSchema).output(CaseTaskSchema),
+  /** notes.write. Text: creator or notes.moderate. Assigning to someone else: tasks.assign. */
+  update: base.input(TaskUpdateSchema).output(CaseTaskSchema),
+};
+
+/** Skills directory and "who can help" suggestions. */
+const skills = {
+  /** skills.edit_own */
+  mine: base.output(VolunteerSkillsSchema),
+  updateMine: base.input(SkillsInputSchema).output(VolunteerSkillsSchema),
+  /** Active volunteers with at least one language or skill. skills.view */
+  directory: base
+    .input(z.object({ language: LanguageSchema.optional(), skill: VolunteerSkillSchema.optional() }))
+    .output(z.array(DirectoryEntrySchema)),
+  /** Volunteers matching a person's language and latest chat intent. skills.view */
+  suggest: base.input(z.object({ beneficiaryId: IdSchema })).output(SuggestionSchema),
+  /** An admin fills in someone else's profile. volunteers.manage */
+  updateFor: base.input(SkillsInputSchema.extend({ volunteerId: IdSchema })).output(VolunteerSkillsSchema),
+};
+
 const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, system };
+export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, system };
 export type Contract = typeof contract;

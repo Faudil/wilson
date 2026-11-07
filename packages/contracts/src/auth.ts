@@ -22,6 +22,12 @@ export const PermissionSchema = z.enum([
   "conversations.view", // read chatbot conversations
   "conversations.reply", // approve/reject drafts, reply, resolve
   "usage.manage", // see Claude API usage and costs, set the monthly budget
+  "notes.view", // read case notes and follow-up tasks on a person, see "my tasks"
+  "notes.write", // add notes and tasks, edit/delete own notes, tick tasks done (needs notes.view to see them)
+  "notes.moderate", // edit or delete anyone's note or task text
+  "tasks.assign", // give a task to another volunteer (without it: only to yourself or to nobody)
+  "skills.view", // browse the skills directory and the "who can help" suggestions
+  "skills.edit_own", // fill in your own languages and skills
 ]);
 export type Permission = z.infer<typeof PermissionSchema>;
 
@@ -44,12 +50,18 @@ const VOLUNTEER: Permission[] = [
   "knowledge.view",
   "conversations.view",
   "conversations.reply",
+  "notes.view",
+  "notes.write",
+  "tasks.assign",
+  "skills.view",
+  "skills.edit_own",
 ];
-const RESPONDER: Permission[] = ["conversations.view", "conversations.reply", "knowledge.view"];
+/** Responders fill in their own skills (so hard cases can be routed to them) but see no case notes by default. */
+const RESPONDER: Permission[] = ["conversations.view", "conversations.reply", "knowledge.view", "skills.edit_own"];
 export const ROLE_PERMISSIONS: Record<VolunteerRole, readonly Permission[]> = {
   responder: RESPONDER,
   volunteer: VOLUNTEER,
-  admin: [...VOLUNTEER, "volunteers.manage", "audit.view", "knowledge.manage", "usage.manage"],
+  admin: [...VOLUNTEER, "volunteers.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate"],
 };
 
 export const VolunteerSchema = z.object({

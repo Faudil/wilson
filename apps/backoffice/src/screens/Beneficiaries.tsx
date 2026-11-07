@@ -10,6 +10,7 @@ import { useI18n, type MessageKey } from "../i18n";
 import { client, orpc } from "../lib/api";
 import { href } from "../lib/router";
 import { useSession } from "../lib/session";
+import { CaseFilePanel } from "./CaseFile";
 import { documentTypeName, formatDate } from "../lib/wilson-i18n";
 import { daysBetween, todayParis } from "../lib/format";
 import { relativeTime } from "../lib/relative";
@@ -138,6 +139,8 @@ export function BeneficiaryDetail({ id }: { id: string }) {
               <small className="muted">{t("beneficiaries.languageHelp")}</small>
             </label>
           )}
+
+          {(can("notes.view") || can("notes.write")) && <CaseFilePanel beneficiaryId={id} />}
 
           <h2 className="section-title">{t("beneficiaries.documents")}</h2>
           {can("documents.view_metadata") ? (

@@ -105,6 +105,9 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 | `volunteers` | id, email, password_hash (argon2id), name, role (responder/volunteer/admin), ui_language, disabled_at, pending_approval, signup_note, approved_at, approved_by |
 | `volunteer_permissions` | volunteer_id, permission, granted (bool) — per-volunteer overrides on top of the role bundle (empty in the POC) |
 | `sessions` | id (random, httpOnly cookie), volunteer_id, expires_at |
+| `case_notes` | id, beneficiary_id, author_id, `body_enc`, created_at, edited_at — case notes on a person |
+| `case_tasks` | id, beneficiary_id, created_by, assignee_id (null = anyone), `text_enc`, due_on (reminder day, Europe/Paris), status (open/done/cancelled), done_at, done_by |
+| `volunteer_skills` | volunteer_id (PK), languages language[], skills volunteer_skill[], note, updated_at — about volunteers, clear text |
 | `access_log` | volunteer_id, action (view_photo, view_document, edit…), target id, at — who looked at what |
 | `llm_usage` | one row per Claude call: at, task (prompt name), model, language, beneficiary_id (opaque, set null on purge), api_key_id, input/output/cache tokens, `cost_micro_usd` (estimate from `llm/pricing.ts`). No prompt, reply, name or phone |
 | `llm_api_keys` | admin-added Claude keys (donors): label, `key_enc` under the key's own DEK (wrapped by MASTER_KEY), last 4 chars, monthly limit, disabled_at, last error. The key is never returned to the back-office |
@@ -169,6 +172,12 @@ Goal: the "who to turn to" lines cite real, local, up-to-date offices and proced
 
 - `auth.signup` (public, `VOLUNTEER_SIGNUP=on|off`): creates a `volunteers` row with `pending_approval = true`, role `responder`, the free-text `signup_note`. Same `{ ok: true }` answer whether or not the email exists (no enumeration; password hashed in both cases). Pending rows are capped (`VOLUNTEER_SIGNUP_MAX_PENDING`, CONFLICT `too_many_pending`). The form requires a confidentiality/no-legal-advice commitment.
 - A pending account cannot log in (`auth.login` → FORBIDDEN only when the password is right, so the UI can say "waiting for approval") and never resolves a session.
+### Case notes, follow-up tasks, skills directory
+- **Notes and tasks** live on a person and are encrypted under that person's DEK (crypto-shredded with them). Shown on the person page and in a "Suivi" sheet on the conversation screen. Tasks have a reminder day: from that morning (Europe/Paris) they count in `tasks.dueCount` (badge on Plus > Tâches de suivi and a Home tile). No e-mail/push: reminders are in the back-office only.
+- **Permissions** (each procedure needs exactly one, ownership checks answer FORBIDDEN): `notes.view` (read notes/tasks, Tâches screen), `notes.write` (add, edit/delete own notes, tick tasks), `notes.moderate` (edit/delete anyone's), `tasks.assign` (give a task to someone else; the assignee must be active and have `notes.view`, else CONFLICT `assignee_cannot_view`), `skills.view` (directory and suggestions), `skills.edit_own`. Defaults: responder = `skills.edit_own` only; volunteer = all but `notes.moderate`; admin = all. Per-person changes go through `volunteer_permissions`.
+- Every read and write goes to `access_log` (`notes.view` with the person id, `notes.add`, `notes.edit_moderated`, `tasks.list:mine`, `tasks.update:status=done`, `skills.update_for`…).
+- **Skills** (`VOLUNTEER_SKILLS`: interpreting, legal, asylum, social_rights, health, housing, forms, digital, driving, accompaniment) + languages. `skills.suggest` matches a person's language (not French) and the skills for their latest chat intent (`SKILLS_FOR_INTENT`: legal → legal + asylum, urgent → housing + accompaniment + health…); "Qui peut aider ?" on a conversation needing a person lists them and gives one a prefilled task. `matchVolunteers()` in `src/skills/service.ts` is reusable by other features.
+
 - Admins (`volunteers.manage`, `volunteers.*`): list, approve with a role (`approved_at`, `approved_by`), reject (row deleted), set role, disable/enable (sessions deleted at once). Not on themselves. Every action in `access_log`.
 - **Roles:** `responder` = `conversations.view`, `conversations.reply`, `knowledge.view` (no letters, photos, documents or beneficiary pages) — least privilege by default for people the association does not know yet; `volunteer` = full volunteer bundle; `admin`. Permissions are resolved per request, so a role change applies on the next click.
 

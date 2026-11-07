@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { ROLE_PERMISSIONS, type Permission, type SignupInput, type Volunteer, type VolunteerRole } from "@wilson/contracts";
 import type { Db } from "../db/client.js";
 import { sessions, volunteerPermissions, volunteers } from "../db/schema.js";
@@ -20,6 +20,28 @@ export function effectivePermissions(role: VolunteerRole, overrides: { permissio
     else set.delete(o.permission);
   }
   return [...set];
+}
+
+/**
+ * Effective permissions of other volunteers (task assignee checks, directory). Pending and disabled accounts get none.
+ * One query for the accounts and one for the overrides, whatever the number of ids.
+ */
+export async function permissionsOf(db: Db, ids: string[]): Promise<Map<string, Permission[]>> {
+  const out = new Map<string, Permission[]>();
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return out;
+  const rows = await db.select({ id: volunteers.id, role: volunteers.role, disabledAt: volunteers.disabledAt, pending: volunteers.pendingApproval })
+    .from(volunteers).where(inArray(volunteers.id, unique));
+  const overrides = await db.select().from(volunteerPermissions).where(inArray(volunteerPermissions.volunteerId, unique));
+  for (const r of rows) {
+    if (r.disabledAt || r.pending) {
+      out.set(r.id, []);
+      continue;
+    }
+    const own = overrides.filter((o) => o.volunteerId === r.id) as { permission: Permission; granted: boolean }[];
+    out.set(r.id, effectivePermissions(r.role as VolunteerRole, own));
+  }
+  return out;
 }
 
 export interface AuthService {

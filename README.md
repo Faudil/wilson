@@ -128,6 +128,13 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
 
 ---
 
+## 2e. Suivi des personnes et compétences des bénévoles
+
+- **Notes de suivi** : sur la page d'une personne, ou via l'icône « Suivi » d'une discussion. Les notes sont chiffrées comme le reste des données de la personne, et chaque lecture est enregistrée dans le journal d'accès. Chacun ne modifie que ses propres notes (les admins peuvent modérer).
+- **Tâches avec rappel** (« rappeler après l'entretien OFPRA ») : pour soi, pour n'importe qui, ou confiées à un·e autre bénévole. À partir du jour choisi, elles apparaissent sur l'accueil et dans Plus > Tâches de suivi.
+- **Compétences** (Plus > Compétences) : chacun indique ses langues et ce qu'il sait faire (juridique, asile, conduite, accompagnement…). Sur une discussion qui attend une personne, « Qui peut aider ? » propose les bénévoles qui parlent sa langue et ont les bonnes compétences.
+- **Droits** : les répondant·e·s ne voient pas les notes par défaut (ils remplissent seulement leurs compétences) ; les bénévoles lisent et écrivent les notes, confient des tâches et voient l'annuaire ; seuls les admins modifient les notes des autres. Chaque droit (`notes.view`, `notes.write`, `notes.moderate`, `tasks.assign`, `skills.view`, `skills.edit_own`) peut être donné ou retiré à une personne précise.
+
 ## 3. RGPD — ce qui est stocké, combien de temps, qui y accède
 
 | Donnée | Où | Protection | Durée |

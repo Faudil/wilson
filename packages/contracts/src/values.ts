@@ -76,3 +76,18 @@ export const DOCUMENT_TYPES = [
   "letter", // a letter saved from "Mon courrier"
   "other",
 ] as const;
+
+/** What a volunteer can do, for the skills directory and routing hard cases (Compétences screen). */
+export const VOLUNTEER_SKILLS = [
+  "interpreting", // interprets between French and the languages listed on the profile
+  "legal", // legal training (droit des étrangers, juriste, avocat·e)
+  "asylum", // knows the asylum procedure (OFPRA, CNDA, Dublin)
+  "social_rights", // CAF, CPAM/AME, domiciliation, RSA
+  "health", // health professional or knows the care system
+  "housing", // 115, SIAO, housing applications
+  "forms", // helps fill in forms (ANEF, CAF, AME…)
+  "digital", // online accounts, scanning, email
+  "driving", // can drive people to appointments
+  "accompaniment", // can go with someone to the préfecture, OFII, hospital
+] as const;
+export type VolunteerSkill = (typeof VOLUNTEER_SKILLS)[number];

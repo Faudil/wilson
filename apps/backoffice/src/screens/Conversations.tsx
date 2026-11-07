@@ -4,12 +4,13 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { useEffect, useRef, useState } from "react";
 import { Chip, LangBadge } from "../components/badges";
 import { Icon, type IconName } from "../components/Icon";
-import { BackLink, Empty, ErrorBox, Skeleton, useToast } from "../components/ui";
+import { BackLink, Empty, ErrorBox, Sheet, Skeleton, useToast } from "../components/ui";
 import { Segmented } from "./Queue";
 import { useI18n, type MessageKey } from "../i18n";
 import { errorCode, orpc } from "../lib/api";
 import { href } from "../lib/router";
 import { useSession } from "../lib/session";
+import { CaseFilePanel, HelpersSheet } from "./CaseFile";
 import { formatDateTime } from "../lib/wilson-i18n";
 import { relativeTime } from "../lib/relative";
 
@@ -244,6 +245,7 @@ export function ConversationDetail({ id }: { id: string }) {
   const qc = useQueryClient();
   const toast = useToast();
   const [text, setText] = useState("");
+  const [panel, setPanel] = useState<"notes" | "helpers" | null>(null);
   const query = useQuery({ ...orpc.conversations.get.queryOptions({ input: { beneficiaryId: id } }), refetchInterval: 10_000 });
   const c = query.data;
   const done = () => {
@@ -323,6 +325,11 @@ export function ConversationDetail({ id }: { id: string }) {
                 <StatusChip status={c.status} />
               </div>
             </div>
+            {(session.can("notes.view") || session.can("notes.write")) && (
+              <button type="button" className="icon-btn" aria-label={t("notes.open")} onClick={() => setPanel("notes")}>
+                <Icon name="file" />
+              </button>
+            )}
             {session.can("beneficiaries.view") && (
               <a className="icon-btn" href={href("beneficiaries", c.beneficiaryId)} aria-label={t("nav.beneficiaries")}>
                 <Icon name="users" />
@@ -344,6 +351,14 @@ export function ConversationDetail({ id }: { id: string }) {
                     <button type="button" className="btn btn-small" disabled={busy} onClick={() => resolve.mutate({ beneficiaryId: id })}>
                       <Icon name="checkCircle" size={16} />
                       {t("conv.resolveLong")}
+                    </button>
+                  </div>
+                )}
+                {session.can("skills.view") && (
+                  <div>
+                    <button type="button" className="btn btn-small btn-quiet" onClick={() => setPanel("helpers")}>
+                      <Icon name="sparkles" size={16} />
+                      {t("helpers.open")}
                     </button>
                   </div>
                 )}
@@ -418,6 +433,13 @@ export function ConversationDetail({ id }: { id: string }) {
           <div ref={endRef} />
         </div>
       )}
+
+      {c && (
+        <Sheet open={panel === "notes"} onClose={() => setPanel(null)} title={t("notes.sheetTitle")} wide>
+          <CaseFilePanel beneficiaryId={c.beneficiaryId} />
+        </Sheet>
+      )}
+      {c && session.can("skills.view") && <HelpersSheet beneficiaryId={c.beneficiaryId} open={panel === "helpers"} onClose={() => setPanel(null)} />}
 
       {c && canAct && (
         <form

@@ -35,6 +35,12 @@ export function useAttentionCount(enabled: boolean): number {
   return q.data?.count ?? 0;
 }
 
+/** My follow-up tasks due today or earlier (the reminder). */
+export function useDueTasks(enabled: boolean): number {
+  const q = useQuery({ ...orpc.tasks.dueCount.queryOptions(), enabled, refetchInterval: 5 * 60_000, retry: false });
+  return q.data?.count ?? 0;
+}
+
 /** Volunteer sign-ups waiting for an admin. */
 export function usePendingVolunteers(enabled: boolean): number {
   const q = useQuery({ ...orpc.volunteers.list.queryOptions({ input: { status: "pending" } }), enabled, refetchInterval: 60_000, retry: false });

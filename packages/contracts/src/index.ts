@@ -1,5 +1,5 @@
 export * from "./languages.js";
-export { LETTER_TYPES, DOCUMENT_TYPES } from "./values.js";
+export { LETTER_TYPES, DOCUMENT_TYPES, VOLUNTEER_SKILLS, type VolunteerSkill } from "./values.js";
 export * from "./common.js";
 export * from "./letters.js";
 export * from "./documents.js";
@@ -10,4 +10,6 @@ export * from "./whatsapp.js";
 export * from "./knowledge.js";
 export * from "./chat.js";
 export * from "./usage.js";
+export * from "./notes.js";
+export * from "./skills.js";
 export * from "./contract.js";
