@@ -9,7 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 import {
   DocumentTypeSchema, ExpirySourceSchema, LANGUAGE_CODES, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
-  UrgencySchema, VolunteerRoleSchema,
+  TaskStatusSchema, UrgencySchema, VOLUNTEER_SKILLS, VolunteerRoleSchema,
 } from "@wilson/contracts";
 
 export const bytea = customType<{ data: Buffer; driverData: Buffer | Uint8Array }>({
@@ -38,6 +38,8 @@ export const conversationStatusEnum = pgEnum("conversation_status", ["bot", "pen
 export const reminderKindEnum = pgEnum("reminder_kind", ["d30", "d7"]);
 export const knowledgeSourceEnum = pgEnum("knowledge_source", ["service_public", "annuaire", "association", "watizat"]);
 export const knowledgeKindEnum = pgEnum("knowledge_kind", ["procedure", "contact", "guide"]);
+export const volunteerSkillEnum = pgEnum("volunteer_skill", VOLUNTEER_SKILLS as unknown as [string, ...string[]]);
+export const taskStatusEnum = pgEnum("task_status", TaskStatusSchema.options as [string, ...string[]]);
 export const reminderStatusEnum = pgEnum("reminder_status", ["scheduled", "sent", "cancelled", "failed"]);
 
 /** Conversation state machine snapshot, owned by src/conversation/engine.ts. */
@@ -208,6 +210,45 @@ export const accessLog = pgTable("access_log", {
   at: ts("at").notNull().defaultNow(),
 });
 
+/** Case notes on a person, written by volunteers. Text encrypted under the beneficiary DEK (crypto-shredded with them). */
+export const caseNotes = pgTable("case_notes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  beneficiaryId: uuid("beneficiary_id").notNull().references(() => beneficiaries.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id").references(() => volunteers.id, { onDelete: "set null" }),
+  bodyEnc: bytea("body_enc").notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  editedAt: ts("edited_at"),
+}, (t) => [index("case_notes_beneficiary_idx").on(t.beneficiaryId, t.createdAt)]);
+
+/** Follow-up tasks on a person, with a reminder day. Text encrypted under the beneficiary DEK. */
+export const caseTasks = pgTable("case_tasks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  beneficiaryId: uuid("beneficiary_id").notNull().references(() => beneficiaries.id, { onDelete: "cascade" }),
+  createdBy: uuid("created_by").references(() => volunteers.id, { onDelete: "set null" }),
+  /** null = unassigned (anyone can pick it up). */
+  assigneeId: uuid("assignee_id").references(() => volunteers.id, { onDelete: "set null" }),
+  textEnc: bytea("text_enc").notNull(),
+  /** Reminder day, Europe/Paris calendar date. */
+  dueOn: date("due_on", { mode: "string" }),
+  status: taskStatusEnum("status").notNull().default("open"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  doneAt: ts("done_at"),
+  doneBy: uuid("done_by").references(() => volunteers.id, { onDelete: "set null" }),
+}, (t) => [
+  index("case_tasks_beneficiary_idx").on(t.beneficiaryId, t.createdAt),
+  // "My tasks" and the due badge.
+  index("case_tasks_assignee_idx").on(t.assigneeId, t.status, t.dueOn),
+]);
+
+/** Skills directory: one row per volunteer who filled in their profile. About volunteers, not beneficiaries: clear text. */
+export const volunteerSkills = pgTable("volunteer_skills", {
+  volunteerId: uuid("volunteer_id").primaryKey().references(() => volunteers.id, { onDelete: "cascade" }),
+  /** Languages they can speak with people in (French assumed). */
+  languages: languageEnum("languages").array().notNull().default(sql`'{}'`),
+  skills: volunteerSkillEnum("skills").array().notNull().default(sql`'{}'`),
+  note: text("note"),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
 
 /**
  * One row per Claude API call (each repair retry counts). Token counts from the API's `usage` block and the

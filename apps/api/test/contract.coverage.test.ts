@@ -66,6 +66,19 @@ const INPUTS: Record<string, unknown> = {
   "usage.addKey": { label: "Coverage", apiKey: "sk-ant-api03-coverageXXXXXXXXXXXXXXXX", monthlyLimitUsd: 10 },
   "usage.updateKey": { id, label: "x" },
   "usage.removeKey": { id },
+  "notes.list": { beneficiaryId: id },
+  "notes.add": { beneficiaryId: id, text: "Note" },
+  "notes.edit": { id, text: "Note" },
+  "notes.remove": { id },
+  "tasks.list": { filter: "mine" },
+  "tasks.dueCount": undefined,
+  "tasks.add": { beneficiaryId: id, text: "Rappeler" },
+  "tasks.update": { id, status: "done" },
+  "skills.mine": undefined,
+  "skills.updateMine": { languages: ["ar"], skills: ["interpreting"], note: null },
+  "skills.directory": {},
+  "skills.suggest": { beneficiaryId: id },
+  "skills.updateFor": { volunteerId: id, languages: [], skills: [], note: null },
   "system.health": undefined,
 };
 /** The permission each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
@@ -85,6 +98,10 @@ const REQUIRES: Record<string, Permission | null> = {
   "volunteers.setRole": "volunteers.manage", "volunteers.setDisabled": "volunteers.manage",
   "usage.summary": "usage.manage", "usage.setBudget": "usage.manage", "usage.listKeys": "usage.manage",
   "usage.addKey": "usage.manage", "usage.updateKey": "usage.manage", "usage.removeKey": "usage.manage",
+  "notes.list": "notes.view", "notes.add": "notes.write", "notes.edit": "notes.write", "notes.remove": "notes.write",
+  "tasks.list": "notes.view", "tasks.dueCount": "notes.view", "tasks.add": "notes.write", "tasks.update": "notes.write",
+  "skills.mine": "skills.edit_own", "skills.updateMine": "skills.edit_own", "skills.directory": "skills.view",
+  "skills.suggest": "skills.view", "skills.updateFor": "volunteers.manage",
 };
 const PUBLIC = new Set(["auth.login", "auth.signup", "system.health"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */

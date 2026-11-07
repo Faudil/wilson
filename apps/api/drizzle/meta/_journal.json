@@ -43,6 +43,13 @@
       "when": 1794075832891,
       "tag": "0005_perf_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794079125546,
+      "tag": "0006_case_notes_skills",
+      "breakpoints": true
     }
   ]
 }

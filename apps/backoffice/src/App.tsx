@@ -8,7 +8,7 @@ import { useI18n, type MessageKey } from "./i18n";
 import { UI_LANGUAGES } from "./i18n/core";
 import { orpc } from "./lib/api";
 import { fetchMe, ME_KEY } from "./lib/me";
-import { useAttentionCount, useLetterStats, usePendingVolunteers } from "./lib/counts";
+import { useAttentionCount, useDueTasks, useLetterStats, usePendingVolunteers } from "./lib/counts";
 import { LazyBoundary, lazyScreens, prefetchScreens } from "./lib/lazy";
 import { initials } from "./lib/relative";
 import { href, useRoute } from "./lib/router";
@@ -30,6 +30,8 @@ const { Sandbox } = lazyScreens(() => import("./screens/Sandbox"), "Sandbox");
 const { Signup } = lazyScreens(() => import("./screens/Signup"), "Signup");
 const { Volunteers } = lazyScreens(() => import("./screens/Volunteers"), "Volunteers");
 const { Usage } = lazyScreens(() => import("./screens/Usage"), "Usage");
+const { Tasks } = lazyScreens(() => import("./screens/Tasks"), "Tasks");
+const { Skills } = lazyScreens(() => import("./screens/Skills"), "Skills");
 
 function useLanguageChange() {
   const { lang, setLang } = useI18n();
@@ -103,7 +105,8 @@ function AccountSheet({ open, onClose, onLogout, volunteer }: { open: boolean; o
   );
 }
 
-type NavItem = { key: string; label: MessageKey; icon: IconName; desc?: MessageKey; permission: Permission | null; sandboxOnly?: boolean };
+/** permission: null = everyone; an array = any one of them. */
+type NavItem = { key: string; label: MessageKey; icon: IconName; desc?: MessageKey; permission: Permission | Permission[] | null; sandboxOnly?: boolean };
 
 const TABS: NavItem[] = [
   { key: "queue", label: "nav.queue", icon: "mail", permission: "letters.review" },
@@ -111,6 +114,8 @@ const TABS: NavItem[] = [
   { key: "beneficiaries", label: "nav.beneficiaries", icon: "users", permission: "beneficiaries.view" },
 ];
 const MORE: NavItem[] = [
+  { key: "tasks", label: "nav.tasks", icon: "bell", desc: "more.tasks", permission: "notes.view" },
+  { key: "skills", label: "nav.skills", icon: "sparkles", desc: "more.skills", permission: ["skills.view", "skills.edit_own"] },
   { key: "deadlines", label: "nav.deadlines", icon: "calendar", desc: "more.deadlines", permission: "documents.view_metadata" },
   { key: "knowledge", label: "nav.knowledge", icon: "book", desc: "more.knowledge", permission: "knowledge.view" },
   { key: "volunteers", label: "nav.volunteers", icon: "users", desc: "more.volunteers", permission: "volunteers.manage" },
@@ -271,6 +276,7 @@ export function App() {
   const letterStats = useLetterStats(!!session && session.can("letters.review"));
 
   const pendingVolunteers = usePendingVolunteers(!!session && session.can("volunteers.manage"));
+  const dueTasks = useDueTasks(!!session && session.can("notes.view"));
   const loggedIn = session !== null;
   useEffect(() => {
     if (loggedIn) prefetchScreens();
@@ -310,7 +316,8 @@ export function App() {
   }
 
   const sandboxOn = health.data?.mode === "sandbox";
-  const allowedItem = (n: NavItem) => (n.permission === null || session.can(n.permission)) && (!n.sandboxOnly || sandboxOn);
+  const permitted = (p: NavItem["permission"]) => p === null || (Array.isArray(p) ? p.some((x) => session.can(x)) : session.can(p));
+  const allowedItem = (n: NavItem) => permitted(n.permission) && (!n.sandboxOnly || sandboxOn);
   const tabs = TABS.filter(allowedItem);
   const moreItems = MORE.filter(allowedItem);
   const allowed = (key: string) => [...tabs, ...moreItems].some((n) => n.key === key);
@@ -328,9 +335,11 @@ export function App() {
   else if (section === "sandbox" && allowed("sandbox")) screen = <Sandbox />;
   else if (section === "volunteers" && allowed("volunteers")) screen = <Volunteers />;
   else if (section === "usage" && allowed("usage")) screen = <Usage />;
+  else if (section === "tasks" && allowed("tasks")) screen = <Tasks />;
+  else if (section === "skills" && allowed("skills")) screen = <Skills />;
   else screen = <Home />;
 
-  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters", "volunteers", "usage"];
+  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters", "volunteers", "usage", "tasks", "skills"];
   const current = section === "letters" ? "queue" : known.includes(section) ? section : "";
   const focus = (section === "letters" || section === "conversations") && !!arg;
 
@@ -347,10 +356,10 @@ export function App() {
               more={moreItems.length > 0}
               current={current}
               badges={{ queue: letterStats.pending, conversations: attention }}
-              moreBadge={pendingVolunteers}
+              moreBadge={pendingVolunteers + dueTasks}
               onMore={() => setMoreOpen(true)}
             />
-            <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} badges={{ volunteers: pendingVolunteers }} />
+            <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} badges={{ volunteers: pendingVolunteers, tasks: dueTasks }} />
           </>
         }
       >

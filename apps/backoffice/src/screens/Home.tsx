@@ -1,7 +1,7 @@
 import { useI18n, type MessageKey } from "../i18n";
 import { Icon, type IconName } from "../components/Icon";
 import { Empty, Skeleton } from "../components/ui";
-import { useAttentionCount, useLetterStats, usePendingVolunteers, useWeekDeadlines } from "../lib/counts";
+import { useAttentionCount, useDueTasks, useLetterStats, usePendingVolunteers, useWeekDeadlines } from "../lib/counts";
 import { BudgetNotice, useUsageBudget } from "../components/BudgetNotice";
 import { firstName, longDate } from "../lib/relative";
 import { href } from "../lib/router";
@@ -61,11 +61,13 @@ export function Home() {
   const canVolunteers = can("volunteers.manage");
   const signups = usePendingVolunteers(canVolunteers);
   const budget = useUsageBudget(can("usage.manage"));
+  const canTasks = can("notes.view");
+  const dueTasks = useDueTasks(canTasks);
 
   const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/Paris" }).format(new Date())) % 24;
   const greetKey: MessageKey = hour < 12 ? "home.morning" : hour < 18 ? "home.afternoon" : "home.evening";
   const loading = (canLetters && letters.query.isPending) || (canDeadlines && deadlines.query.isPending);
-  const nothing = !loading && (!canLetters || letters.pending === 0) && (!canChats || chats === 0) && (!canDeadlines || deadlines.count === 0);
+  const nothing = !loading && (!canLetters || letters.pending === 0) && (!canChats || chats === 0) && (!canDeadlines || deadlines.count === 0) && dueTasks === 0;
 
   return (
     <section className="stack-lg">
@@ -81,6 +83,9 @@ export function Home() {
       {!loading && (
         <>
           <div className="tiles">
+            {canTasks && dueTasks > 0 && (
+              <Tile to={href("tasks")} icon="bell" tone="brand" count={dueTasks} loading={false} title={t("home.tasks.title")} desc={t("home.tasks.desc")} />
+            )}
             {canLetters && (
               <Tile
                 to={href("queue")}
