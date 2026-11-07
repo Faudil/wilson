@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { contract } from "@wilson/contracts";
-import { accessLog, sessions, volunteerPermissions, volunteers } from "../src/db/schema.js";
+import { accessLog, beneficiaries, sessions, volunteerPermissions, volunteers } from "../src/db/schema.js";
 import { seed } from "../src/db/seed.js";
 import { router } from "../src/rpc/router.js";
 import { createHttpServer } from "../src/server.js";
@@ -167,6 +167,27 @@ describe("rpc: documents & beneficiaries", () => {
       cursor = page.nextCursor ?? undefined;
     } while (cursor);
     expect(seen.size).toBeGreaterThanOrEqual(4);
+  });
+
+  it("paginates beneficiaries created within the same millisecond (Postgres keeps microseconds)", async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 5; i++) ids.push((await t.services.beneficiaries.findOrCreateByWaId(`3360000020${i}`)).beneficiary.id);
+    // Same millisecond, different microseconds: a cursor rounded to the millisecond used to skip some of them.
+    for (const [i, id] of ids.entries()) {
+      await t.deps.db.update(beneficiaries).set({ createdAt: sql`${`2030-01-01 00:00:00.123${i}00+00`}::timestamptz` }).where(eq(beneficiaries.id, id));
+    }
+    const v = await createVolunteer(t.deps);
+    const { client } = makeClient(t.deps);
+    await client.auth.login({ email: v.email, password: v.password });
+    const seen: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await client.beneficiaries.list({ limit: 2, cursor });
+      seen.push(...page.items.map((i) => i.id));
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor);
+    expect(new Set(seen).size).toBe(seen.length);
+    for (const id of ids) expect(seen).toContain(id);
   });
 
   it("system.health is public", async () => {

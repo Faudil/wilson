@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import { and, count, desc, eq, inArray, isNull, lt, min, or } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, lt, min, or, sql } from "drizzle-orm";
 import type { LetterSummary } from "@wilson/contracts";
 import { beneficiaries as bTable, documents as dTable, letters as lTable } from "../db/schema.js";
 import { maskedLabel } from "../beneficiaries/serviceImpl.js";
@@ -43,12 +43,15 @@ export const beneficiariesRouter = {
     const digits = input.search?.replace(/\D/g, "");
     if (digits) conds.push(eq(bTable.waIdLast2, digits.slice(-2)));
     const cur = input.cursor ? decodeCursor(input.cursor) : null;
-    if (cur) conds.push(or(lt(bTable.createdAt, cur.at), and(eq(bTable.createdAt, cur.at), lt(bTable.id, cur.id)))!);
+    // Postgres keeps microseconds, the cursor (a JS Date) only milliseconds: sort and compare at millisecond precision,
+    // or rows created within the same millisecond as the last one of a page are skipped.
+    const createdMs = sql`date_trunc('milliseconds', ${bTable.createdAt})`;
+    if (cur) conds.push(or(sql`${createdMs} < ${cur.at}`, and(sql`${createdMs} = ${cur.at}`, lt(bTable.id, cur.id)))!);
     const rows = await deps.db
       .select()
       .from(bTable)
       .where(and(...conds))
-      .orderBy(desc(bTable.createdAt), desc(bTable.id))
+      .orderBy(desc(createdMs), desc(bTable.id))
       .limit(input.limit + 1);
     const page = rows.slice(0, input.limit);
     return { items: await summaries(deps, page), nextCursor: rows.length > input.limit ? encodeCursor(page[page.length - 1]!) : null };
