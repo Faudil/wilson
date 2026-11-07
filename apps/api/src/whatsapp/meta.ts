@@ -1,6 +1,43 @@
-import type { LanguageCode } from "@wilson/contracts";
+import { isRtl, type LanguageCode } from "@wilson/contracts";
+import { isolate } from "@wilson/i18n";
 import type { Config } from "../config.js";
+import { META_TEMPLATE_LANGUAGE, templateLanguageFor } from "./templates.js";
 import type { WhatsAppTransport } from "./transport.js";
+
+/** WhatsApp text messages are capped at 4096 characters. */
+export const MAX_TEXT = 4096;
+
+/** Split a long message on paragraph, then line, then word boundaries so each part fits in one WhatsApp message. */
+export function splitText(body: string, max = MAX_TEXT): string[] {
+  if (body.length <= max) return [body];
+  const parts: string[] = [];
+  let rest = body;
+  while (rest.length > max) {
+    const window = rest.slice(0, max);
+    let cut = window.lastIndexOf("\n\n");
+    if (cut < max / 2) cut = window.lastIndexOf("\n");
+    if (cut < max / 2) cut = window.lastIndexOf(" ");
+    if (cut <= 0) cut = max;
+    parts.push(rest.slice(0, cut).trimEnd());
+    rest = rest.slice(cut).trimStart();
+  }
+  if (rest) parts.push(rest);
+  return parts;
+}
+
+/** Meta rejects template parameters that are empty or contain newlines, tabs or more than 4 consecutive spaces. */
+export function templateParam(text: string, rtl: boolean): string {
+  const clean = text.replace(/[\n\r\t]+/g, " ").replace(/ {2,}/g, " ").trim() || "-";
+  return rtl ? isolate(clean) : clean;
+}
+
+/** Graph error codes we act on. */
+export const META_ERRORS = {
+  /** More than 24 h since the person's last message: only a template may be sent. */
+  reEngagement: 131047,
+  /** Template not available in this language. */
+  templateLanguage: 132001,
+} as const;
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -53,27 +90,41 @@ export class MetaTransport implements WhatsAppTransport {
     return { waMessageId: id };
   }
 
-  sendText(to: string, body: string): Promise<{ waMessageId: string }> {
-    return this.postMessage({ to, type: "text", text: { body, preview_url: false } });
+  /** Long texts are sent as several messages, in order; the id of the last one is returned. */
+  async sendText(to: string, body: string): Promise<{ waMessageId: string }> {
+    let last: { waMessageId: string } | null = null;
+    for (const part of splitText(body)) last = await this.postMessage({ to, type: "text", text: { body: part, preview_url: false } });
+    return last!;
   }
 
   async sendTemplate(to: string, template: string, language: LanguageCode, params: string[]): Promise<{ waMessageId: string }> {
-    const build = (lang: string) => ({
+    const build = (lang: LanguageCode) => ({
       to,
       type: "template",
       template: {
         name: template,
-        language: { code: lang },
-        ...(params.length ? { components: [{ type: "body", parameters: params.map((text) => ({ type: "text", text })) }] } : {}),
+        language: { code: META_TEMPLATE_LANGUAGE[lang]! },
+        ...(params.length ? { components: [{ type: "body", parameters: params.map((p) => ({ type: "text", text: templateParam(p, isRtl(lang)) })) }] } : {}),
       },
     });
+    const lang = templateLanguageFor(language);
     try {
-      return await this.postMessage(build(language));
+      return await this.postMessage(build(lang));
     } catch (e) {
-      // 132001: template not translated in this language -> fall back to French (always approved first).
-      if (e instanceof MetaApiError && e.metaCode === 132001 && language !== "fr") return this.postMessage(build("fr"));
+      // Not (yet) approved in this language -> French, which is always submitted and approved first.
+      if (e instanceof MetaApiError && e.metaCode === META_ERRORS.templateLanguage && lang !== "fr") return this.postMessage(build("fr"));
       throw e;
     }
+  }
+
+  /** Blue ticks on the person's message, so they see it arrived while the answer is being prepared. Best effort. */
+  async markRead(waMessageId: string): Promise<void> {
+    const res = await this.fetchImpl(`${this.base}/${this.config.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({ messaging_product: "whatsapp", status: "read", message_id: waMessageId }),
+    });
+    if (!res.ok) return this.fail(res, "mark read");
   }
 
   async downloadMedia(mediaId: string): Promise<{ bytes: Buffer; mimeType: string }> {

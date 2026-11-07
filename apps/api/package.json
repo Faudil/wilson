@@ -11,7 +11,8 @@
     "db:generate": "bun --bun drizzle-kit generate",
     "db:migrate": "bun src/db/migrate.ts",
     "seed": "bun src/db/seed.ts",
-    "knowledge:sync": "bun src/knowledge/cli.ts"
+    "knowledge:sync": "bun src/knowledge/cli.ts",
+    "wa:setup": "bun src/whatsapp/setupCli.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.6.0",

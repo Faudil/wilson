@@ -11,6 +11,7 @@ import { adoptServices } from "../src/services.js";
 import type { WaDeps } from "../src/whatsapp/context.js";
 import { SandboxTransport, putSandboxMedia } from "../src/whatsapp/sandbox.js";
 import type { WhatsAppTransport } from "../src/whatsapp/transport.js";
+import { MetaApiError } from "../src/whatsapp/meta.js";
 import { registerWhatsAppWorkers } from "../src/whatsapp/workers.js";
 import { createVolunteer, makeTestDeps, PNG_BYTES, type TestCtx } from "./helpers.js";
 
@@ -68,7 +69,15 @@ export class FakeMeta implements WhatsAppTransport {
   readonly mode = "meta" as const;
   texts: { to: string; body: string }[] = [];
   templates: { to: string; template: string; params: string[] }[] = [];
+  /** Meta error code the next sendText fails with (e.g. 131047, window closed on Meta's side). */
+  failNextText: number | null = null;
+  read: string[] = [];
   async sendText(to: string, body: string) {
+    if (this.failNextText) {
+      const code = this.failNextText;
+      this.failNextText = null;
+      throw new MetaApiError(`send message failed: code ${code}`, 400, code);
+    }
     this.texts.push({ to, body });
     return { waMessageId: `wamid.out.${randomUUID()}` };
   }
@@ -78,6 +87,9 @@ export class FakeMeta implements WhatsAppTransport {
   }
   async downloadMedia() {
     return { bytes: PNG_BYTES, mimeType: "image/png" };
+  }
+  async markRead(id: string) {
+    this.read.push(id);
   }
 }
 

@@ -87,7 +87,7 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 ```
 - Menu 2 also lists saved documents with their expiry dates, and lets the user delete one.
 - Reminders are fixed i18n templates (no LLM), so they are sent without review.
-- **24 h window:** outside WhatsApp's customer-service window, the API sends a Meta-approved *utility template* instead of free text: `explanation_ready` ("your explanation is ready, reply OK to receive it"; the reviewed text is sent when they reply) and `document_reminder` (type + written-out date). Template names/languages are configured in env; the sandbox ignores the window.
+- **24 h window:** outside WhatsApp's customer-service window, the API sends a Meta-approved *utility template* instead of free text: `explanation_ready` ("your explanation is ready, reply OK to receive it"; the reviewed text is sent when they reply) and `document_reminder` (type + written-out date). Template names are configured in env; their texts (16 languages Meta supports, with a fallback language for the others) live in `apps/api/src/whatsapp/templates.ts` and are submitted with `wa:setup templates`. A "Receive" quick-reply button on `explanation_ready` releases the waiting message. If Meta still answers 131047 (window closed) to a free-form send, the sender falls back to the template instead of retrying. The sandbox ignores the window. Real-number setup: `docs/whatsapp-setup.md`.
 - Reminders whose date is already past at save time are skipped; an already-expired document triggers an immediate "expired, contact the association" message.
 
 ## 5. Data model (PostgreSQL, Drizzle)

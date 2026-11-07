@@ -18,17 +18,33 @@ const DocumentMsg = z.object({
 const InteractiveMsg = z.object({
   type: z.literal("interactive"),
   interactive: z.object({
-    type: z.enum(["button_reply", "list_reply"]),
+    type: z.string(), // button_reply | list_reply (others, e.g. nfm_reply, carry neither and are ignored)
     button_reply: z.object({ id: z.string(), title: z.string() }).optional(),
     list_reply: z.object({ id: z.string(), title: z.string() }).optional(),
   }),
 });
-const OtherMsg = z.object({ type: z.enum(["audio", "video", "sticker", "location", "contacts", "reaction", "unsupported"]) });
+/** Tap on a quick-reply button of a template message (e.g. "Recevoir" on explanation_ready). */
+const ButtonMsg = z.object({ type: z.literal("button"), button: z.object({ text: z.string(), payload: z.string().optional() }) });
+const OTHER_TYPES = ["audio", "video", "sticker", "location", "contacts", "reaction", "unsupported"] as const;
+const OtherMsg = z.object({ type: z.enum(OTHER_TYPES) });
 
-export const WaInboundMessageSchema = z
+const StrictInbound = z
   .object({ id: z.string(), from: z.string(), timestamp: z.string() })
-  .and(z.discriminatedUnion("type", [TextMsg, ImageMsg, DocumentMsg, InteractiveMsg, OtherMsg]));
+  .and(z.discriminatedUnion("type", [TextMsg, ImageMsg, DocumentMsg, InteractiveMsg, ButtonMsg, OtherMsg]));
+
+/**
+ * Meta adds message types over time (order, system, request_welcome…). One unknown or odd message must not make the
+ * whole webhook payload fail validation (its other messages and statuses would be lost), so anything that does not
+ * match a known shape becomes `type: "unsupported"` with its id/from/timestamp kept.
+ */
+export const WaInboundMessageSchema = z.preprocess((raw) => {
+  if (!raw || typeof raw !== "object" || StrictInbound.safeParse(raw).success) return raw;
+  const m = raw as Record<string, unknown>;
+  return { id: m.id, from: m.from, timestamp: m.timestamp, type: "unsupported" };
+}, StrictInbound);
 export type WaInboundMessage = z.infer<typeof WaInboundMessageSchema>;
+
+const STATUS_VALUES = ["sent", "delivered", "read", "failed"] as const;
 
 export const WaWebhookSchema = z.object({
   object: z.literal("whatsapp_business_account"),
@@ -43,7 +59,13 @@ export const WaWebhookSchema = z.object({
             metadata: z.object({ phone_number_id: z.string() }).passthrough(),
             messages: z.array(WaInboundMessageSchema).optional(),
             statuses: z
-              .array(z.object({ id: z.string(), status: z.enum(["sent", "delivered", "read", "failed"]), recipient_id: z.string() }).passthrough())
+              .array(z.object({
+                id: z.string(),
+                // Unknown statuses (e.g. "deleted", "warning") are kept as null and skipped, not fatal.
+                status: z.enum(STATUS_VALUES).nullable().catch(null),
+                recipient_id: z.string(),
+                errors: z.array(z.object({ code: z.number(), title: z.string().optional() }).passthrough()).optional(),
+              }).passthrough())
               .optional(),
           }).passthrough(),
         }),
