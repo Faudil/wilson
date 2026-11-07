@@ -1,5 +1,6 @@
 import { os } from "./base.js";
 import { authRouter } from "./auth.js";
+import { buddiesRouter } from "./buddies.js";
 import { beneficiariesRouter } from "./beneficiaries.js";
 import { conversationsRouter } from "./conversations.js";
 import { documentsRouter } from "./documents.js";
@@ -30,5 +31,6 @@ export const router = os.router({
   skills: skillsRouter,
   places: placesRouter,
   broadcasts: broadcastsRouter,
+  buddies: buddiesRouter,
 });
 export type AppRouter = typeof router;

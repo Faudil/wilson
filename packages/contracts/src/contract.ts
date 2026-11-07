@@ -13,6 +13,10 @@ import { LetterDetailSchema, LetterEditSchema, LetterStatusSchema, LetterSummary
 import { SandboxMessageSchema, SandboxPhoneSchema, SandboxSendInputSchema } from "./sandbox.js";
 import { CaseFileSchema, CaseNoteSchema, CaseTaskSchema, NoteTextSchema, TaskAddSchema, TaskListInputSchema, TaskUpdateSchema } from "./notes.js";
 import { DirectoryEntrySchema, SkillsInputSchema, SuggestionSchema, VolunteerSkillSchema, VolunteerSkillsSchema } from "./skills.js";
+import {
+  BuddyCandidateSchema, BuddyMatchDetailSchema, BuddyMatchSchema, BuddyMatchStatusSchema, BuddyProfileSchema, BuddyProposeInputSchema,
+  BuddyReportSchema, BuddyRequestSchema,
+} from "./buddies.js";
 import { ApiKeyAddSchema, ApiKeyListSchema, ApiKeySchema, ApiKeyUpdateSchema, UsageBudgetSchema, UsageSetBudgetSchema, UsageSummarySchema } from "./usage.js";
 
 /**
@@ -222,9 +226,44 @@ const skills = {
   updateFor: base.input(SkillsInputSchema.extend({ volunteerId: IdSchema })).output(VolunteerSkillsSchema),
 };
 
+/**
+ * French practice buddies. Each procedure names its permission; "own" = the caller is the pairing's volunteer.
+ * be_buddy: profile, open requests (anonymised), propose oneself, own pairings (detail with messages, message, skip a
+ * session, end, report, see the number only if the beneficiary agreed). manage: every request and pairing, candidates,
+ * propose anyone, end any pairing (no messages, no numbers). reports: reports + the reported pairing's messages.
+ */
+const buddies = {
+  myProfile: base.output(BuddyProfileSchema.nullable()),
+  saveProfile: base.input(BuddyProfileSchema).output(BuddyProfileSchema),
+  /** Waiting requests, oldest first. */
+  requests: base.output(z.array(BuddyRequestSchema)),
+  candidates: base.input(z.object({ requestId: IdSchema })).output(z.array(BuddyCandidateSchema)),
+  /** Sends the proposal to the beneficiary on WhatsApp. CONFLICT: request not waiting, already proposed, volunteer full / not a buddy. */
+  propose: base.input(BuddyProposeInputSchema).output(BuddyMatchSchema),
+  /** The caller's own pairings (proposed, active, suspended), then the 20 most recent ended ones. */
+  mine: base.output(z.array(BuddyMatchSchema)),
+  all: base.input(z.object({ status: BuddyMatchStatusSchema.optional() })).output(z.array(BuddyMatchSchema)),
+  get: base.input(z.object({ id: IdSchema })).output(BuddyMatchDetailSchema),
+  /** Own pairing only; relayed on WhatsApp with the buddy's first name. Active pairings only. */
+  sendMessage: base.input(z.object({ matchId: IdSchema, text: z.string().trim().min(1).max(1000) })).output(BuddyMatchDetailSchema),
+  /** Cancel one upcoming session (own pairing); the beneficiary is told. */
+  skipSession: base.input(z.object({ sessionId: IdSchema })).output(BuddyMatchDetailSchema),
+  end: base.input(z.object({ matchId: IdSchema })).output(BuddyMatchSchema),
+  /** Own pairing; FORBIDDEN unless the beneficiary agreed and the pairing is active. Logged. */
+  contact: base.input(z.object({ matchId: IdSchema })).output(z.object({ phone: z.string() })),
+  /** Own pairing: report a problem. The pairing is paused at once. */
+  report: base.input(z.object({ matchId: IdSchema, text: z.string().trim().min(3).max(2000) })).output(BuddyMatchSchema),
+  reports: base.input(z.object({ status: z.enum(["open", "closed"]).default("open") })).output(z.array(BuddyReportSchema)),
+  resolveReport: base
+    .input(z.object({ id: IdSchema, action: z.enum(["resume", "end"]), note: z.string().trim().max(500).optional() }))
+    .output(BuddyReportSchema),
+  /** Counts for the navigation badge (zeros for what the caller may not see). */
+  counts: base.output(z.object({ waiting: z.number().int(), openReports: z.number().int() })),
+};
+
 const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, places, broadcasts, system };
+export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, places, broadcasts, buddies, system };
 export type Contract = typeof contract;

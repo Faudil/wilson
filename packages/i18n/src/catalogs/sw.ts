@@ -6,7 +6,7 @@ export const sw: Record<WaKey, string> = {
   language_menu: LANGUAGE_MENU,
   language_set: "Lugha uliyochagua: {language}.",
   welcome: "Karibu! Ninakusaidia kuelewa barua rasmi unazopokea Ufaransa. Nitumie picha ya barua yako.",
-  main_menu: "Unataka kufanya nini?\n1 - Nieleze barua\n2 - Hati zangu\n3 - Kubadilisha lugha\n4 - Kuuliza swali\n5 - Kulala, kula, kuoga\n6 - Matangazo\n0 - Kuzungumza na mtu\n9 - Kufuta data yangu\nJibu kwa namba.",
+  main_menu: "Unataka kufanya nini?\n1 - Nieleze barua\n2 - Hati zangu\n3 - Kubadilisha lugha\n4 - Kuuliza swali\n5 - Kulala, kula, kuoga\n6 - Matangazo\n7 - Kufanya mazoezi ya Kifaransa\n0 - Kuzungumza na mtu\n9 - Kufuta data yangu\nJibu kwa namba.",
   not_understood: "Samahani, sikuelewa. Jibu kwa namba ya menyu.",
   human_contact: "Kuzungumza na mtu: {name}, {contact}.",
   letter_ask_photo: "Tuma picha safi ya barua. Iweke tambarare, penye mwanga, pembe zote zionekane.",

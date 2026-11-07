@@ -33,13 +33,14 @@ import { bm } from "./catalogs/bm.js";
 import { ln } from "./catalogs/ln.js";
 import { sw } from "./catalogs/sw.js";
 import { formatDate, normaliseDigits, utcDate } from "./dates.js";
+import { buddyTemplate, isRawBuddyParam, type BuddyKey } from "./buddy/index.js";
 
 /** Every WhatsApp message the bot can send. Each key exists in all 28 catalogs (test-enforced). */
 export type WaKey =
   | "language_menu" // numbered list of languages in native scripts (same text in every catalog)
   | "language_set" // {language}
   | "welcome"
-  | "main_menu" // 1 letter · 2 documents · 3 language · 4 ask a question · 5 sleep/eat/wash today · 6 announcements · 0 human · 9 delete my data
+  | "main_menu" // 1 letter · 2 documents · 3 language · 4 ask a question · 5 sleep/eat/wash today · 6 announcements · 7 practise French · 0 human · 9 delete my data
   | "not_understood"
   | "human_contact" // {name} {contact}
   | "letter_ask_photo"
@@ -132,8 +133,8 @@ function rtlLines(text: string): string {
 /** Params that are already localised catalog text (not user data): not isolated. */
 const RAW_PARAMS = new Set(["relative"]);
 
-function fill(template: string, params: Params): string {
-  return template.replace(/\{(\w+)\}/g, (whole, k: string) => (k in params ? (typeof params[k] === "number" || RAW_PARAMS.has(k) ? String(params[k]) : isolate(String(params[k]))) : whole));
+function fill(template: string, params: Params, raw: (k: string) => boolean = (k) => RAW_PARAMS.has(k)): string {
+  return template.replace(/\{(\w+)\}/g, (whole, k: string) => (k in params ? (typeof params[k] === "number" || raw(k) ? String(params[k]) : isolate(String(params[k]))) : whole));
 }
 
 function renderKey(lang: LanguageCode, key: WaKey, params: Params = {}): string {
@@ -144,6 +145,19 @@ function renderKey(lang: LanguageCode, key: WaKey, params: Params = {}): string 
 export function waText(lang: LanguageCode, key: WaKey, params: Params = {}): string {
   const out = renderKey(lang, key, params);
   return isRtl(lang) && key !== "language_menu" ? rtlLines(out) : out;
+}
+
+export { BUDDY_CATALOGS, type BuddyKey } from "./buddy/index.js";
+
+/** Render a French-practice-buddies message (same rules as waText). `how` is catalog text and is not isolated. */
+export function buddyText(lang: LanguageCode, key: BuddyKey, params: Params = {}): string {
+  const out = fill(buddyTemplate(lang, key), params, isRawBuddyParam);
+  return isRtl(lang) ? rtlLines(out) : out;
+}
+
+/** "By phone call." / "Meeting place: …", to pass as the `how` param of buddy_proposal and buddy_reminder. */
+export function buddyHow(lang: LanguageCode, mode: "call" | "meet", place: string | null): string {
+  return mode === "call" ? buddyTemplate(lang, "buddy_how_call") : fill(buddyTemplate(lang, "buddy_how_meet"), { place: place || "—" });
 }
 
 /** Lowercase, accent-insensitive key ("Français" -> "francais"). */

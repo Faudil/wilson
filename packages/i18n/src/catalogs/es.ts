@@ -6,7 +6,7 @@ export const es: Record<WaKey, string> = {
   language_menu: LANGUAGE_MENU,
   language_set: "Idioma elegido: {language}.",
   welcome: "¡Hola! Le ayudo a entender las cartas oficiales que recibe en Francia. Envíeme una foto de su carta.",
-  main_menu: "¿Qué quiere hacer?\n1 - Explicar una carta\n2 - Mis documentos\n3 - Cambiar de idioma\n4 - Hacer una pregunta\n5 - Dormir, comer, ducharse\n6 - Anuncios\n0 - Hablar con una persona\n9 - Borrar mis datos\nResponda con un número.",
+  main_menu: "¿Qué quiere hacer?\n1 - Explicar una carta\n2 - Mis documentos\n3 - Cambiar de idioma\n4 - Hacer una pregunta\n5 - Dormir, comer, ducharse\n6 - Anuncios\n7 - Practicar francés\n0 - Hablar con una persona\n9 - Borrar mis datos\nResponda con un número.",
   not_understood: "Lo siento, no he entendido. Responda con un número del menú.",
   human_contact: "Para hablar con una persona: {name}, {contact}.",
   letter_ask_photo: "Envíe una foto clara de su carta. Póngala plana, con buena luz y con todas las esquinas visibles.",
