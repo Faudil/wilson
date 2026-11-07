@@ -24,6 +24,7 @@ export const ConversationStatusSchema = z.enum([
   "bot", // nothing waiting for a volunteer
   "pending_review", // at least one bot draft waiting
   "needs_human", // handoff requested or legal/urgent detected
+  "with_volunteer", // a volunteer took the conversation over: the bot stays silent until it is closed
   "resolved", // a volunteer closed the handoff
 ]);
 
@@ -52,7 +53,12 @@ export const ConversationSummarySchema = z.object({
   /** Last beneficiary message, French version when available. */
   lastPreview: z.string().nullable(),
   pendingDrafts: z.number().int(),
+  /** Volunteer who took the conversation over (status with_volunteer), else null. */
+  assignee: z.object({ id: IdSchema, name: z.string() }).nullable(),
+  /** The beneficiary wrote last and nobody (bot or volunteer) has answered since. */
+  awaitingReply: z.boolean(),
 });
+export type ConversationSummary = z.infer<typeof ConversationSummarySchema>;
 
 export const ConversationDetailSchema = ConversationSummarySchema.extend({
   messages: z.array(ChatMessageSchema),

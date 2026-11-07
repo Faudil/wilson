@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { IdSchema } from "./common.js";
+import { IdSchema, TimestampSchema } from "./common.js";
 import { LanguageSchema } from "./languages.js";
 
 /**
@@ -24,7 +24,11 @@ export const PermissionSchema = z.enum([
 ]);
 export type Permission = z.infer<typeof PermissionSchema>;
 
-export const VolunteerRoleSchema = z.enum(["volunteer", "admin"]);
+/**
+ * responder: answers beneficiaries in Conversations only (no letters, documents or files). Default for self-signups.
+ * volunteer: full volunteer bundle (letters, documents, conversations). admin: + volunteers, audit, knowledge sync.
+ */
+export const VolunteerRoleSchema = z.enum(["responder", "volunteer", "admin"]);
 export type VolunteerRole = z.infer<typeof VolunteerRoleSchema>;
 
 const VOLUNTEER: Permission[] = [
@@ -40,7 +44,9 @@ const VOLUNTEER: Permission[] = [
   "conversations.view",
   "conversations.reply",
 ];
+const RESPONDER: Permission[] = ["conversations.view", "conversations.reply", "knowledge.view"];
 export const ROLE_PERMISSIONS: Record<VolunteerRole, readonly Permission[]> = {
+  responder: RESPONDER,
   volunteer: VOLUNTEER,
   admin: [...VOLUNTEER, "volunteers.manage", "audit.view", "knowledge.manage"],
 };
@@ -60,3 +66,34 @@ export const LoginInputSchema = z.object({
   email: z.email(),
   password: z.string().min(8).max(200),
 });
+
+/** Public self-signup. The account stays inactive (cannot log in) until an admin approves it. */
+export const SignupInputSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  email: z.email().max(200),
+  password: z.string().min(10).max(200),
+  uiLanguage: LanguageSchema,
+  /** "How would you like to help?" — read by the admin who approves. */
+  note: z.string().trim().max(500).optional(),
+  /** Must be true: the person accepts the confidentiality commitment shown on the form. */
+  acceptsConfidentiality: z.literal(true),
+});
+export type SignupInput = z.infer<typeof SignupInputSchema>;
+
+export const VolunteerAccountStatusSchema = z.enum(["pending", "active", "disabled"]);
+export type VolunteerAccountStatus = z.infer<typeof VolunteerAccountStatusSchema>;
+
+/** Admin view of an account (Bénévoles screen). */
+export const VolunteerAccountSchema = z.object({
+  id: IdSchema,
+  name: z.string(),
+  email: z.email(),
+  role: VolunteerRoleSchema,
+  status: VolunteerAccountStatusSchema,
+  uiLanguage: LanguageSchema,
+  note: z.string().nullable(),
+  createdAt: TimestampSchema,
+  approvedAt: TimestampSchema.nullable(),
+  approvedByName: z.string().nullable(),
+});
+export type VolunteerAccount = z.infer<typeof VolunteerAccountSchema>;

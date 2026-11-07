@@ -1,4 +1,4 @@
-import { LANGUAGES, type ChatIntent, type ChatMessage } from "@wilson/contracts";
+import { LANGUAGES, type ChatIntent, type ChatMessage, type ConversationSummary } from "@wilson/contracts";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Chip, LangBadge } from "../components/badges";
@@ -12,13 +12,14 @@ import { useSession } from "../lib/session";
 import { formatDateTime } from "../lib/wilson-i18n";
 import { relativeTime } from "../lib/relative";
 
-type Status = "bot" | "pending_review" | "needs_human" | "resolved";
-type Filter = "attention" | "all";
+type Status = ConversationSummary["status"];
+type Filter = "attention" | "mine" | "all";
 
 const CHAT_VIEW: Record<Status, { tone: "ok" | "warn" | "urgent" | "info" | "muted"; icon: IconName }> = {
   bot: { tone: "info", icon: "bot" },
   pending_review: { tone: "warn", icon: "eye" },
   needs_human: { tone: "urgent", icon: "hand" },
+  with_volunteer: { tone: "ok", icon: "user" },
   resolved: { tone: "ok", icon: "checkCircle" },
 };
 
@@ -32,7 +33,7 @@ export function StatusChip({ status }: { status: Status }) {
   );
 }
 
-/** Number of conversations waiting for a volunteer (needs_human or pending_review), for the nav badge. */
+/** Conversations waiting for a volunteer (needs_human, pending_review, or held by a volunteer with an unanswered message). */
 export function useAttentionCount(enabled: boolean): number {
   const q = useQuery({
     ...orpc.conversations.list.queryOptions({ input: { filter: "attention", limit: 100 } }),
@@ -45,6 +46,7 @@ export function useAttentionCount(enabled: boolean): number {
 
 export function ConversationList() {
   const { t, lang } = useI18n();
+  const { volunteer: me } = useSession();
   const [filter, setFilter] = useState<Filter>("attention");
   const query = useInfiniteQuery(
     orpc.conversations.list.infiniteOptions({
@@ -62,19 +64,19 @@ export function ConversationList() {
         label={t("conv.filter")}
         value={filter}
         onChange={setFilter}
-        options={(["attention", "all"] as Filter[]).map((f) => ({ value: f, label: t(`conv.filter.${f}` as MessageKey) }))}
+        options={(["attention", "mine", "all"] as Filter[]).map((f) => ({ value: f, label: t(`conv.filter.${f}` as MessageKey) }))}
       />
       {query.isPending && <Skeleton lines={3} />}
       {query.isError && <ErrorBox error={query.error} retry={() => void query.refetch()} />}
       {query.isSuccess && items.length === 0 && (
-        <Empty art="chat" sub={filter === "attention" ? t("conv.empty.attention.sub") : undefined}>
+        <Empty art="chat" sub={filter === "attention" ? t("conv.empty.attention.sub") : filter === "mine" ? t("conv.empty.mine.sub") : undefined}>
           {t(`conv.empty.${filter}` as MessageKey)}
         </Empty>
       )}
       <ul className="cards">
         {items.map((c) => (
           <li key={c.beneficiaryId}>
-            <a className={`card card-link${c.status === "needs_human" ? " is-urgent" : c.status === "pending_review" ? " is-attention" : ""}`} href={href("conversations", c.beneficiaryId)}>
+            <a className={`card card-link${c.status === "needs_human" ? " is-urgent" : c.status === "pending_review" || (c.status === "with_volunteer" && c.awaitingReply) ? " is-attention" : ""}`} href={href("conversations", c.beneficiaryId)}>
               <div className="card-top">
                 <span className="card-kicker">
                   <Icon name="chat" size={16} />
@@ -93,6 +95,16 @@ export function ConversationList() {
               </p>
               <div className="chips">
                 <StatusChip status={c.status} />
+                {c.assignee && (
+                  <Chip tone="muted" icon="user">
+                    {t("conv.assignee", { name: c.assignee.id === me.id ? t("vol.you") : c.assignee.name })}
+                  </Chip>
+                )}
+                {c.awaitingReply && c.status === "with_volunteer" && (
+                  <Chip tone="warn" icon="clock">
+                    {t("conv.awaiting")}
+                  </Chip>
+                )}
                 {c.pendingDrafts > 0 && (
                   <Chip tone="warn" icon="edit">
                     {t("conv.drafts", { n: c.pendingDrafts })}
@@ -213,6 +225,7 @@ export function ConversationDetail({ id }: { id: string }) {
   const toast = useToast();
   const [text, setText] = useState("");
   const query = useQuery({ ...orpc.conversations.get.queryOptions({ input: { beneficiaryId: id } }), refetchInterval: 10_000 });
+  const c = query.data;
   const done = () => {
     void qc.invalidateQueries({ queryKey: orpc.conversations.key() });
   };
@@ -240,15 +253,26 @@ export function ConversationDetail({ id }: { id: string }) {
   });
   const resolve = useMutation({
     ...orpc.conversations.resolve.mutationOptions(),
-    onSuccess: () => {
-      toast(t("conv.resolvedToast"));
+    onSuccess: (d) => {
+      toast(c?.status === "with_volunteer" ? t("conv.handedBackToast") : t("conv.resolvedToast"));
+      qc.setQueryData(orpc.conversations.get.queryKey({ input: { beneficiaryId: id } }), d);
       done();
     },
   });
+  const takeOver = useMutation({
+    ...orpc.conversations.takeOver.mutationOptions(),
+    onSuccess: (d) => {
+      toast(t("conv.takenToast"));
+      qc.setQueryData(orpc.conversations.get.queryKey({ input: { beneficiaryId: id } }), d);
+      done();
+    },
+    onError: () => void query.refetch(),
+  });
   const canAct = session.can("conversations.reply");
-  const busy = approve.isPending || reject.isPending || reply.isPending || resolve.isPending;
-  const error = approve.error ?? reject.error ?? reply.error ?? resolve.error;
-  const c = query.data;
+  const busy = approve.isPending || reject.isPending || reply.isPending || resolve.isPending || takeOver.isPending;
+  const error = approve.error ?? reject.error ?? reply.error ?? resolve.error ?? takeOver.error;
+  const conflictText = takeOver.error ? t("conv.assignedConflict") : t("conv.conflict");
+  const mine = c?.assignee?.id === session.volunteer.id;
   const count = c?.messages.length ?? 0;
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -279,9 +303,11 @@ export function ConversationDetail({ id }: { id: string }) {
                 <StatusChip status={c.status} />
               </div>
             </div>
-            <a className="icon-btn" href={href("beneficiaries", c.beneficiaryId)} aria-label={t("nav.beneficiaries")}>
-              <Icon name="users" />
-            </a>
+            {session.can("beneficiaries.view") && (
+              <a className="icon-btn" href={href("beneficiaries", c.beneficiaryId)} aria-label={t("nav.beneficiaries")}>
+                <Icon name="users" />
+              </a>
+            )}
           </header>
 
           {c.status === "needs_human" && (
@@ -290,13 +316,53 @@ export function ConversationDetail({ id }: { id: string }) {
               <div>
                 <strong>{t("conv.needsYou")}</strong>
                 {canAct && (
-                  <div>
+                  <div className="row wrap">
+                    <button type="button" className="btn btn-small" disabled={busy} onClick={() => takeOver.mutate({ beneficiaryId: id })}>
+                      <Icon name="user" size={16} />
+                      {t("conv.takeOver")}
+                    </button>
                     <button type="button" className="btn btn-small" disabled={busy} onClick={() => resolve.mutate({ beneficiaryId: id })}>
                       <Icon name="checkCircle" size={16} />
                       {t("conv.resolveLong")}
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          {c.status === "with_volunteer" && c.assignee && (
+            <div className="callout callout-ok">
+              <Icon name="user" size={20} />
+              <div>
+                <strong>{mine ? t("conv.takenByYou") : t("conv.takenBy", { name: c.assignee.name })}</strong>
+                {canAct && (
+                  <div className="row wrap">
+                    {!mine && (
+                      <button type="button" className="btn btn-small" disabled={busy} onClick={() => takeOver.mutate({ beneficiaryId: id, force: true })}>
+                        <Icon name="user" size={16} />
+                        {t("conv.takeOverForce")}
+                      </button>
+                    )}
+                    <button type="button" className="btn btn-small" disabled={busy} onClick={() => resolve.mutate({ beneficiaryId: id })}>
+                      <Icon name="bot" size={16} />
+                      {t("conv.handBack")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {canAct && c.status !== "needs_human" && c.status !== "with_volunteer" && (
+            <div className="callout callout-info">
+              <Icon name="info" size={20} />
+              <div>
+                <span>{t("conv.takeOverHint")}</span>
+                <div>
+                  <button type="button" className="btn btn-small" disabled={busy} onClick={() => takeOver.mutate({ beneficiaryId: id })}>
+                    <Icon name="user" size={16} />
+                    {t("conv.takeOver")}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -310,7 +376,7 @@ export function ConversationDetail({ id }: { id: string }) {
           {error && (
             <div className="notice notice-error" role="alert">
               <Icon name="alert" />
-              <span className="notice-body">{errorCode(error) === "CONFLICT" ? t("conv.conflict") : t("error.generic")}</span>
+              <span className="notice-body">{errorCode(error) === "CONFLICT" ? conflictText : t("error.generic")}</span>
             </div>
           )}
 

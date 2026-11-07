@@ -23,7 +23,8 @@ async function detail(beneficiaryId: string) {
 }
 
 export const conversationsRouter = {
-  list: os.conversations.list.use(view).handler(({ input }) => chat().list({ filter: input.filter, cursor: input.cursor, limit: input.limit })),
+  list: os.conversations.list.use(view).handler(({ input, context }) =>
+    chat().list({ filter: input.filter, cursor: input.cursor, limit: input.limit, volunteerId: context.volunteer.id })),
 
   get: os.conversations.get.use(view).handler(async ({ input, context }) => {
     const d = await detail(input.beneficiaryId);
@@ -52,6 +53,15 @@ export const conversationsRouter = {
     try {
       await chat().volunteerReply(input.beneficiaryId, context.volunteer.id, input.textFr);
       await logAccess(context, "conversations.reply", input.beneficiaryId);
+      return await detail(input.beneficiaryId);
+    } catch (e) { return mapErr(e); }
+  }),
+
+  takeOver: os.conversations.takeOver.use(reply).handler(async ({ input, context }) => {
+    try {
+      await chat().takeOver(input.beneficiaryId, context.volunteer.id, { force: input.force });
+      await logAccess(context, input.force ? "conversations.take_over_forced" : "conversations.take_over", input.beneficiaryId);
+      await (getWaDeps().jobs as { drain?: () => Promise<unknown> }).drain?.();
       return await detail(input.beneficiaryId);
     } catch (e) { return mapErr(e); }
   }),

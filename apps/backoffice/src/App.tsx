@@ -21,6 +21,8 @@ import { LetterReview } from "./screens/LetterReview";
 import { Login } from "./screens/Login";
 import { Queue } from "./screens/Queue";
 import { Sandbox } from "./screens/Sandbox";
+import { Signup } from "./screens/Signup";
+import { usePendingVolunteers, Volunteers } from "./screens/Volunteers";
 
 function useLanguageChange() {
   const { lang, setLang } = useI18n();
@@ -104,6 +106,7 @@ const TABS: NavItem[] = [
 const MORE: NavItem[] = [
   { key: "deadlines", label: "nav.deadlines", icon: "calendar", desc: "more.deadlines", permission: "documents.view_metadata" },
   { key: "knowledge", label: "nav.knowledge", icon: "book", desc: "more.knowledge", permission: "knowledge.view" },
+  { key: "volunteers", label: "nav.volunteers", icon: "users", desc: "more.volunteers", permission: "volunteers.manage" },
   { key: "languages", label: "nav.languages", icon: "globe", desc: "more.languages", permission: null },
   { key: "sandbox", label: "nav.sandbox", icon: "flask", desc: "more.sandbox", permission: "sandbox.use", sandboxOnly: true },
 ];
@@ -160,7 +163,7 @@ function Shell({
   );
 }
 
-function TabBar({ items, more, current, badges, onMore }: { items: NavItem[]; more: boolean; current: string; badges: Record<string, number>; onMore: () => void }) {
+function TabBar({ items, more, current, badges, moreBadge, onMore }: { items: NavItem[]; more: boolean; current: string; badges: Record<string, number>; moreBadge: number; onMore: () => void }) {
   const { t } = useI18n();
   const moreKeys = MORE.map((m) => m.key);
   const tab = (key: string, icon: IconName, label: string, badge?: number, urgent?: boolean) => (
@@ -189,6 +192,11 @@ function TabBar({ items, more, current, badges, onMore }: { items: NavItem[]; mo
         <button type="button" className="tab" onClick={onMore} aria-haspopup="dialog" aria-current={moreKeys.includes(current) ? "page" : undefined}>
           <span className="tab-icon">
             <Icon name="grid" size={24} />
+            {moreBadge ? (
+              <span className="nav-badge" aria-label={String(moreBadge)}>
+                {moreBadge > 99 ? "99+" : moreBadge}
+              </span>
+            ) : null}
           </span>
           <span className="tab-label">{t("nav.more")}</span>
         </button>
@@ -197,7 +205,7 @@ function TabBar({ items, more, current, badges, onMore }: { items: NavItem[]; mo
   );
 }
 
-function MoreSheet({ open, onClose, items }: { open: boolean; onClose: () => void; items: NavItem[] }) {
+function MoreSheet({ open, onClose, items, badges }: { open: boolean; onClose: () => void; items: NavItem[]; badges: Record<string, number> }) {
   const { t } = useI18n();
   return (
     <Sheet open={open} onClose={onClose} title={t("more.title")}>
@@ -212,6 +220,7 @@ function MoreSheet({ open, onClose, items }: { open: boolean; onClose: () => voi
                 <strong>{t(n.label)}</strong>
                 {n.desc && <span className="muted small">{t(n.desc)}</span>}
               </span>
+              {badges[n.key] ? <span className="segmented-count">{badges[n.key]}</span> : null}
               <Icon name="chevron" size={18} className="more-chevron" />
             </a>
           </li>
@@ -253,6 +262,8 @@ export function App() {
   const attention = useAttentionCount(!!session && session.can("conversations.view"));
   const letterStats = useLetterStats(!!session && session.can("letters.review"));
 
+  const pendingVolunteers = usePendingVolunteers(!!session && session.can("volunteers.manage"));
+
   // The language test page needs no backend nor login (no personal data on it).
   if (section === "languages" && !session) {
     return (
@@ -283,11 +294,7 @@ export function App() {
     );
   }
   if (!session) {
-    return (
-      <Shell>
-        <Login />
-      </Shell>
-    );
+    return <Shell>{section === "signup" ? <Signup /> : <Login />}</Shell>;
   }
 
   const sandboxOn = health.data?.mode === "sandbox";
@@ -307,9 +314,10 @@ export function App() {
   else if (section === "knowledge" && allowed("knowledge")) screen = <Knowledge />;
   else if (section === "languages") screen = <LanguageTest />;
   else if (section === "sandbox" && allowed("sandbox")) screen = <Sandbox />;
+  else if (section === "volunteers" && allowed("volunteers")) screen = <Volunteers />;
   else screen = <Home />;
 
-  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters"];
+  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters", "volunteers"];
   const current = section === "letters" ? "queue" : known.includes(section) ? section : "";
   const focus = (section === "letters" || section === "conversations") && !!arg;
 
@@ -326,9 +334,10 @@ export function App() {
               more={moreItems.length > 0}
               current={current}
               badges={{ queue: letterStats.pending, conversations: attention }}
+              moreBadge={pendingVolunteers}
               onMore={() => setMoreOpen(true)}
             />
-            <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} />
+            <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} badges={{ volunteers: pendingVolunteers }} />
           </>
         }
       >
