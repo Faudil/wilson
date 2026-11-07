@@ -9,6 +9,7 @@ import {
 } from "@wilson/contracts";
 import { isolate, waText, type Params, type WaKey } from "@wilson/i18n";
 import type { z } from "zod";
+import { maskedLabel } from "../beneficiaries/serviceImpl.js";
 import { beneficiaries, letters, messages, volunteers } from "../db/schema.js";
 import type { Deps } from "../deps.js";
 import { JOBS } from "../jobs/names.js";
@@ -58,6 +59,8 @@ export interface ChatService {
   /** `mine` = taken over by `volunteerId`. */
   list(input: { filter: "attention" | "mine" | "all"; cursor?: string; limit: number; volunteerId?: string }): Promise<{ items: ConversationSummary[]; nextCursor: string | null }>;
   get(beneficiaryId: string): Promise<ConversationDetail | null>;
+  /** How many conversations `list({ filter: "attention" })` would return, without building them (navigation badge). */
+  attentionCount(): Promise<number>;
 }
 
 const cache = new WeakMap<object, ChatService>();
@@ -187,31 +190,35 @@ export function createChatService(deps: Deps): ChatService {
     return rows.length > 0;
   }
 
+  /** French version of an inbound message for volunteers; null if the translation fails (the reply still goes out). */
+  async function translateInbound(text: string, lang: LanguageCode): Promise<string | null> {
+    try {
+      return await llm.translateText({ text, from: lang, to: "fr" });
+    } catch (e) {
+      console.error("[chat] inbound translation failed:", e instanceof Error ? e.message : String(e));
+      return null;
+    }
+  }
+
   async function handleMessage(beneficiaryId: string, text: string, opts: { waMessageId?: string } = {}): Promise<void> {
     const b = await mustBeneficiary(beneficiaryId);
     const lang = b.language;
     const dek = await ben.getDek(beneficiaryId);
 
-    // 1. store inbound (the engine already inserted the raw row: tag it, do not duplicate)
-    let textFrEnc: Buffer | null = null;
-    if (lang !== "fr") {
-      try {
-        textFrEnc = crypto.encrypt(dek, await llm.translateText({ text, from: lang, to: "fr" }));
-      } catch (e) {
-        console.error("[chat] inbound translation failed:", e instanceof Error ? e.message : String(e));
-      }
-    }
+    // 1. store inbound (the engine already inserted the raw row: tag it, do not duplicate). The French version for
+    // volunteers is translated while the intent is classified (step 2): the reply no longer waits for both in a row.
+    const translating = lang === "fr" ? Promise.resolve(null) : translateInbound(text, lang);
     let inboundId: string;
     const existing = opts.waMessageId
       ? (await db.select({ id: messages.id }).from(messages).where(eq(messages.waMessageId, opts.waMessageId)).limit(1))[0]
       : undefined;
     if (existing) {
-      await db.update(messages).set({ author: "beneficiary", chatState: "received", textFrEnc }).where(eq(messages.id, existing.id));
+      await db.update(messages).set({ author: "beneficiary", chatState: "received" }).where(eq(messages.id, existing.id));
       inboundId = existing.id;
     } else {
       const [r] = await db.insert(messages).values({
         beneficiaryId, direction: "in", kind: "text", status: "received", bodyEnc: crypto.encrypt(dek, text),
-        author: "beneficiary", chatState: "received", textFrEnc,
+        author: "beneficiary", chatState: "received",
       }).returning({ id: messages.id });
       inboundId = r!.id;
     }
@@ -219,21 +226,29 @@ export function createChatService(deps: Deps): ChatService {
     if (status === "resolved") await setStatus(beneficiaryId, "bot");
     const withVolunteer = status === "with_volunteer";
 
-    // 2. plan
+    // 2. plan (in parallel with the translation)
     const turns = await history(beneficiaryId);
-    let plan: { intent: ChatIntent; frenchQuery: string; needsHuman: boolean };
-    try {
-      plan = await llm.planChat({ history: turns, language: lang });
-    } catch (e) {
+    const [planned, textFr] = await Promise.all([
+      llm.planChat({ history: turns, language: lang }).then(
+        (p) => ({ ok: true as const, plan: p }),
+        (e: unknown) => ({ ok: false as const, error: e }),
+      ),
+      translating,
+    ]);
+    const textFrEnc = textFr === null ? null : crypto.encrypt(dek, textFr);
+    if (textFrEnc) await db.update(messages).set({ textFrEnc }).where(eq(messages.id, inboundId));
+    if (!planned.ok) {
+      const e = planned.error;
       console.error("[chat] planChat failed:", e instanceof Error ? e.message : String(e));
       if (!withVolunteer) await handoff(b, lang, "chat_handoff", "human");
       return;
     }
+    const plan = planned.plan;
     await tag(inboundId, plan.intent);
 
     // Safety net: fixed emergency numbers on clear distress words, even if the classifier missed them. It only
     // adds the fixed message (no LLM text); the question is then handled as usual and flagged for a person.
-    if (plan.intent !== "urgent" && looksUrgent(text, textFrEnc ? dec(dek, textFrEnc) : null)) {
+    if (plan.intent !== "urgent" && looksUrgent(text, textFr)) {
       await sendFixed(beneficiaryId, lang, "chat_urgent", "urgent");
       if (!withVolunteer) await setStatus(beneficiaryId, "needs_human");
     }
@@ -379,17 +394,7 @@ export function createChatService(deps: Deps): ChatService {
     },
 
     async list({ filter, cursor, limit, volunteerId }) {
-      const rows = await db.select({
-        id: beneficiaries.id, language: beneficiaries.language, status: beneficiaries.chatStatus, assigneeId: beneficiaries.chatAssigneeId,
-        last: sql<Date | null>`max(${messages.createdAt})`,
-        drafts: sql<number>`count(*) filter (where ${messages.chatState} = 'draft')::int`,
-      }).from(beneficiaries).innerJoin(messages, and(eq(messages.beneficiaryId, beneficiaries.id), isNotNull(messages.author)))
-        .where(sql`${beneficiaries.archivedAt} is null`)
-        .groupBy(beneficiaries.id);
-      const waiting = await awaitingIds(rows.filter((r) => r.status === "with_volunteer").map((r) => r.id));
-      // with_volunteer needs attention only while the beneficiary is waiting for an answer.
-      const rank = (r: { id: string; status: ChatStatus }) =>
-        r.status === "needs_human" ? 0 : r.status === "with_volunteer" ? (waiting.has(r.id) ? 0 : 2) : r.status === "pending_review" ? 1 : 2;
+      const { rows, waiting, rank } = await ranked();
       const keep = (r: { id: string; status: ChatStatus; assigneeId: string | null }) =>
         filter === "all" ? true
         : filter === "mine" ? r.status === "with_volunteer" && r.assigneeId === volunteerId
@@ -399,14 +404,25 @@ export function createChatService(deps: Deps): ChatService {
         .sort((a, z) => rank(a) - rank(z) || (z.last?.getTime() ?? 0) - (a.last?.getTime() ?? 0));
       const start = cursor ? Math.max(0, Number(cursor) || 0) : 0;
       const page = filtered.slice(start, start + limit);
-      const names = await volunteerNames(page.flatMap((r) => (r.assigneeId ? [r.assigneeId] : [])));
-      const items = await Promise.all(page.map(async (r): Promise<ConversationSummary> => ({
-        beneficiaryId: r.id, beneficiaryLabel: await ben.label(r.id), language: r.language, status: r.status,
-        lastMessageAt: r.last ? r.last.toISOString() : null, lastPreview: await lastPreview(r.id), pendingDrafts: r.drafts,
+      // One query each for the whole page (not three per conversation).
+      const ids = page.map((r) => r.id);
+      const [names, previews, awaitingOthers] = await Promise.all([
+        volunteerNames(page.flatMap((r) => (r.assigneeId ? [r.assigneeId] : []))),
+        lastPreviews(ids),
+        awaitingIds(page.filter((r) => r.status !== "with_volunteer").map((r) => r.id)),
+      ]);
+      const items = page.map((r): ConversationSummary => ({
+        beneficiaryId: r.id, beneficiaryLabel: maskedLabel(r.last2), language: r.language, status: r.status,
+        lastMessageAt: r.last ? r.last.toISOString() : null, lastPreview: previews.get(r.id) ?? null, pendingDrafts: r.drafts,
         assignee: r.assigneeId ? { id: r.assigneeId, name: names.get(r.assigneeId) ?? "?" } : null,
-        awaitingReply: r.status === "with_volunteer" ? waiting.has(r.id) : await isAwaiting(r.id),
-      })));
+        awaitingReply: (r.status === "with_volunteer" ? waiting : awaitingOthers).has(r.id),
+      }));
       return { items, nextCursor: start + limit < filtered.length ? String(start + limit) : null };
+    },
+
+    async attentionCount() {
+      const { rows, rank } = await ranked();
+      return rows.filter((r) => rank(r) < 2).length;
     },
 
     async get(beneficiaryId) {
@@ -441,6 +457,23 @@ export function createChatService(deps: Deps): ChatService {
     },
   };
 
+  /** Every open conversation with its attention rank: 0 = a person must act, 1 = drafts to review, 2 = nothing to do. */
+  async function ranked() {
+    const rows = await db.select({
+      id: beneficiaries.id, language: beneficiaries.language, status: beneficiaries.chatStatus, assigneeId: beneficiaries.chatAssigneeId,
+      last2: beneficiaries.waIdLast2,
+      last: sql<Date | null>`max(${messages.createdAt})`,
+      drafts: sql<number>`count(*) filter (where ${messages.chatState} = 'draft')::int`,
+    }).from(beneficiaries).innerJoin(messages, and(eq(messages.beneficiaryId, beneficiaries.id), isNotNull(messages.author)))
+      .where(sql`${beneficiaries.archivedAt} is null`)
+      .groupBy(beneficiaries.id);
+    const waiting = await awaitingIds(rows.filter((r) => r.status === "with_volunteer").map((r) => r.id));
+    // with_volunteer needs attention only while the beneficiary is waiting for an answer.
+    const rank = (r: { id: string; status: ChatStatus }) =>
+      r.status === "needs_human" ? 0 : r.status === "with_volunteer" ? (waiting.has(r.id) ? 0 : 2) : r.status === "pending_review" ? 1 : 2;
+    return { rows, waiting, rank };
+  }
+
   async function volunteerNames(ids: string[]): Promise<Map<string, string>> {
     const names = new Map<string, string>();
     const unique = [...new Set(ids)];
@@ -455,9 +488,7 @@ export function createChatService(deps: Deps): ChatService {
     const last = [...msgs].reverse().find((m) => m.state === "received" || m.state === "sent");
     return last?.author === "beneficiary";
   }
-  async function isAwaiting(beneficiaryId: string): Promise<boolean> {
-    return (await awaitingIds([beneficiaryId])).has(beneficiaryId);
-  }
+
   async function awaitingIds(ids: string[]): Promise<Set<string>> {
     if (ids.length === 0) return new Set();
     // Latest sent/received chat row per beneficiary; awaiting when it is the beneficiary's.
@@ -468,10 +499,19 @@ export function createChatService(deps: Deps): ChatService {
     return new Set(rows.filter((r) => r.author === "beneficiary").map((r) => r.id));
   }
 
-  async function lastPreview(beneficiaryId: string): Promise<string | null> {
-    const [r] = await db.select().from(messages).where(and(eq(messages.beneficiaryId, beneficiaryId), eq(messages.author, "beneficiary"))).orderBy(desc(messages.createdAt), desc(messages.id)).limit(1);
-    if (!r) return null;
-    const dek = await ben.getDek(beneficiaryId);
-    return dec(dek, r.textFrEnc) ?? dec(dek, r.bodyEnc);
+  /** Last message of each beneficiary (French version when there is one), for the conversation list. */
+  async function lastPreviews(ids: string[]): Promise<Map<string, string | null>> {
+    const out = new Map<string, string | null>();
+    if (ids.length === 0) return out;
+    const rows = await db.selectDistinctOn([messages.beneficiaryId], { id: messages.beneficiaryId, bodyEnc: messages.bodyEnc, textFrEnc: messages.textFrEnc })
+      .from(messages)
+      .where(and(inArray(messages.beneficiaryId, ids), eq(messages.author, "beneficiary")))
+      .orderBy(messages.beneficiaryId, desc(messages.createdAt), desc(messages.id));
+    for (const r of rows) {
+      const dek = await ben.getDek(r.id);
+      out.set(r.id, dec(dek, r.textFrEnc) ?? dec(dek, r.bodyEnc));
+    }
+    return out;
   }
+
 }

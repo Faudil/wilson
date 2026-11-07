@@ -118,7 +118,11 @@ export const letters = pgTable("letters", {
   sentAt: ts("sent_at"),
   /** Set when the explanation was held behind the `explanation_ready` template (outside 24 h window). */
   awaitingOptIn: boolean("awaiting_opt_in").notNull().default(false),
-}, (t) => [index("letters_status_idx").on(t.status, t.receivedAt)]);
+}, (t) => [
+  index("letters_status_idx").on(t.status, t.receivedAt),
+  // A person's letters (beneficiary page, "where is my letter?" in the chat, purge).
+  index("letters_beneficiary_idx").on(t.beneficiaryId, t.receivedAt),
+]);
 
 export const letterEvents = pgTable("letter_events", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -127,7 +131,7 @@ export const letterEvents = pgTable("letter_events", {
   action: text("action", { enum: ["analyzed", "edited", "retranslated", "approved", "rejected", "sent", "failed"] }).notNull(),
   note: text("note"),
   at: ts("at").notNull().defaultNow(),
-});
+}, (t) => [index("letter_events_letter_idx").on(t.letterId, t.at)]);
 
 export const documents = pgTable("documents", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -147,7 +151,11 @@ export const documents = pgTable("documents", {
   createdAt: ts("created_at").notNull().defaultNow(),
   archivedAt: ts("archived_at"),
   purgeAt: ts("purge_at"),
-}, (t) => [index("documents_expiry_idx").on(t.expiresAt)]);
+}, (t) => [
+  index("documents_expiry_idx").on(t.expiresAt),
+  // A person's documents (beneficiary page, document flow in WhatsApp, purge).
+  index("documents_beneficiary_idx").on(t.beneficiaryId),
+]);
 
 export const reminders = pgTable("reminders", {
   id: uuid("id").primaryKey().defaultRandom(),

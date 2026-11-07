@@ -1,4 +1,5 @@
-import { LANGUAGES, type LanguageCode } from "@wilson/contracts";
+import type { LanguageCode } from "@wilson/contracts";
+import { LANGUAGES } from "@wilson/contracts/values";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { DEFAULT_LANGUAGE, translate, type MessageKey, type Params } from "./core";
 

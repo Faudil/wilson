@@ -24,6 +24,11 @@ export interface AnthropicLike {
 export interface AnthropicProviderOptions {
   apiKey?: string;
   model: string;
+  /**
+   * Model for the short calls a WhatsApp reply waits on (intent, language detection, chat translation).
+   * Defaults to `model`; a faster model here cuts the bot's reply time.
+   */
+  fastModel?: string;
   client?: AnthropicLike;
   maxTokens?: number;
 }
@@ -103,10 +108,12 @@ export class AnthropicProvider implements LlmProvider {
   readonly name = "anthropic";
   private readonly client: AnthropicLike;
   private readonly model: string;
+  private readonly fastModel: string;
   private readonly maxTokens: number;
 
   constructor(opts: AnthropicProviderOptions) {
     this.model = opts.model;
+    this.fastModel = opts.fastModel ?? opts.model;
     this.maxTokens = opts.maxTokens ?? 16000;
     this.client = opts.client ?? new Anthropic({ apiKey: opts.apiKey });
   }
@@ -127,13 +134,14 @@ export class AnthropicProvider implements LlmProvider {
     content: Anthropic.ContentBlockParam[],
     schema: S,
     fixup?: (raw: unknown) => unknown,
+    model: string = this.model,
   ): Promise<z.infer<S>> {
     const messages: Anthropic.MessageParam[] = [{ role: "user", content }];
     let lastError = "";
     for (let attempt = 0; attempt < 2; attempt++) {
       let text: string;
       try {
-        const res = await this.client.messages.create({ model: this.model, max_tokens: this.maxTokens, messages });
+        const res = await this.client.messages.create({ model, max_tokens: this.maxTokens, messages });
         if (res.stop_reason === "refusal") throw new LlmError("Model refused the request");
         text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
       } catch (e) {
@@ -192,7 +200,7 @@ export class AnthropicProvider implements LlmProvider {
       languageList: LANGUAGE_CODES.map((c) => `"${c}"`).join(", "),
       text: input.text.slice(0, 1000),
     });
-    const r = await this.callJson([{ type: "text", text: prompt }], LanguageDetectionSchema);
+    const r = await this.callJson([{ type: "text", text: prompt }], LanguageDetectionSchema, undefined, this.fastModel);
     return { language: r.language === "unknown" ? null : r.language, confidence: r.confidence };
   }
 
@@ -243,10 +251,10 @@ export class AnthropicProvider implements LlmProvider {
     return { fr: out.fr, target: out.target, usedIds: [...new Set(out.usedIds.filter((id) => known.has(id)))] };
   }
   /** One plain-text call (no JSON), no retry beyond the SDK's own. */
-  private async callText(prompt: string): Promise<string> {
+  private async callText(prompt: string, model: string = this.model): Promise<string> {
     let text: string;
     try {
-      const res = await this.client.messages.create({ model: this.model, max_tokens: this.maxTokens, messages: [{ role: "user", content: prompt }] });
+      const res = await this.client.messages.create({ model, max_tokens: this.maxTokens, messages: [{ role: "user", content: prompt }] });
       if (res.stop_reason === "refusal") throw new LlmError("Model refused the request");
       text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
     } catch (e) {
@@ -263,7 +271,7 @@ export class AnthropicProvider implements LlmProvider {
       targetLanguageCode: input.language,
       historyJson: JSON.stringify(input.history, null, 2),
     });
-    const out = await this.callJson([{ type: "text", text: prompt }], ChatPlanSchema);
+    const out = await this.callJson([{ type: "text", text: prompt }], ChatPlanSchema, undefined, this.fastModel);
     const needsHuman = out.needsHuman || out.intent === "legal" || out.intent === "urgent" || out.intent === "human";
     return { intent: out.intent, frenchQuery: out.frenchQuery.trim(), needsHuman };
   }
@@ -306,6 +314,6 @@ export class AnthropicProvider implements LlmProvider {
       targetLanguageCode: input.to,
       text: input.text.slice(0, 4000),
     });
-    return this.callText(prompt);
+    return this.callText(prompt, this.fastModel);
   }
 }

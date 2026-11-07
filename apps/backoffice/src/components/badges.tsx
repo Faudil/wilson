@@ -1,4 +1,5 @@
-import { LANGUAGES, type LanguageCode, type LetterStatus, type LetterSummary } from "@wilson/contracts";
+import type { LanguageCode, LetterStatus, LetterSummary } from "@wilson/contracts";
+import { LANGUAGES } from "@wilson/contracts/values";
 import { useI18n, type MessageKey } from "../i18n";
 import { formatDate } from "../lib/wilson-i18n";
 import { daysBetween, todayParis } from "../lib/format";

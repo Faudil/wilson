@@ -1,4 +1,5 @@
-import { LANGUAGES, type LanguageCode, type Permission } from "@wilson/contracts";
+import type { LanguageCode, Permission } from "@wilson/contracts";
+import { LANGUAGES } from "@wilson/contracts/values";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Icon, type IconName } from "./components/Icon";
@@ -7,22 +8,26 @@ import { useI18n, type MessageKey } from "./i18n";
 import { UI_LANGUAGES } from "./i18n/core";
 import { orpc } from "./lib/api";
 import { fetchMe, ME_KEY } from "./lib/me";
-import { useLetterStats } from "./lib/counts";
+import { useAttentionCount, useLetterStats, usePendingVolunteers } from "./lib/counts";
+import { LazyBoundary, lazyScreens, prefetchScreens } from "./lib/lazy";
 import { initials } from "./lib/relative";
 import { href, useRoute } from "./lib/router";
 import { SessionContext, type Session } from "./lib/session";
-import { BeneficiaryDetail, BeneficiaryList } from "./screens/Beneficiaries";
-import { ConversationDetail, ConversationList, useAttentionCount } from "./screens/Conversations";
 import { Home } from "./screens/Home";
-import { Deadlines } from "./screens/Deadlines";
-import { LanguageTest } from "./screens/LanguageTest";
-import { Knowledge } from "./screens/Knowledge";
-import { LetterReview } from "./screens/LetterReview";
 import { Login } from "./screens/Login";
-import { Queue } from "./screens/Queue";
-import { Sandbox } from "./screens/Sandbox";
-import { Signup } from "./screens/Signup";
-import { usePendingVolunteers, Volunteers } from "./screens/Volunteers";
+
+// Every other screen is its own chunk, downloaded the first time it is opened: on a slow phone the first page
+// only waits for the shell, the login and the home screen.
+const { BeneficiaryDetail, BeneficiaryList } = lazyScreens(() => import("./screens/Beneficiaries"), "BeneficiaryDetail", "BeneficiaryList");
+const { ConversationDetail, ConversationList } = lazyScreens(() => import("./screens/Conversations"), "ConversationDetail", "ConversationList");
+const { Deadlines } = lazyScreens(() => import("./screens/Deadlines"), "Deadlines");
+const { LanguageTest } = lazyScreens(() => import("./screens/LanguageTest"), "LanguageTest");
+const { Knowledge } = lazyScreens(() => import("./screens/Knowledge"), "Knowledge");
+const { LetterReview } = lazyScreens(() => import("./screens/LetterReview"), "LetterReview");
+const { Queue } = lazyScreens(() => import("./screens/Queue"), "Queue");
+const { Sandbox } = lazyScreens(() => import("./screens/Sandbox"), "Sandbox");
+const { Signup } = lazyScreens(() => import("./screens/Signup"), "Signup");
+const { Volunteers } = lazyScreens(() => import("./screens/Volunteers"), "Volunteers");
 
 function useLanguageChange() {
   const { lang, setLang } = useI18n();
@@ -146,7 +151,9 @@ function Shell({
           <LanguagePicker />
         )}
       </header>
-      <main className="content">{children}</main>
+      <main className="content">
+        <LazyBoundary>{children}</LazyBoundary>
+      </main>
       {nav}
       {session && onLogout && (
         <AccountSheet
@@ -263,6 +270,10 @@ export function App() {
   const letterStats = useLetterStats(!!session && session.can("letters.review"));
 
   const pendingVolunteers = usePendingVolunteers(!!session && session.can("volunteers.manage"));
+  const loggedIn = session !== null;
+  useEffect(() => {
+    if (loggedIn) prefetchScreens();
+  }, [loggedIn]);
 
   // The language test page needs no backend nor login (no personal data on it).
   if (section === "languages" && !session) {

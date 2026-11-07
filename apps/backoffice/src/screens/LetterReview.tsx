@@ -1,4 +1,5 @@
-import { LANGUAGES, LetterTypeSchema, type LetterAnalysis, type LetterDetail, type LetterText } from "@wilson/contracts";
+import type { LetterAnalysis, LetterDetail, LetterText } from "@wilson/contracts";
+import { LANGUAGES, LETTER_TYPES } from "@wilson/contracts/values";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Chip, Countdown, DeadlineText, LangBadge, StatusBadge, UrgencyBadge } from "../components/badges";
@@ -401,7 +402,7 @@ function Review({ detail }: { detail: LetterDetail }) {
                 <label className="field">
                   <span className="field-label">{t("letter.f.type")}</span>
                   <select value={facts.letterType} onChange={(e) => setF("letterType", e.target.value as Facts["letterType"])}>
-                    {LetterTypeSchema.options.map((type) => (
+                    {LETTER_TYPES.map((type) => (
                       <option key={type} value={type}>
                         {t(`letterType.${type}` as MessageKey)}
                       </option>

@@ -1,19 +1,16 @@
 /**
- * Thin guard around @wilson/i18n helpers (dates, document type names). If the shared package does not
- * implement a helper (yet), a local Intl-based fallback is used so the UI never crashes.
+ * Thin guard around @wilson/i18n helpers (dates, document type names). If a helper throws (malformed date…),
+ * a local Intl-based fallback is used so the UI never crashes.
+ * Imported by subpath, not from "@wilson/i18n", so the 28 WhatsApp catalogs stay out of the browser bundle.
  */
-import { LANGUAGES, type DocumentType, type LanguageCode } from "@wilson/contracts";
-import * as shared from "@wilson/i18n";
-
-type Shared = {
-  formatDate?: (iso: string, lang: LanguageCode, opts?: { weekday?: boolean }) => string;
-  documentTypeName?: (type: DocumentType, lang: LanguageCode) => string;
-};
-const impl = shared as unknown as Shared;
+import type { DocumentType, LanguageCode } from "@wilson/contracts";
+import { LANGUAGES } from "@wilson/contracts/values";
+import { formatDate as sharedFormatDate } from "@wilson/i18n/dates";
+import { documentTypeName as sharedDocumentTypeName } from "@wilson/i18n/doctypes";
 
 export function formatDate(iso: string, lang: LanguageCode, opts?: { weekday?: boolean }): string {
   try {
-    if (typeof impl.formatDate === "function") return impl.formatDate(iso, lang, opts);
+    return sharedFormatDate(iso, lang, opts);
   } catch {
     /* fall through */
   }
@@ -34,7 +31,7 @@ export function formatDate(iso: string, lang: LanguageCode, opts?: { weekday?: b
 
 export function documentTypeName(type: DocumentType, lang: LanguageCode): string {
   try {
-    if (typeof impl.documentTypeName === "function") return impl.documentTypeName(type, lang);
+    return sharedDocumentTypeName(type, lang);
   } catch {
     /* fall through */
   }

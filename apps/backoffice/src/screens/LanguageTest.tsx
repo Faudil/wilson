@@ -1,4 +1,5 @@
-import { LANGUAGE_CODES, LANGUAGES, type LanguageCode } from "@wilson/contracts";
+import type { LanguageCode } from "@wilson/contracts";
+import { LANGUAGE_CODES, LANGUAGES } from "@wilson/contracts/values";
 import { useI18n } from "../i18n";
 import { SAMPLES, TEST_ADDRESS, TEST_DATE, TEST_REFERENCE } from "../lib/samples";
 import { formatDate } from "../lib/wilson-i18n";

@@ -48,6 +48,8 @@ const EnvSchema = z.object({
   LLM_MODE: z.enum(["anthropic", "fake"]).default("fake"),
   ANTHROPIC_API_KEY: z.string().optional(),
   LLM_MODEL: z.string().default("claude-opus-5-5"),
+  /** Optional faster model for the short calls a WhatsApp reply waits on (intent, translation). Unset = LLM_MODEL. */
+  LLM_FAST_MODEL: z.string().optional(),
 
   ASSOCIATION_NAME: z.string().default("Association Wilson"),
   /** Shown in every outgoing message footer: phone, address, opening hours. Plain text. */

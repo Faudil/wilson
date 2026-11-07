@@ -26,6 +26,8 @@ export const conversationsRouter = {
   list: os.conversations.list.use(view).handler(({ input, context }) =>
     chat().list({ filter: input.filter, cursor: input.cursor, limit: input.limit, volunteerId: context.volunteer.id })),
 
+  attentionCount: os.conversations.attentionCount.use(view).handler(async () => ({ count: await chat().attentionCount() })),
+
   get: os.conversations.get.use(view).handler(async ({ input, context }) => {
     const d = await detail(input.beneficiaryId);
     await logAccess(context, "conversations.view", input.beneficiaryId);

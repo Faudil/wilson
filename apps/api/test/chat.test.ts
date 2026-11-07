@@ -257,6 +257,37 @@ describe("chatbot", () => {
     expect(seen.at(-1)!.at(-1)).toEqual({ role: "beneficiary", text: "Thanks" });
   });
 
+  it("translates the inbound message for volunteers while the intent is classified, not before", async () => {
+    t = await makeE2E({ config: { CHAT_MODE: "review" } });
+    const fake = new FakeProvider();
+    const events: string[] = [];
+    const planChat = fake.planChat.bind(fake);
+    const translateText = fake.translateText.bind(fake);
+    let releaseTranslation!: () => void;
+    const translationGate = new Promise<void>((resolve) => (releaseTranslation = resolve));
+    fake.planChat = async (input) => {
+      events.push("plan");
+      releaseTranslation(); // the translation can only finish once the plan has started: they overlap
+      return planChat(input);
+    };
+    fake.translateText = async (input) => {
+      if (input.to !== "fr") return translateText(input);
+      events.push("translate:start");
+      await translationGate;
+      events.push("translate:end");
+      return translateText(input);
+    };
+    (t.wdeps as { llm: unknown }).llm = fake;
+    const p = t.phone("33620000009");
+    await p.say("?");
+    await p.say("2");
+    await p.say("4");
+    await p.say("Where is the prefecture?");
+    expect(events).toEqual(["translate:start", "plan", "translate:end"]);
+    const conv = await t.client.conversations.get({ beneficiaryId: await beneficiaryIdOf(t, "33620000009") });
+    expect(conv.messages.find((m) => m.author === "beneficiary")!.textFr).toBe("[fr] Where is the prefecture?");
+  });
+
   it("conversations list: needs_human first, then pending_review; attention filter; access is logged", async () => {
     t = await makeE2E({ config: { CHAT_MODE: "review" } });
     const mk = async (phone: string, text: string) => {
@@ -273,6 +304,7 @@ describe("chatbot", () => {
     await t.wdeps.db.update(beneficiaries).set({ chatStatus: "bot" }).where(eq(beneficiaries.id, bot));
     const attention = await t.client.conversations.list({ filter: "attention", limit: 10 });
     expect(attention.items.map((i) => i.beneficiaryId)).toEqual([human, pending]);
+    expect(await t.client.conversations.attentionCount()).toEqual({ count: 2 });
     expect(attention.items[0]!.status).toBe("needs_human");
     expect(attention.items[0]!.beneficiaryLabel).not.toContain("33620000012");
     const all = await t.client.conversations.list({ filter: "all", limit: 10 });

@@ -8,8 +8,8 @@ export type { LlmFile, LlmProvider } from "./provider.js";
 export { AnthropicProvider } from "./anthropic.js";
 export { FakeProvider } from "./fake.js";
 
-export function createLlmProvider(config: Pick<Config, "LLM_MODE" | "ANTHROPIC_API_KEY" | "LLM_MODEL">): LlmProvider {
+export function createLlmProvider(config: Pick<Config, "LLM_MODE" | "ANTHROPIC_API_KEY" | "LLM_MODEL" | "LLM_FAST_MODEL">): LlmProvider {
   if (config.LLM_MODE === "fake") return new FakeProvider();
   if (!config.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is required when LLM_MODE=anthropic");
-  return new AnthropicProvider({ apiKey: config.ANTHROPIC_API_KEY, model: config.LLM_MODEL });
+  return new AnthropicProvider({ apiKey: config.ANTHROPIC_API_KEY, model: config.LLM_MODEL, fastModel: config.LLM_FAST_MODEL });
 }
