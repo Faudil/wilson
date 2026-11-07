@@ -17,6 +17,7 @@ import {
   BuddyCandidateSchema, BuddyMatchDetailSchema, BuddyMatchSchema, BuddyMatchStatusSchema, BuddyProfileSchema, BuddyProposeInputSchema,
   BuddyReportSchema, BuddyRequestSchema,
 } from "./buddies.js";
+import { AcceptInputSchema, AppointmentDocumentsSchema, AppointmentListInputSchema, AppointmentSchema, SlotCreateSchema, SlotSchema } from "./appointments.js";
 import { ApiKeyAddSchema, ApiKeyListSchema, ApiKeySchema, ApiKeyUpdateSchema, UsageBudgetSchema, UsageSetBudgetSchema, UsageSummarySchema } from "./usage.js";
 
 /**
@@ -261,9 +262,35 @@ const buddies = {
   counts: base.output(z.object({ waiting: z.number().int(), openReports: z.number().int() })),
 };
 
+/**
+ * Rendez-vous: accompaniment to appointments and form-filling sessions (see appointments.ts). Every procedure checks
+ * its own `appointments.*` permission; holding an appointment is checked on top for release/done/documents.
+ */
+const appointments = {
+  list: base.input(AppointmentListInputSchema).output(z.array(AppointmentSchema)),
+  /** Navigation badge / home tile: requests waiting for a volunteer, and mine in the next 7 days. */
+  counts: base.output(z.object({ open: z.number().int().nonnegative(), mineSoon: z.number().int().nonnegative() })),
+  /** CONFLICT { reason: "taken" } when someone accepted first; { reason: "time_required" } for a form session without a time. */
+  accept: base.input(AcceptInputSchema).output(AppointmentSchema),
+  /** Give it back: the person is told, and the request is open again for another volunteer. Holder or manager. */
+  release: base.input(z.object({ id: IdSchema })).output(AppointmentSchema),
+  /** The session took place. Ends access to the person's documents. Holder or manager. */
+  complete: base.input(z.object({ id: IdSchema })).output(AppointmentSchema),
+  /** Cancel for good (`appointments.manage`); the person is told. */
+  cancel: base.input(z.object({ id: IdSchema })).output(AppointmentSchema),
+  /** The person's saved documents, for the holder of a form session the person consented to (logged). */
+  documents: base.input(z.object({ id: IdSchema })).output(AppointmentDocumentsSchema),
+  documentFile: base.input(z.object({ id: IdSchema, documentId: IdSchema })).output(z.file()),
+  /** Upcoming form-filling slots: mine (`appointments.slots`) or everyone's (`appointments.manage`). */
+  slots: base.input(z.object({ scope: z.enum(["mine", "all"]).default("mine") })).output(z.array(SlotSchema)),
+  addSlot: base.input(SlotCreateSchema).output(SlotSchema),
+  /** Only a slot nobody booked yet; your own, or anyone's with `appointments.manage`. */
+  removeSlot: base.input(z.object({ id: IdSchema })).output(z.void()),
+};
+
 const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, places, broadcasts, buddies, system };
+export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, system };
 export type Contract = typeof contract;

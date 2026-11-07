@@ -40,7 +40,7 @@ export type WaKey =
   | "language_menu" // numbered list of languages in native scripts (same text in every catalog)
   | "language_set" // {language}
   | "welcome"
-  | "main_menu" // 1 letter · 2 documents · 3 language · 4 ask a question · 5 sleep/eat/wash today · 6 announcements · 7 practise French · 0 human · 9 delete my data
+  | "main_menu" // 1 letter · 2 documents · 3 language · 4 ask a question · 5 sleep/eat/wash today · 6 announcements · 7 practise French · 8 help from a volunteer · 0 human · 9 delete my data
   | "not_understood"
   | "human_contact" // {name} {contact}
   | "letter_ask_photo"
@@ -88,13 +88,36 @@ export type WaKey =
   | "announcements_on" // confirmed; write STOP to stop
   | "announcements_off" // stopped; menu 6 to receive again
   | "broadcast_stop_hint" // under every announcement: write STOP to stop
+  // — Rendez-vous with a volunteer (menu 8). {summary} is filled by the API with pre-isolated lines (topic, date, place). —
+  | "help_menu" // 1 accompany me · 2 fill in a form · 3 my appointments · 0 back
+  | "help_place_menu" // 1–5 = ACCOMPANIMENT_TOPICS order; the option labels double as topic names
+  | "help_form_menu" // 1–4 = FORM_TOPICS order
+  | "help_ask_datetime"
+  | "help_datetime_invalid"
+  | "help_ask_city" // 0 = rather not say
+  | "help_confirm" // {summary} 1 send 2 cancel
+  | "help_request_sent" // sent to volunteers, not guaranteed: go to the appointment anyway
+  | "help_slots_intro" // above the "N - date" slot lines
+  | "help_slots_other" // "0 - none of these" option line
+  | "help_no_slots"
+  | "help_consent" // may the volunteer see your saved documents, for this appointment only? 1 yes 2 no
+  | "help_accepted" // {name} {summary}
+  | "help_reminder" // {name} {summary}; reply 8 then 3 to cancel
+  | "help_volunteer_cancelled" // {summary}; open again for other volunteers
+  | "help_cancelled_by_us" // {summary}
+  | "help_expired" // {summary}; nobody was available
+  | "help_list_intro" // above the "N - appointment" lines
+  | "help_list_back" // "0 - back" option line
+  | "help_list_empty"
+  | "help_cancel_confirm" // {summary} 1 yes 2 no
+  | "help_cancelled"
   | "footer"; // {name} {contact} — appended to every reply, never optional
 
 export type Params = Record<string, string | number>;
 
 export { LANGUAGE_MENU, LANGUAGE_MENU_HEADER } from "./menu.js";
 // Dates and document type names live in their own modules so the back-office can import them without the WhatsApp catalogs.
-export { formatDate, normaliseDigits, parseUserDate } from "./dates.js";
+export { formatDate, formatTime, normaliseDigits, parseUserDate, parseUserDateTime } from "./dates.js";
 export { documentTypeName } from "./doctypes.js";
 
 export const CATALOGS: Record<LanguageCode, Record<WaKey, string>> = {
@@ -139,6 +162,15 @@ function fill(template: string, params: Params, raw: (k: string) => boolean = (k
 
 function renderKey(lang: LanguageCode, key: WaKey, params: Params = {}): string {
   return fill(CATALOGS[lang][key], params);
+}
+
+/**
+ * Name of a numbered option in a menu text ("2 - OFII" → "OFII"): the Rendez-vous topics are named by their menu
+ * labels, so a topic always reads the same in the menu and in later messages.
+ */
+export function menuOptionLabel(lang: LanguageCode, key: WaKey, option: number): string {
+  const line = CATALOGS[lang][key].split("\n").find((l) => l.trim().startsWith(`${option} - `));
+  return line ? line.trim().slice(`${option} - `.length).trim() : String(option);
 }
 
 /** Render a WhatsApp message. Every placeholder value is bidi-isolated automatically; RTL languages get a RLM at each line start. */

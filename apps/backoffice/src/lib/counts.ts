@@ -46,3 +46,9 @@ export function usePendingVolunteers(enabled: boolean): number {
   const q = useQuery({ ...orpc.volunteers.list.queryOptions({ input: { status: "pending" } }), enabled, refetchInterval: 60_000, retry: false });
   return q.data?.length ?? 0;
 }
+
+/** Rendez-vous waiting for a volunteer, and mine in the next 7 days. */
+export function useAppointmentCounts(enabled: boolean): { open: number; mineSoon: number } {
+  const q = useQuery({ ...orpc.appointments.counts.queryOptions(), enabled, refetchInterval: 60_000, retry: false });
+  return q.data ?? { open: 0, mineSoon: 0 };
+}

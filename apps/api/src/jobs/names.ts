@@ -9,6 +9,7 @@ export const JOBS = {
   knowledgeSync: "knowledge.sync", // cron weekly + on demand
   broadcastDispatch: "broadcast.dispatch", // on approval: translate, create recipients, queue one wa.send each
   buddyDispatch: "buddy.dispatch", // cron */15: French practice buddies (next sessions, reminders, stale proposals)
+  helpDispatch: "help.dispatch", // cron */15: Rendez-vous reminders, expiries, auto-done
 } as const;
 
 export interface JobPayloads {
@@ -26,6 +27,7 @@ export interface JobPayloads {
   [JOBS.broadcastDispatch]: { broadcastId: string };
   [JOBS.remindersDispatch]: { now?: string };
   [JOBS.mediaPurge]: Record<string, never>;
+  [JOBS.helpDispatch]: { now?: string };
   [JOBS.archivePurge]: Record<string, never>;
   /** No sourceId = every enabled source. */
   [JOBS.buddyDispatch]: { now?: string };

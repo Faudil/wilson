@@ -31,6 +31,7 @@ export class LocalQueue implements WorkerQueue {
       this.timers.push(setInterval(() => void this.send(name, {} as never), ms));
     every(15 * 60_000, JOBS.remindersDispatch);
     every(15 * 60_000, JOBS.buddyDispatch);
+    every(15 * 60_000, JOBS.helpDispatch);
     every(60 * 60_000, JOBS.mediaPurge);
     every(24 * 60 * 60_000, JOBS.archivePurge);
     every(7 * 24 * 60 * 60_000, JOBS.knowledgeSync);

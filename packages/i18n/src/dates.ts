@@ -148,3 +148,25 @@ export function parseUserDate(input: string): string | null {
   if (date.getUTCFullYear() !== y || date.getUTCMonth() !== mo - 1 || date.getUTCDate() !== d) return null;
   return `${String(y).padStart(4, "0")}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
+
+/** "09:30"; languages with native digits get both, like dates: "٠٩:٣٠ (09:30)". */
+export function formatTime(hhmm: string, lang: LanguageCode): string {
+  const native = NATIVE_DIGITS[lang];
+  return native ? `${withDigits(hhmm, native)} (${hhmm})` : hhmm;
+}
+
+/**
+ * A date and a time typed by the person: "14/03/2027 9:30", "14-3-27 14h", "14.03.2027 à 9h30", "١٤/٣/٢٠٢٧ ٩:٣٠".
+ * Anything that is not a digit may sit between the date and the time (à, at, saat…). Returns the calendar date and
+ * "HH:MM" (local time, Europe/Paris for the caller), or null.
+ */
+export function parseUserDateTime(input: string): { date: string; time: string } | null {
+  const s = normaliseDigits(input).replace(/[‎‏⁦-⁩]/g, "").trim();
+  const m = /^(\d{1,2}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*(?:\d{4}|\d{2}))\D+?(\d{1,2})\s*(?:[h:.]\s*(\d{2})?)?\s*\D{0,6}$/i.exec(s);
+  if (!m) return null;
+  const date = parseUserDate(m[1]!);
+  const h = Number(m[2]);
+  const min = m[3] ? Number(m[3]) : 0;
+  if (!date || h > 23 || min > 59) return null;
+  return { date, time: `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}` };
+}
