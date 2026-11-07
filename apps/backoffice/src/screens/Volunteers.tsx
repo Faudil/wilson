@@ -189,6 +189,24 @@ export function Volunteers() {
                   {self && <Chip tone="ok">{t("vol.you")}</Chip>}
                   {a.overrides.length > 0 && <Chip tone="warn">{t("vol.customPerms", { n: a.overrides.length })}</Chip>}
                 </div>
+                {a.association && (
+                  <p className="vol-assoc">
+                    <Icon name="building" size={16} />
+                    <span className="vol-assoc-text">
+                      <span>
+                        <strong dir="auto">{a.association.name}</strong>
+                        {a.association.city && <span className="muted"> · {a.association.city}</span>}
+                      </span>
+                      {a.association.rna || a.association.siren ? (
+                        <Chip tone="ok" icon="checkCircle">
+                          {a.association.rna ?? a.association.siren}
+                        </Chip>
+                      ) : (
+                        <Chip tone="muted">{t("vol.associationFreeText")}</Chip>
+                      )}
+                    </span>
+                  </p>
+                )}
                 {a.note && (
                   <p className="vol-note" dir="auto">
                     {a.note}

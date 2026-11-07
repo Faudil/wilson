@@ -17,4 +17,6 @@ export interface Deps {
   jobs: JobQueue;
   /** Injectable clock for reminders and the 24 h window. */
   now: () => Date;
+  /** Outbound HTTP for public open-data lookups (association register). Tests inject a fake. */
+  fetch?: typeof fetch;
 }

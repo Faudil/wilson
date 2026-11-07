@@ -138,6 +138,7 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
   - **Bénévole** : tout le travail bénévole (courriers, documents, discussions).
   - **Administrateur·rice** : en plus, gestion des comptes et des sources.
 - L'admin peut ensuite changer le rôle ou **désactiver** un compte (déconnexion immédiate ; ses discussions repassent « Personne demandée »). Une demande refusée est supprimée.
+- **Association** : la personne indique son association. En tapant le nom, des suggestions viennent du registre officiel (API Recherche d'entreprises de l'État, associations du RNA, gratuite et sans clé). Si l'association n'est pas trouvée, le nom tapé est gardé tel quel. Dans **Bénévoles**, l'admin voit l'association avec son numéro RNA (pastille verte) ou la mention « Saisie libre ». `ASSOCIATION_SEARCH=off` désactive les suggestions.
 - Pour fermer les inscriptions en ligne : `VOLUNTEER_SIGNUP=off`. Au-delà de `VOLUNTEER_SIGNUP_MAX_PENDING` demandes en attente (30 par défaut), les nouvelles sont refusées (anti-spam).
 - Les messages vocaux ne sont pas pris en charge (il faudrait un service de transcription tiers) : le robot demande d'écrire.
 - L'historique envoyé à l'IA ne contient que les derniers messages de la discussion (texte), jamais le numéro ni le nom.
@@ -188,7 +189,7 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
 
 - **Chiffrement** : chaque personne a sa propre clé, elle-même chiffrée par la clé maître (`MASTER_KEY`). Le fournisseur de stockage ne voit jamais les fichiers en clair. Quand une personne demande la suppression de ses données (menu 9), tout est archivé 30 jours, puis sa clé est détruite : ses données deviennent illisibles, puis sont effacées.
 - **Hébergement** : base de données et stockage en UE (France visée).
-- **Tiers** : uniquement **Meta** (transport WhatsApp) et le **fournisseur d'IA** (Anthropic par défaut). L'IA reçoit seulement l'image du courrier et la langue cible : ni nom de la personne, ni numéro, ni historique. Le fournisseur peut être changé (interface générique) pour un hébergement UE. Aucune statistique, aucun CDN, polices hébergées localement.
+- **Tiers** : uniquement **Meta** (transport WhatsApp) et le **fournisseur d'IA** (Anthropic par défaut). L'IA reçoit seulement l'image du courrier et la langue cible : ni nom de la personne, ni numéro, ni historique. Le fournisseur peut être changé (interface générique) pour un hébergement UE. Aucune statistique, aucun CDN, polices hébergées localement. Seule exception, sans donnée personnelle : les suggestions d'association du formulaire d'inscription bénévole interrogent l'annuaire public de l'État (recherche-entreprises.api.gouv.fr) avec le nom tapé, depuis notre serveur.
 - **Accès** : bénévoles connectés au back-office. Les comptes « Bénévole » voient photos et documents ; les comptes « Répondant·e » (inscription en ligne, par défaut) ne voient que les discussions. **Chaque consultation est enregistrée** (qui, quoi, quand). Seuls les admins valident et gèrent les comptes.
 - **Droits des personnes** : la personne peut supprimer un document ou toutes ses données depuis WhatsApp (menu 2 et menu 9).
 

@@ -1,6 +1,6 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-import { PermissionSchema, LoginInputSchema, SignupInputSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
+import { AssociationRefSchema, AssociationSearchInputSchema, LoginInputSchema, PermissionSchema, SignupInputSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
 import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
@@ -23,7 +23,7 @@ import { ApiKeyAddSchema, ApiKeyListSchema, ApiKeySchema, ApiKeyUpdateSchema, Us
 /**
  * The single source of truth for every back-office ⇄ API call.
  * Server: `implement(contract)` in apps/api. Client: `ContractRouterClient<typeof contract>` in apps/backoffice.
- * All procedures require a volunteer session except `auth.login`, `auth.signup` and `system.health`.
+ * All procedures require a volunteer session except `auth.login`, `auth.signup`, `auth.searchAssociations` and `system.health`.
  */
 
 const base = oc.errors({
@@ -42,6 +42,12 @@ const auth = {
    * FORBIDDEN when VOLUNTEER_SIGNUP=off; CONFLICT { reason: "too_many_pending" } when the pending list is full.
    */
   signup: base.input(SignupInputSchema).output(z.object({ ok: z.literal(true) })),
+  /**
+   * Public, for the sign-up form: associations matching a name, from the official register (API Recherche
+   * d'entreprises, RNA), fetched by the server so the browser talks to nobody else. Empty list when the register
+   * is unreachable or ASSOCIATION_SEARCH=off: the form then keeps the typed name as free text.
+   */
+  searchAssociations: base.input(AssociationSearchInputSchema).output(z.array(AssociationRefSchema)),
   logout: base.output(z.void()),
   me: base.output(VolunteerSchema),
   setUiLanguage: base.input(z.object({ language: LanguageSchema })).output(VolunteerSchema),

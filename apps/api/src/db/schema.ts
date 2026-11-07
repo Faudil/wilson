@@ -231,6 +231,11 @@ export const volunteers = pgTable("volunteers", {
   signupNote: text("signup_note"),
   approvedAt: ts("approved_at"),
   approvedBy: uuid("approved_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  /** Association the volunteer is with (sign-up form). siren/rna only when picked from the official register. */
+  associationName: text("association_name"),
+  associationSiren: text("association_siren"),
+  associationRna: text("association_rna"),
+  associationCity: text("association_city"),
 });
 
 /**

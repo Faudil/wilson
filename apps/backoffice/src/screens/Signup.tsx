@@ -1,5 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
+import type { AssociationRef } from "@wilson/contracts";
+import { AssociationField } from "../components/AssociationField";
 import { Icon } from "../components/Icon";
 import { Empty } from "../components/ui";
 import { useI18n } from "../i18n";
@@ -14,6 +16,7 @@ export function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [note, setNote] = useState("");
+  const [association, setAssociation] = useState<AssociationRef | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [show, setShow] = useState(false);
   const signup = useMutation(orpc.auth.signup.mutationOptions());
@@ -21,7 +24,7 @@ export function Signup() {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!accepted) return;
-    signup.mutate({ name: name.trim(), email: email.trim(), password, uiLanguage: lang, note: note.trim() || undefined, acceptsConfidentiality: true });
+    signup.mutate({ name: name.trim(), email: email.trim(), password, uiLanguage: lang, note: note.trim() || undefined, association: association ?? undefined, acceptsConfidentiality: true });
   };
   const code = errorCode(signup.error);
   const closed = health.data?.signup === false || code === "FORBIDDEN";
@@ -85,6 +88,7 @@ export function Signup() {
               </button>
             </span>
           </label>
+          <AssociationField value={association} onChange={setAssociation} />
           <label className="field">
             <span className="field-label">
               {t("signup.note")} <span className="muted small">({t("common.optional")})</span>
