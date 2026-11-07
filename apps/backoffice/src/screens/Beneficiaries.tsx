@@ -1,4 +1,5 @@
-import { LANGUAGES, LANGUAGE_CODES, DocumentTypeSchema, type DocumentDto, type LanguageCode } from "@wilson/contracts";
+import type { DocumentDto, LanguageCode } from "@wilson/contracts";
+import { LANGUAGES, LANGUAGE_CODES, DOCUMENT_TYPES } from "@wilson/contracts/values";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Chip, Countdown, LangBadge, StatusBadge, UrgencyBadge } from "../components/badges";
@@ -332,7 +333,7 @@ function DocumentCard({ doc }: { doc: DocumentDto }) {
           <label className="field">
             <span className="field-label">{t("documents.type")}</span>
             <select value={type} onChange={(e) => setType(e.target.value as DocumentDto["type"])}>
-              {DocumentTypeSchema.options.map((o) => (
+              {DOCUMENT_TYPES.map((o) => (
                 <option key={o} value={o}>
                   {documentTypeName(o, lang)}
                 </option>

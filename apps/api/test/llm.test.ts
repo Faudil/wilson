@@ -196,6 +196,23 @@ describe("AnthropicProvider (mocked SDK)", () => {
     const bad = vi.fn().mockResolvedValue(reply(JSON.stringify({ title: "t", summary: "s", actions: ["x"], orientation: ["z"] })));
     await expect(mk(bad).translateLetterText({ fr, targetLanguage: "ar" })).rejects.toBeInstanceOf(LlmError);
   });
+  it("uses fastModel for the calls a WhatsApp reply waits on, the main model for the rest", async () => {
+    const create = vi.fn()
+      .mockResolvedValueOnce(reply('{"intent":"info","frenchQuery":"q","needsHuman":false}'))
+      .mockResolvedValueOnce(reply("bonjour"))
+      .mockResolvedValueOnce(reply('{"language":"fr","confidence":0.9}'))
+      .mockResolvedValueOnce(reply(validJson));
+    const llm = new AnthropicProvider({ model: "main", fastModel: "fast", client: { messages: { create } } as unknown as AnthropicLike });
+    await llm.planChat({ history: [{ role: "beneficiary", text: "salut" }], language: "fr" });
+    await llm.translateText({ text: "hello", from: "en", to: "fr" });
+    await llm.detectLanguage({ text: "bonjour" });
+    await llm.analyzeLetter(input);
+    expect(create.mock.calls.map((c) => c[0].model)).toEqual(["fast", "fast", "fast", "main"]);
+    // Without fastModel everything stays on the main model.
+    const one = vi.fn().mockResolvedValue(reply("bonjour"));
+    await mk(one).translateText({ text: "hello", from: "en", to: "fr" });
+    expect(one.mock.calls[0]![0].model).toBe("test-model");
+  });
 });
 
 it("sample hashes are stable keys (sanity)", () => {

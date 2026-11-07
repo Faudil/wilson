@@ -26,6 +26,11 @@ export interface AnthropicLike {
 export interface AnthropicProviderOptions {
   apiKey?: string;
   model: string;
+  /**
+   * Model for the short calls a WhatsApp reply waits on (intent, language detection, chat translation).
+   * Defaults to `model`; a faster model here cuts the bot's reply time.
+   */
+  fastModel?: string;
   client?: AnthropicLike;
   maxTokens?: number;
   /** Records tokens + estimated cost of every call, picks the API key and enforces budgets (see src/usage). */
@@ -46,6 +51,8 @@ function isKeyProblem(e: unknown): boolean {
 interface CallTag {
   task: UsageTask;
   language: LanguageCode | null;
+  /** A short call the WhatsApp reply waits on: sent to `fastModel`. */
+  fast?: boolean;
 }
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
@@ -126,11 +133,13 @@ export class AnthropicProvider implements LlmProvider {
   private readonly keyClients = new Map<string, AnthropicLike>();
   private readonly makeClient: (apiKey: string) => AnthropicLike;
   private readonly model: string;
+  private readonly fastModel: string;
   private readonly maxTokens: number;
   private readonly meter: UsageMeter | undefined;
 
   constructor(opts: AnthropicProviderOptions) {
     this.model = opts.model;
+    this.fastModel = opts.fastModel ?? opts.model;
     this.meter = opts.meter;
     this.maxTokens = opts.maxTokens ?? 16000;
     this.client = opts.client ?? (opts.apiKey ? new Anthropic({ apiKey: opts.apiKey }) : null);
@@ -160,7 +169,7 @@ export class AnthropicProvider implements LlmProvider {
       const client = this.clientFor(choice.apiKey);
       let res: Anthropic.Message;
       try {
-        res = await client.messages.create({ model: this.model, max_tokens: this.maxTokens, messages });
+        res = await client.messages.create({ model: tag.fast ? this.fastModel : this.model, max_tokens: this.maxTokens, messages });
       } catch (e) {
         if (choice.keyId && this.meter && isKeyProblem(e)) {
           await this.meter.keyFailed(choice.keyId, e instanceof Error ? e.message : String(e));
@@ -174,7 +183,7 @@ export class AnthropicProvider implements LlmProvider {
         await this.meter.record({
           keyId: choice.keyId,
           task: tag.task,
-          model: res.model ?? this.model,
+          model: res.model ?? (tag.fast ? this.fastModel : this.model),
           language: tag.language,
           tokens: {
             inputTokens: u.input_tokens ?? 0,
@@ -274,7 +283,7 @@ export class AnthropicProvider implements LlmProvider {
       languageList: LANGUAGE_CODES.map((c) => `"${c}"`).join(", "),
       text: input.text.slice(0, 1000),
     });
-    const r = await this.callJson({ task: "language-detect", language: null }, [{ type: "text", text: prompt }], LanguageDetectionSchema);
+    const r = await this.callJson({ task: "language-detect", language: null, fast: true }, [{ type: "text", text: prompt }], LanguageDetectionSchema);
     return { language: r.language === "unknown" ? null : r.language, confidence: r.confidence };
   }
 
@@ -345,7 +354,7 @@ export class AnthropicProvider implements LlmProvider {
       targetLanguageCode: input.language,
       historyJson: JSON.stringify(input.history, null, 2),
     });
-    const out = await this.callJson({ task: "chat-plan", language: input.language }, [{ type: "text", text: prompt }], ChatPlanSchema);
+    const out = await this.callJson({ task: "chat-plan", language: input.language, fast: true }, [{ type: "text", text: prompt }], ChatPlanSchema);
     const needsHuman = out.needsHuman || out.intent === "legal" || out.intent === "urgent" || out.intent === "human";
     return { intent: out.intent, frenchQuery: out.frenchQuery.trim(), needsHuman };
   }
@@ -389,6 +398,6 @@ export class AnthropicProvider implements LlmProvider {
       text: input.text.slice(0, 4000),
     });
     const language = input.to !== "fr" ? input.to : input.from === "auto" ? null : input.from;
-    return this.callText({ task: "chat-translate", language }, prompt);
+    return this.callText({ task: "chat-translate", language, fast: true }, prompt);
   }
 }

@@ -64,6 +64,7 @@ Par défaut, `WHATSAPP_MODE=sandbox` et `LLM_MODE=fake` :
 | Variable | Rôle |
 |---|---|
 | `LLM_MODE=anthropic`, `ANTHROPIC_API_KEY`, `LLM_MODEL` | Analyse réelle par Claude (modèle Opus par défaut). La clé du serveur est facultative si des clés sont ajoutées dans le back-office. |
+| `LLM_FAST_MODEL` (optionnel) | Modèle plus rapide pour les petits appels dont dépend la réponse WhatsApp (intention, traduction). Vide = `LLM_MODEL` |
 | `WHATSAPP_MODE=meta` + `WHATSAPP_*` | WhatsApp Cloud API (Meta). Webhook : `https://<domaine>/webhooks/whatsapp`. **Pas à pas complet (identifiants, webhook, modèles, vrai numéro) : [docs/whatsapp-setup.md](docs/whatsapp-setup.md)** |
 | `WHATSAPP_TEMPLATE_EXPLANATION_READY`, `WHATSAPP_TEMPLATE_DOCUMENT_REMINDER` | Modèles de messages (catégorie « utility ») utilisés quand la personne n'a pas écrit depuis plus de 24 h (règle WhatsApp). Soumis à Meta dans les 16 langues qu'il accepte par `bun run --filter @wilson/api wa:setup templates` |
 | `S3_*` | Stockage S3 hébergé en France/UE (Scaleway, OVH, Clever Cloud…) |

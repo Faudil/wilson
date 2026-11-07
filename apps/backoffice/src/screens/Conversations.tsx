@@ -1,4 +1,5 @@
-import { LANGUAGES, type ChatIntent, type ChatMessage, type ConversationSummary } from "@wilson/contracts";
+import type { ChatIntent, ChatMessage, ConversationSummary } from "@wilson/contracts";
+import { LANGUAGES } from "@wilson/contracts/values";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Chip, LangBadge } from "../components/badges";
@@ -34,16 +35,6 @@ export function StatusChip({ status }: { status: Status }) {
 }
 
 /** Conversations waiting for a volunteer (needs_human, pending_review, or held by a volunteer with an unanswered message). */
-export function useAttentionCount(enabled: boolean): number {
-  const q = useQuery({
-    ...orpc.conversations.list.queryOptions({ input: { filter: "attention", limit: 100 } }),
-    enabled,
-    refetchInterval: 30_000,
-    retry: false,
-  });
-  return q.data?.items.length ?? 0;
-}
-
 export function ConversationList() {
   const { t, lang } = useI18n();
   const { volunteer: me } = useSession();

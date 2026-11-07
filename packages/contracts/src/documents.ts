@@ -1,20 +1,8 @@
 import { z } from "zod";
 import { CalendarDateSchema, IdSchema, TimestampSchema } from "./common.js";
+import { DOCUMENT_TYPES } from "./values.js";
 
-export const DocumentTypeSchema = z.enum([
-  "attestation_demande_asile", // ADA
-  "recepisse", // récépissé de demande de titre
-  "titre_de_sejour",
-  "autorisation_provisoire_sejour", // APS
-  "domiciliation",
-  "passport",
-  "identity_other",
-  "health_insurance", // attestation AME / PUMa / carte vitale
-  "caf_attestation",
-  "convocation",
-  "letter", // a letter saved from "Mon courrier"
-  "other",
-]);
+export const DocumentTypeSchema = z.enum(DOCUMENT_TYPES);
 export type DocumentType = z.infer<typeof DocumentTypeSchema>;
 
 export const ExpirySourceSchema = z.enum(["detected", "entered_by_user", "entered_by_volunteer"]);

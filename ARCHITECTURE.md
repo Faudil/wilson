@@ -172,6 +172,26 @@ Goal: the "who to turn to" lines cite real, local, up-to-date offices and proced
 - Admins (`volunteers.manage`, `volunteers.*`): list, approve with a role (`approved_at`, `approved_by`), reject (row deleted), set role, disable/enable (sessions deleted at once). Not on themselves. Every action in `access_log`.
 - **Roles:** `responder` = `conversations.view`, `conversations.reply`, `knowledge.view` (no letters, photos, documents or beneficiary pages) — least privilege by default for people the association does not know yet; `volunteer` = full volunteer bundle; `admin`. Permissions are resolved per request, so a role change applies on the next click.
 
+## 8e. Performance (low-end phones, slow connections)
+
+Volunteers open the back-office on cheap phones and old PCs, often over mobile data; beneficiaries wait for the bot's
+WhatsApp reply. What keeps it fast, and the tests that guard it:
+
+- **Small first download.** The browser imports `@wilson/contracts/values` (plain lists, no zod) and
+  `@wilson/i18n/dates` / `@wilson/i18n/doctypes` (no WhatsApp catalogs), never the package roots.
+  `apps/backoffice/test/bundle.test.ts` fails if zod or the catalogs come back, or if the entry chunk passes 130 KB gzipped.
+- **One chunk per screen.** `App.tsx` loads every screen except login and home with `lazyScreens` (`src/lib/lazy.tsx`):
+  downloaded once logged in, in the background (skipped in data-saver mode), retried once on a dropped connection,
+  with an error + reload button instead of a blank page if it still fails.
+- **Compressed and cached.** `build.ts` writes `.br` and `.gz` copies of every text file; `serve.ts` sends them, and
+  gzips JSON answers from the API. Hashed file names (scripts, styles, fonts and their stylesheet) are cached for a
+  year; `index.html` is revalidated. A missing hashed file is a 404, never the HTML page.
+- **Cheap polling.** Navigation badges poll counts (`conversations.attentionCount`), not lists.
+- **Bot reply time.** The French translation of an inbound message runs in parallel with intent classification.
+  `LLM_FAST_MODEL` (optional) sends the short calls a reply waits on (intent, language detection, chat translation) to
+  a faster model; letter analysis and chat answers stay on `LLM_MODEL`.
+- **Indexes** on every per-person lookup (messages, letters, documents, letter events).
+
 ## 9. API contract overview (`packages/contracts`)
 
 oRPC contract, consumed by `implement(contract)` on the server and a typed client in the back-office. Every procedure requires a volunteer session except `auth.login`, `auth.signup` and `system.health`.

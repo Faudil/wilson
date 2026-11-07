@@ -272,3 +272,7 @@ export const DOCUMENT_TYPE_NAMES: Record<LanguageCode, Record<DocumentType, stri
   },
   ...DOCTYPES_B,
 };
+
+export function documentTypeName(type: DocumentType, lang: LanguageCode): string {
+  return DOCUMENT_TYPE_NAMES[lang][type];
+}

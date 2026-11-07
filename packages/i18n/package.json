@@ -8,7 +8,15 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./ui/*": "./src/ui/*"
+    "./ui/*": "./src/ui/*",
+    "./dates": {
+      "types": "./src/dates.ts",
+      "default": "./src/dates.ts"
+    },
+    "./doctypes": {
+      "types": "./src/doctypes.ts",
+      "default": "./src/doctypes.ts"
+    }
   },
   "scripts": {
     "typecheck": "bun --bun tsc --noEmit",

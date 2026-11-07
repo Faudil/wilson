@@ -9,7 +9,7 @@ export type { LlmFile, LlmProvider } from "./provider.js";
 export { AnthropicProvider } from "./anthropic.js";
 export { FakeProvider } from "./fake.js";
 
-export function createLlmProvider(config: Pick<Config, "LLM_MODE" | "ANTHROPIC_API_KEY" | "LLM_MODEL">, meter?: UsageMeter): LlmProvider {
+export function createLlmProvider(config: Pick<Config, "LLM_MODE" | "ANTHROPIC_API_KEY" | "LLM_MODEL" | "LLM_FAST_MODEL">, meter?: UsageMeter): LlmProvider {
   if (config.LLM_MODE === "fake") return new FakeProvider();
-  return new AnthropicProvider({ apiKey: config.ANTHROPIC_API_KEY, model: config.LLM_MODEL, meter });
+  return new AnthropicProvider({ apiKey: config.ANTHROPIC_API_KEY, model: config.LLM_MODEL, fastModel: config.LLM_FAST_MODEL, meter });
 }

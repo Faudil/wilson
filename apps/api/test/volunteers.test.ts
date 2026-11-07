@@ -147,6 +147,7 @@ describe("volunteer takes a conversation over", () => {
     const mine = await t!.client.conversations.list({ filter: "mine", limit: 10 });
     expect(mine.items.map((i) => i.beneficiaryId)).toEqual([bid]);
     expect((await t!.client.conversations.list({ filter: "attention", limit: 10 })).items.map((i) => i.beneficiaryId)).toEqual([bid]);
+    expect((await t!.client.conversations.attentionCount()).count).toBe(1);
 
     // the volunteer answers in French; the person receives Arabic + footer
     c = await t!.client.conversations.reply({ beneficiaryId: bid, textFr: "La préfecture est au 1 rue de la Paix." });
@@ -154,6 +155,7 @@ describe("volunteer takes a conversation over", () => {
     expect(plain(await p.last())).toContain("[ar] La préfecture est au 1 rue de la Paix.");
     expect(c.awaitingReply).toBe(false);
     expect((await t!.client.conversations.list({ filter: "attention", limit: 10 })).items).toHaveLength(0);
+    expect((await t!.client.conversations.attentionCount()).count).toBe(0);
 
     // an emergency still gets the fixed emergency numbers at once
     await p.say("urgence, je dois dormir dehors");

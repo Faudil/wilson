@@ -1,4 +1,5 @@
-import { LANGUAGES, type LanguageCode, type UsageBudget, type UsageSummary, type UsageTotals } from "@wilson/contracts";
+import type { LanguageCode, UsageBudget, UsageSummary, UsageTotals } from "@wilson/contracts";
+import { LANGUAGES } from "@wilson/contracts/values";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Icon } from "../components/Icon";
@@ -7,6 +8,7 @@ import { useI18n, type MessageKey } from "../i18n";
 import { orpc } from "../lib/api";
 import { formatDate } from "../lib/wilson-i18n";
 import { ApiKeys } from "./ApiKeys";
+import { BudgetNotice } from "../components/BudgetNotice";
 
 /** USD, the currency Anthropic bills in. Small amounts keep 3 decimals so a few cents stay visible. */
 export function usd(n: number, lang: LanguageCode): string {
@@ -15,30 +17,6 @@ export function usd(n: number, lang: LanguageCode): string {
 }
 const int = (n: number, lang: LanguageCode) => new Intl.NumberFormat(lang).format(n);
 const compact = (n: number, lang: LanguageCode) => new Intl.NumberFormat(lang, { notation: "compact", maximumFractionDigits: 1 }).format(n);
-
-/** For the home tile and the nav: admins only, refreshed every few minutes. */
-export function useUsageBudget(enabled: boolean): UsageBudget | undefined {
-  const q = useQuery({ ...orpc.usage.summary.queryOptions(), enabled, refetchInterval: 300_000, retry: false });
-  return q.data?.budget;
-}
-
-/** Warning shown at the top of Home and Usage when the month passes 80 % / 100 % of the budget. */
-export function BudgetNotice({ budget, link }: { budget: UsageBudget | undefined; link?: string }) {
-  const { t } = useI18n();
-  if (!budget || (budget.state !== "warning" && budget.state !== "over")) return null;
-  const over = budget.state === "over";
-  const body = over ? (budget.hardStop ? t("usage.notice.stopped") : t("usage.notice.over")) : t("usage.notice.warning", { pct: Math.round(budget.usedPercent ?? 0) });
-  return (
-    <div className={`notice ${over ? "notice-error" : "notice-warn"}`} role="status">
-      <Icon name="alert" size={20} />
-      <div className="notice-body">
-        <strong>{over ? t("usage.notice.overTitle") : t("usage.notice.warningTitle")}</strong>
-        <p>{body}</p>
-        {link && <a href={link}>{t("usage.notice.open")}</a>}
-      </div>
-    </div>
-  );
-}
 
 function Stat({ label, totals, lang, sub }: { label: string; totals: UsageTotals; lang: LanguageCode; sub?: string }) {
   const { t } = useI18n();

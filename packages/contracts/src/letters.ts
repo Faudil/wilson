@@ -2,25 +2,9 @@ import { z } from "zod";
 import { CalendarDateSchema, IdSchema, TimestampSchema } from "./common.js";
 import { LetterSourceRefSchema } from "./knowledge.js";
 import { LanguageSchema } from "./languages.js";
+import { LETTER_TYPES } from "./values.js";
 
-export const LetterTypeSchema = z.enum([
-  "prefecture_residence_permit", // titre de séjour, récépissé, convocation préfecture
-  "prefecture_removal_order", // OQTF, IRTF, assignation — always urgent
-  "ofpra_convocation",
-  "ofpra_decision",
-  "cnda", // Cour nationale du droit d'asile
-  "ofii", // ADA, hébergement, CIR
-  "caf",
-  "cpam", // assurance maladie, AME, PUMa
-  "france_travail",
-  "tax", // impots.gouv
-  "housing", // bailleur, 115, SIAO
-  "court", // tribunal administratif, judiciaire
-  "school",
-  "bank",
-  "other_official",
-  "not_official", // ad, private letter, unreadable
-]);
+export const LetterTypeSchema = z.enum(LETTER_TYPES);
 export type LetterType = z.infer<typeof LetterTypeSchema>;
 
 export const UrgencySchema = z.enum(["low", "medium", "high"]);

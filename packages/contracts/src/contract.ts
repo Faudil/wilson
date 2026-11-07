@@ -98,6 +98,8 @@ const conversations = {
   list: base
     .input(PageInputSchema.extend({ filter: z.enum(["attention", "mine", "all"]).default("attention") }))
     .output(pageOf(ConversationSummarySchema)),
+  /** Number of conversations the "attention" list holds: the navigation badge polls this instead of the list. */
+  attentionCount: base.output(z.object({ count: z.number().int().nonnegative() })),
   get: base.input(z.object({ beneficiaryId: IdSchema })).output(ConversationDetailSchema),
   /** Send a bot draft, optionally after editing its French version (then re-translated before sending). */
   approveDraft: base.input(z.object({ messageId: IdSchema, textFr: z.string().min(1).max(3000).optional() })).output(ConversationDetailSchema),

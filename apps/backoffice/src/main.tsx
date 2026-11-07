@@ -9,8 +9,10 @@ import { ME_KEY } from "./lib/me";
 import "./styles/app.css";
 
 // Self-hosted fonts, served as separate files by serve.ts (see fonts.ts) so unicode-range only downloads what a page uses.
-const fontsLink = Object.assign(document.createElement("link"), { rel: "stylesheet", href: "/fonts/fonts.css" });
-document.head.append(fontsLink);
+// The production build already links them from index.html; the dev server has no build step, so add the link here.
+if (!document.querySelector('link[href^="/fonts/"]')) {
+  document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href: "/fonts/fonts.css" }));
+}
 
 applyDocumentLanguage(readStoredLanguage());
 

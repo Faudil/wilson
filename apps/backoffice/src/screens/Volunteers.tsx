@@ -15,11 +15,6 @@ type Status = VolunteerAccount["status"];
 const ROLES: VolunteerRole[] = ["responder", "volunteer", "admin"];
 
 /** Pending self-signups, for the nav badge and the home tile. */
-export function usePendingVolunteers(enabled: boolean): number {
-  const q = useQuery({ ...orpc.volunteers.list.queryOptions({ input: { status: "pending" } }), enabled, refetchInterval: 60_000, retry: false });
-  return q.data?.length ?? 0;
-}
-
 function RolePicker({ value, onChange }: { value: VolunteerRole; onChange: (r: VolunteerRole) => void }) {
   const { t } = useI18n();
   return (

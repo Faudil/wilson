@@ -1,4 +1,5 @@
 export * from "./languages.js";
+export { LETTER_TYPES, DOCUMENT_TYPES } from "./values.js";
 export * from "./common.js";
 export * from "./letters.js";
 export * from "./documents.js";

@@ -23,3 +23,20 @@ export function useWeekDeadlines(enabled: boolean) {
   });
   return { query: q, count: q.data?.length ?? 0 };
 }
+
+/** Conversations that need a person (urgent, legal question, asked for a human). */
+export function useAttentionCount(enabled: boolean): number {
+  const q = useQuery({
+    ...orpc.conversations.attentionCount.queryOptions(),
+    enabled,
+    refetchInterval: 30_000,
+    retry: false,
+  });
+  return q.data?.count ?? 0;
+}
+
+/** Volunteer sign-ups waiting for an admin. */
+export function usePendingVolunteers(enabled: boolean): number {
+  const q = useQuery({ ...orpc.volunteers.list.queryOptions({ input: { status: "pending" } }), enabled, refetchInterval: 60_000, retry: false });
+  return q.data?.length ?? 0;
+}

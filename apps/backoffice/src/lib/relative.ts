@@ -1,4 +1,5 @@
-import { LANGUAGES, type LanguageCode } from "@wilson/contracts";
+import type { LanguageCode } from "@wilson/contracts";
+import { LANGUAGES } from "@wilson/contracts/values";
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["year", 31_536_000],
