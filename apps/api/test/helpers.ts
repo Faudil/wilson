@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { FakeGeo } from "../src/geo/fake.js";
 import { createRouterClient } from "@orpc/server";
 import type { ContractRouterClient } from "@orpc/contract";
 import pg from "pg";
@@ -91,6 +92,8 @@ export interface TestCtx {
   clock: TestClock;
   llm: StubLlm;
   wa: StubTransport;
+  /** Outside map services (OpenStreetMap, Soliguide): set addresses and results per test. */
+  geo: FakeGeo;
   services: Services;
   /** Drops the test database and closes the pool. */
   close(): Promise<void>;
@@ -151,9 +154,10 @@ export async function makeTestDeps(opts: { now?: string; config?: Record<string,
   const blobs = new MemoryBlobStore();
   const llm = new StubLlm();
   const wa = new StubTransport();
-  const deps: Deps = { config, db, crypto: createCrypto(config), blobs, llm, wa, jobs: queue, now: clock.now };
+  const geo = new FakeGeo();
+  const deps: Deps = { config, db, crypto: createCrypto(config), blobs, llm, geo, wa, jobs: queue, now: clock.now };
   return {
-    deps, config, queue, blobs, clock, llm, wa,
+    deps, config, queue, blobs, clock, llm, wa, geo,
     services: getServices(deps),
     async close() {
       await pool.end();

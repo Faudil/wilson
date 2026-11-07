@@ -107,6 +107,8 @@ export interface WaCtx extends TestCtx {
   /** Inbound text, then run the queue dry. */
   say(phone: string, text: string): Promise<void>;
   photo(phone: string, mime?: string): Promise<void>;
+  /** 📎 → Location. */
+  share(phone: string, latitude: number, longitude: number): Promise<void>;
   /** Decrypted outbound bodies (sandbox/meta alike), oldest first. */
   outbound(phone: string): Promise<string[]>;
   drain(): Promise<void>;
@@ -142,6 +144,7 @@ export async function makeWa(opts: { meta?: boolean; now?: string; config?: Reco
   return {
     ...ctx, wdeps, tllm, meta, volunteerId: volunteer.id, drain,
     say: (phone, text) => run({ ...base(phone), type: "text", text: { body: text } }),
+    share: (phone, latitude, longitude) => run({ ...base(phone), type: "location", location: { latitude, longitude } }),
     async photo(phone, mime = "image/png") {
       let id = "meta-media-1";
       if (!meta) {

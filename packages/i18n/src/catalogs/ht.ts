@@ -80,4 +80,12 @@ export const ht: Record<WaKey, string> = {
   guard_slow_down: "Ou ap voye anpil mesaj. Tanpri tann kèk minit, epi ekri ankò.",
   guard_held: "Mesaj ou yo an atant pou kounye a. Yon volontè pral verifye epi kontakte w.",
   guard_released: "Mèsi paske ou te tann. Ou ka ekri nou ankò.",
+  nearby_hint: "📍 Pou w wè kote ki pi pre w yo, pataje pozisyon ou (📎 apre 📍) oswa ekri yon adrès oswa non yon estasyon.",
+  nearby_title: "📍 Toupre w, ouvè jodi a (mwens pase {distance}):",
+  nearby_none: "Mwen pa jwenn anyen ki ouvè toupre kote sa a jodi a.",
+  nearby_not_found: "Mwen pa jwenn adrès sa a. Ekri l ak non vil la, oswa pataje pozisyon ou (📎 apre 📍).",
+  nearby_water: "Dlo pou bwè",
+  nearby_toilets: "Twalèt piblik",
+  nearby_shower: "Douch piblik",
+  nearby_pharmacy: "Famasi",
 };

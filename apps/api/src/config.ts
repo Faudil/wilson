@@ -104,6 +104,24 @@ const EnvSchema = z.object({
    */
   ALERT_WEBHOOK_URL: z.url().optional(),
 
+  /**
+   * Nearby places (a shared WhatsApp location or a typed address → the nearest help). "osm" = OpenStreetMap
+   * (Nominatim for addresses, Overpass for water, toilets, showers, pharmacies, stops) + Soliguide when a key is set;
+   * "off" = only the list of the day. Only coordinates or the typed address leave the server, never who asked.
+   */
+  GEO_MODE: z.enum(["osm", "off"]).default("osm"),
+  /** Search radius around the person, metres. */
+  NEARBY_RADIUS_M: z.coerce.number().int().min(200).max(10_000).default(1500),
+  /** Typed addresses are looked up in this country only (ISO 3166-1 alpha-2, comma-separated). */
+  NEARBY_COUNTRIES: z.string().default("fr"),
+  NOMINATIM_URL: z.url().default("https://nominatim.openstreetmap.org"),
+  OVERPASS_URL: z.url().default("https://overpass-api.de/api/interpreter"),
+  /** Contact address sent to Nominatim/Overpass with each request, as their usage policies ask. */
+  OSM_CONTACT_EMAIL: z.string().optional(),
+  /** Soliguide API token (free for associations, ask Solinum). Unset = no Soliguide results. */
+  SOLIGUIDE_API_KEY: z.string().optional(),
+  SOLIGUIDE_API_URL: z.url().default("https://api.soliguide.fr"),
+
   LLM_MODE: z.enum(["anthropic", "fake"]).default("fake"),
   /** Server key, used after the keys admins add in the back-office (optional when such keys exist). */
   ANTHROPIC_API_KEY: z.string().optional(),

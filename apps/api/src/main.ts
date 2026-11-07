@@ -13,6 +13,7 @@ import type { BlobStore } from "./storage/blobStore.js";
 import { registerWorkers } from "./jobs/workers.js";
 import { createLettersService } from "./letters/service.js";
 import { createLlmProvider } from "./llm/index.js";
+import { createGeoProvider } from "./geo/index.js";
 import { usageServiceFor } from "./usage/service.js";
 import { createHttpServer } from "./server.js";
 import { enqueueInitialSync } from "./knowledge/service.js";
@@ -53,7 +54,7 @@ async function main(): Promise<void> {
   const now = () => new Date();
   const crypto = createCrypto(config);
   const usage = usageServiceFor({ db, crypto, config, now });
-  const base = { config, db, crypto, blobs, llm: createLlmProvider(config, usage.meter), jobs: queue, now };
+  const base = { config, db, crypto, blobs, llm: createLlmProvider(config, usage.meter), geo: createGeoProvider(config), jobs: queue, now };
   const { beneficiaries, documents, knowledge } = getServices(base);
   const deps: Deps = { ...base, wa: createTransport({ ...base, beneficiaries }) };
   const letters = createLettersService(deps, beneficiaries, knowledge);

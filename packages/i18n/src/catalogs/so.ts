@@ -80,4 +80,12 @@ export const so: Record<WaKey, string> = {
   guard_slow_down: "Waxaad soo diraysaa farriimo badan. Fadlan sug dhowr daqiiqo, kadibna mar kale qor.",
   guard_held: "Farriimahaagu hadda way sugayaan. Mutadawac ayaa eegi doona oo kula soo xiriiri doona.",
   guard_released: "Waad ku mahadsan tahay sugitaanka. Mar kale ayaad noo qori kartaa.",
+  nearby_hint: "📍 Si aad u aragto meelaha kuugu dhow, la wadaag goobtaada (📎 kadib 📍) ama qor cinwaan ama magaca saldhig.",
+  nearby_title: "📍 Agagaarkaaga, maanta furan (ka yar {distance}):",
+  nearby_none: "Maanta wax furan kuma helin meeshan agteeda.",
+  nearby_not_found: "Cinwaankan ma helin. Ku qor magaca magaalada, ama la wadaag goobtaada (📎 kadib 📍).",
+  nearby_water: "Biyo la cabbo",
+  nearby_toilets: "Musqul dadweyne",
+  nearby_shower: "Qubays dadweyne",
+  nearby_pharmacy: "Farmashiye",
 };

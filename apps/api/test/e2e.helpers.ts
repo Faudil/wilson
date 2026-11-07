@@ -30,6 +30,8 @@ export interface Phone {
   thread(): Promise<{ direction: "inbound" | "outbound"; text: string | null; hasMedia: boolean }[]>;
   out(): Promise<string[]>;
   last(): Promise<string>;
+  /** 📎 → Location. */
+  share(latitude: number, longitude: number): Promise<void>;
 }
 
 export const sampleFile = (kind: "letters" | "documents", name: string): File => {
@@ -62,6 +64,10 @@ export async function makeE2E(opts: { now?: string; config?: Record<string, stri
       },
       async send(file) {
         await client.sandbox.send({ phone: number, file });
+        await ctx.queue.drain();
+      },
+      async share(latitude, longitude) {
+        await client.sandbox.send({ phone: number, location: { latitude, longitude } });
         await ctx.queue.drain();
       },
       thread: async () => (await client.sandbox.thread({ phone: number })).map(({ direction, text, hasMedia }) => ({ direction, text, hasMedia })),

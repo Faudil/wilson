@@ -80,4 +80,12 @@ export const sq: Record<WaKey, string> = {
   guard_slow_down: "Po dërgoni shumë mesazhe. Ju lutemi prisni disa minuta, pastaj shkruani përsëri.",
   guard_held: "Mesazhet tuaja janë në pritje për momentin. Një vullnetar do t'i kontrollojë dhe do t'ju kontaktojë.",
   guard_released: "Faleminderit që pritët. Mund të na shkruani përsëri.",
+  nearby_hint: "📍 Për të parë vendet më të afërta, ndani vendndodhjen tuaj (📎 pastaj 📍) ose shkruani një adresë ose emrin e një stacioni.",
+  nearby_title: "📍 Pranë jush, hapur sot (brenda {distance}):",
+  nearby_none: "Sot nuk gjeta asgjë të hapur pranë këtij vendi.",
+  nearby_not_found: "Nuk e gjeta këtë adresë. Shkruajeni me qytetin, ose ndani vendndodhjen tuaj (📎 pastaj 📍).",
+  nearby_water: "Ujë i pijshëm",
+  nearby_toilets: "Tualet publik",
+  nearby_shower: "Dush publik",
+  nearby_pharmacy: "Farmaci",
 };

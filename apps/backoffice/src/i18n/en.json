@@ -1018,5 +1018,9 @@
   "vol.emailUnverifiedHint": "This person has not clicked the link in their e-mail yet. You can approve the request after that.",
   "vol.twoFactor": "Two-factor",
   "vol.reset2fa": "Reset two-factor authentication",
-  "vol.reset2faBody": "Use this if the person lost their phone. They are logged out everywhere and must set up a new app. Check who they are first (call, meet)."
+  "vol.reset2faBody": "Use this if the person lost their phone. They are logged out everywhere and must set up a new app. Check who they are first (call, meet).",
+  "sandbox.location": "Send a location (yours, or Paris République if refused)",
+  "places.located": "Found on the map",
+  "places.notLocated": "Not found on the map",
+  "places.notLocatedHelp": "Address not found on the map: the place stays in the list of the day, but isn't suggested to people who share their location. Check the address (number, street, city)."
 }

@@ -34,6 +34,20 @@ async function storeOutbound(deps: WaDeps, beneficiaryId: string, kind: "text" |
   }).onConflictDoNothing();
 }
 
+/**
+ * Send a text right away (the person just wrote, so the 24 h window is open), outside the queue, and record
+ * `recordAs` instead of the text: for replies whose content must not be kept (places near a shared location).
+ */
+export async function sendTextNow(deps: WaDeps, beneficiaryId: string, body: string, recordAs: string): Promise<void> {
+  try {
+    const to = await deps.beneficiaries.getWaId(beneficiaryId);
+    const { waMessageId } = await deps.wa.sendText(to, body);
+    await storeOutbound(deps, beneficiaryId, "text", recordAs, waMessageId);
+  } catch (e) {
+    console.error("[wa] direct send failed:", e instanceof Error ? e.message : String(e));
+  }
+}
+
 /** States in which it is safe to switch to "offer to save the letter" after a reply was delivered. */
 const OFFER_OK: ConversationState["step"][] = ["main_menu", "await_letter_photo", "await_document_file", "offer_save_letter"];
 
