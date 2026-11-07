@@ -9,7 +9,7 @@ import {
   type AnyPgColumn, boolean, customType, date, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import {
-  BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
+  BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, HelpKindSchema, HelpStatusSchema, HelpTopicSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
   type BuddySlot, type BuddyWindow, BuddyMatchStatusSchema, BuddyModePreferenceSchema, BuddyModeSchema, BuddyWindowSchema,
   TaskStatusSchema, UrgencySchema, VOLUNTEER_SKILLS, VolunteerRoleSchema,
 } from "@wilson/contracts";
@@ -55,6 +55,10 @@ export const buddyMatchStatusEnum = pgEnum("buddy_match_status", tuple(BuddyMatc
 export const buddySessionStatusEnum = pgEnum("buddy_session_status", ["scheduled", "cancelled", "done"]);
 export const buddyPartyEnum = pgEnum("buddy_party", ["beneficiary", "volunteer", "coordinator"]);
 export const reminderStatusEnum = pgEnum("reminder_status", ["scheduled", "sent", "cancelled", "failed"]);
+export const helpKindEnum = pgEnum("help_kind", HelpKindSchema.options as [string, ...string[]]);
+export const helpTopicEnum = pgEnum("help_topic", HelpTopicSchema.options as [string, ...string[]]);
+export const helpStatusEnum = pgEnum("help_status", HelpStatusSchema.options as [string, ...string[]]);
+export const helpReminderKindEnum = pgEnum("help_reminder_kind", ["d1", "h2"]);
 
 /** Conversation state machine snapshot, owned by src/conversation/engine.ts. */
 export type ConversationState =
@@ -69,6 +73,18 @@ export type ConversationState =
   | { step: "confirm_delete_all" }
   /** Menu 6: "receive the association's announcements? 1 yes 2 no". */
   | { step: "announcements" }
+  // — Rendez-vous with a volunteer (menu 8, src/appointments/flow.ts). Personal details live encrypted in the
+  //   help_requests row (status draft while typed), never in this plain-JSON state. —
+  | { step: "help_menu" }
+  | { step: "help_topic"; kind: "accompaniment" | "form_session" }
+  | { step: "help_datetime"; requestId: string }
+  | { step: "help_city"; requestId: string }
+  | { step: "help_confirm"; requestId: string }
+  /** slotIds[i] is option i+1 of the list the person saw. */
+  | { step: "help_slot"; requestId: string; slotIds: string[] }
+  | { step: "help_consent"; requestId: string; slotId?: string }
+  | { step: "help_list"; requestIds: string[] }
+  | { step: "help_cancel"; requestId: string }
   /** Free-form chat ("ask a question"); any non-menu text also goes to the chatbot. */
   | { step: "chat" }
   // — French practice buddies (conversation/buddyFlow.ts) —
@@ -216,6 +232,60 @@ export const volunteers = pgTable("volunteers", {
   approvedAt: ts("approved_at"),
   approvedBy: uuid("approved_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
 });
+
+/**
+ * Rendez-vous: a beneficiary asks a volunteer to come along to an appointment, or to fill in a form together.
+ * `cityEnc` / `meetingPointEnc` are under the beneficiary DEK (crypto-shredded with the rest of their data).
+ */
+export const helpRequests = pgTable("help_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  beneficiaryId: uuid("beneficiary_id").notNull().references(() => beneficiaries.id, { onDelete: "cascade" }),
+  kind: helpKindEnum("kind").notNull(),
+  topic: helpTopicEnum("topic").notNull(),
+  status: helpStatusEnum("status").notNull().default("draft"),
+  /** Appointment time (accompaniment: given by the person; form session: the slot or the volunteer's proposal). */
+  startsAt: ts("starts_at"),
+  durationMin: integer("duration_min").notNull().default(60),
+  cityEnc: bytea("city_enc"),
+  meetingPointEnc: bytea("meeting_point_enc"),
+  volunteerId: uuid("volunteer_id").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  /** The slot this form session was booked on. */
+  slotId: uuid("slot_id").references((): AnyPgColumn => helpSlots.id, { onDelete: "set null" }),
+  /** The person agreed that the volunteer opens their saved documents for this session (form sessions only). */
+  documentsConsent: boolean("documents_consent").notNull().default(false),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  acceptedAt: ts("accepted_at"),
+  closedAt: ts("closed_at"),
+}, (t) => [
+  index("help_requests_status_idx").on(t.status, t.startsAt),
+  index("help_requests_beneficiary_idx").on(t.beneficiaryId),
+  index("help_requests_volunteer_idx").on(t.volunteerId, t.startsAt),
+]);
+
+/** Form-filling slots a volunteer publishes; people book them on WhatsApp. `place` is the venue, not personal data. */
+export const helpSlots = pgTable("help_slots", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  volunteerId: uuid("volunteer_id").notNull().references((): AnyPgColumn => volunteers.id, { onDelete: "cascade" }),
+  startsAt: ts("starts_at").notNull(),
+  durationMin: integer("duration_min").notNull().default(60),
+  place: text("place").notNull(),
+  /** Set when booked (claimed atomically: `where request_id is null`). */
+  requestId: uuid("request_id"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+}, (t) => [index("help_slots_starts_idx").on(t.startsAt)]);
+
+/** WhatsApp reminders to the person: the day before (d1) and 2 hours before (h2). */
+export const helpReminders = pgTable("help_reminders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  requestId: uuid("request_id").notNull().references(() => helpRequests.id, { onDelete: "cascade" }),
+  kind: helpReminderKindEnum("kind").notNull(),
+  dueAt: ts("due_at").notNull(),
+  status: reminderStatusEnum("status").notNull().default("scheduled"),
+  sentAt: ts("sent_at"),
+}, (t) => [
+  uniqueIndex("help_reminders_req_kind_active_idx").on(t.requestId, t.kind).where(sql`status = 'scheduled'`),
+  index("help_reminders_due_idx").on(t.status, t.dueAt),
+]);
 
 /** Per-volunteer overrides on top of ROLE_PERMISSIONS. Empty in the POC. */
 export const volunteerPermissions = pgTable("volunteer_permissions", {

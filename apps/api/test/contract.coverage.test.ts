@@ -109,9 +109,20 @@ const INPUTS: Record<string, unknown> = {
   "buddies.resolveReport": { id, action: "resume" },
   "buddies.counts": undefined,
   "system.health": undefined,
+  "appointments.list": { view: "open" },
+  "appointments.counts": undefined,
+  "appointments.accept": { id, meetingPoint: "Devant l'entrée" },
+  "appointments.release": { id },
+  "appointments.complete": { id },
+  "appointments.cancel": { id },
+  "appointments.documents": { id },
+  "appointments.documentFile": { id, documentId: id },
+  "appointments.slots": { scope: "mine" },
+  "appointments.addSlot": { startsAt: "2030-01-15T13:00:00.000Z", durationMin: 60, place: "Local de l'association" },
+  "appointments.removeSlot": { id },
 };
-/** The permission each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
-const REQUIRES: Record<string, Permission | null> = {
+/** The permission(s) each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
+const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "auth.me": null, "auth.setUiLanguage": null,
   "letters.list": "letters.review", "letters.get": "letters.review", "letters.edit": "letters.review",
   "letters.approve": "letters.review", "letters.reject": "letters.review", "letters.photo": "letters.view_photo",
@@ -145,7 +156,13 @@ const REQUIRES: Record<string, Permission | null> = {
   "buddies.candidates": "buddies.manage", "buddies.all": "buddies.manage",
   "buddies.reports": "buddies.reports", "buddies.resolveReport": "buddies.reports",
   "buddies.requests": null, "buddies.get": null, "buddies.end": null, "buddies.counts": null,
+  "appointments.list": "appointments.view", "appointments.counts": "appointments.view",
+  "appointments.accept": ["appointments.view", "appointments.accept"], "appointments.release": ["appointments.view", "appointments.accept"],
+  "appointments.complete": ["appointments.view", "appointments.accept"], "appointments.cancel": ["appointments.view", "appointments.manage"],
+  "appointments.documents": "appointments.documents", "appointments.documentFile": "appointments.documents",
+  "appointments.slots": "appointments.slots", "appointments.addSlot": "appointments.slots", "appointments.removeSlot": "appointments.slots",
 };
+const needs = (req: Permission | Permission[] | null, perm: Permission) => (Array.isArray(req) ? req.includes(perm) : req === perm);
 const PUBLIC = new Set(["auth.login", "auth.signup", "system.health"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */
 const ANON_OK = new Set([...PUBLIC, "auth.logout"]);
@@ -172,19 +189,19 @@ describe("contract coverage", () => {
   });
 
   it("a volunteer whose permission was revoked gets FORBIDDEN on exactly the procedures needing it", async () => {
-    const needed = [...new Set(Object.values(REQUIRES).filter((p): p is Permission => p !== null))];
+    const needed = [...new Set(Object.values(REQUIRES).flatMap((p) => (p === null ? [] : Array.isArray(p) ? p : [p])))];
     for (const perm of needed) {
       const v = await createVolunteer(t.deps);
       await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: perm, granted: false });
       // knowledge.manage / volunteers.manage are admin-only by role: grant them per-volunteer so every other procedure starts allowed.
-      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "usage.manage", "broadcasts.approve", "buddies.manage", "buddies.reports"] as const) {
+      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "usage.manage", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"] as const) {
         if (perm !== adminOnly) await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: adminOnly, granted: true });
       }
       const { client } = makeClient(t.deps);
       await client.auth.login({ email: v.email, password: v.password });
       for (const [proc, req] of Object.entries(REQUIRES)) {
         const c = await code(call(client, proc, INPUTS[proc]));
-        if (req === perm) expect([perm, proc, c]).toEqual([perm, proc, "FORBIDDEN"]);
+        if (needs(req, perm)) expect([perm, proc, c]).toEqual([perm, proc, "FORBIDDEN"]);
         else expect([perm, proc, c]).not.toEqual([perm, proc, "FORBIDDEN"]);
       }
     }

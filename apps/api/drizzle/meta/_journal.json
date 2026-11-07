@@ -64,6 +64,13 @@
       "when": 1794081224623,
       "tag": "0008_buddies",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794081591649,
+      "tag": "0009_appointments",
+      "breakpoints": true
     }
   ]
 }

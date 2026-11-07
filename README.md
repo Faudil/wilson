@@ -142,6 +142,28 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
 - Les messages vocaux ne sont pas pris en charge (il faudrait un service de transcription tiers) : le robot demande d'écrire.
 - L'historique envoyé à l'IA ne contient que les derniers messages de la discussion (texte), jamais le numéro ni le nom.
 
+## 2e. Rendez-vous : accompagner quelqu'un, remplir un formulaire ensemble
+
+- Sur WhatsApp, menu **8 « Aide d'un bénévole »** :
+  - **1 · Venir avec moi à un rendez-vous** (préfecture, OFII, hôpital, OFPRA/CNDA, autre) : la personne écrit la date et l'heure (« 14/03/2027 9:30 ») et, si elle veut, la ville. La demande part aux bénévoles.
+  - **2 · Remplir un formulaire ensemble** (CAF, ANEF, AME, autre) : la personne choisit un créneau proposé par un·e bénévole (ou « aucun ne me va » : un·e bénévole proposera une heure), puis répond à **« le bénévole peut-il voir vos documents enregistrés ici, pour ce rendez-vous seulement ? »**.
+  - **3 · Mes rendez-vous** : la liste, et l'annulation.
+- Back-office, **Plus → Rendez-vous** (pastille quand une demande attend) : « À pourvoir », « Les miens », « Mes créneaux » (proposer ses horaires) et « Tous » (admins). On ne voit **ni le numéro ni qui c'est** avant d'accepter ; en acceptant on donne un lieu de rendez-vous, et la personne reçoit sur WhatsApp, dans sa langue, le prénom du ou de la bénévole, l'heure et le lieu.
+- **Rappels** : la personne reçoit un rappel WhatsApp la veille et 2 h avant. Le ou la bénévole a « Ajouter à mon agenda » (fichier calendrier avec alarmes la veille et 2 h avant) et la tuile de l'accueil.
+- **Documents** : seulement si la personne a dit oui, seulement pour le ou la bénévole qui tient le rendez-vous, et jusqu'à un jour après la séance. Chaque ouverture est enregistrée.
+- Personne de libre avant l'heure : la demande se ferme et la personne est prévenue. « Je ne peux plus » remet la demande « à pourvoir » et prévient la personne.
+- **Droits** (un par action, attribués par rôle, modifiables personne par personne par un·e admin) :
+
+  | Droit | Répondant·e | Bénévole | Admin |
+  |---|---|---|---|
+  | `appointments.view` voir les demandes (sans savoir qui) | — | ✓ | ✓ |
+  | `appointments.accept` accepter, rendre, marquer « fait » | — | ✓ | ✓ |
+  | `appointments.slots` proposer ses créneaux | — | ✓ | ✓ |
+  | `appointments.documents` voir les documents pendant la séance, avec accord | — | ✓ | ✓ |
+  | `appointments.manage` voir et annuler tous les rendez-vous, supprimer tout créneau | — | — | ✓ |
+
+  Les répondant·es (inscription en ligne) n'ont aucun de ces droits par défaut : accompagner quelqu'un en personne demande la confiance d'un·e admin.
+
 ---
 
 ## 2e. Suivi des personnes et compétences des bénévoles
@@ -161,6 +183,7 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
 | **Photo d'un courrier** | Stockage S3 | Chiffrée | **Supprimée après traitement** : dès que la personne répond « non » à « garder ce courrier ? », et au plus tard 48 h après l'envoi de l'explication. Conservée seulement si la personne choisit de la garder dans « Mes documents » |
 | Analyse du courrier (texte) | Base de données | Chiffrée | Pas de suppression automatique pour l'instant |
 | Documents (« Mes documents ») | Stockage S3 | Chiffrés | Jusqu'à ce que la personne les supprime ; ils sont alors **archivés 30 jours puis effacés définitivement** |
+| Rendez-vous avec un·e bénévole (sujet, date, ville, lieu de rendez-vous, accord pour les documents) | Base de données | Ville et lieu chiffrés (clé de la personne) ; jamais dans l'état de conversation | Pas de suppression automatique ; annulés et effacés avec le reste au menu 9 |
 | Comptes bénévoles, journal des accès | Base de données | Mots de passe hachés (argon2id) | Durée de l'engagement ; une demande d'inscription refusée est supprimée |
 
 - **Chiffrement** : chaque personne a sa propre clé, elle-même chiffrée par la clé maître (`MASTER_KEY`). Le fournisseur de stockage ne voit jamais les fichiers en clair. Quand une personne demande la suppression de ses données (menu 9), tout est archivé 30 jours, puis sa clé est détruite : ses données deviennent illisibles, puis sont effacées.
@@ -176,6 +199,7 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
 - **Traductions** : seuls le français et l'anglais ont été rédigés avec soin. Les textes des 26 autres langues sont des **brouillons à faire relire par des locuteurs natifs**. Les dates en tigrinya/somali/amharique utilisent des noms de mois intégrés au code.
 - **Langues de l'interface bénévole** : français, anglais, arabe.
 - **IA** : l'explication peut se tromper (date calculée, type de courrier). C'est pour cela que chaque réponse est relue. Les réponses de l'IA n'ont pas encore été testées sur de vrais courriers ni avec le vrai modèle (exemples synthétiques uniquement).
+- **Rendez-vous hors fenêtre de 24 h** : la confirmation et les rappels passent par le modèle « une réponse vous attend » ; la personne doit répondre pour les lire. Un modèle dédié aux rappels de rendez-vous reste à créer chez Meta.
 - **WhatsApp** : les modèles de messages Meta (hors fenêtre de 24 h) doivent être créés et approuvés dans le compte Meta. Le bac à sable ignore cette règle.
 - **Suppression** : une personne qui a demandé la suppression de ses données ne reçoit plus de réponse pendant les 30 jours d'archivage. La suppression d'un seul document depuis WhatsApp n'est pas encore disponible (possible depuis le back-office).
 - **Ourdou** affiché en Naskh, pas en Nastaliq.

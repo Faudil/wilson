@@ -31,7 +31,9 @@ export function toInteractive(text: string): Interactive | null {
   const body = rest.join("\n").replace(/\n{3,}/g, "\n\n").trim();
   if (options.length < 2 || options.length > 10 || !body || body.length > 1024) return null;
   if (new Set(options.map((o) => o.id)).size !== options.length) return null;
-  const listButton = cut(`☰ ${options.map((o) => o.id).join("·")}`, 20);
+  // WhatsApp caps the list button at 20 characters: with 10 options, drop the space so every number still shows.
+  const ids = options.map((o) => o.id).join("·");
+  const listButton = cut(ids.length + 2 <= 20 ? `☰ ${ids}` : `☰${ids}`, 20);
   if (options.length <= 3 && options.every((o) => o.label.length <= 20)) {
     return { kind: "buttons", body, listButton, choices: options.map((o) => ({ id: o.id, title: o.label })) };
   }
