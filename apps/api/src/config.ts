@@ -26,6 +26,9 @@ const EnvSchema = z.object({
   VOLUNTEER_SIGNUP: z.enum(["on", "off"]).default("on"),
   /** Self-signups waiting for approval are capped (anti-spam): beyond this, new requests are refused. */
   VOLUNTEER_SIGNUP_MAX_PENDING: z.coerce.number().int().min(1).default(30),
+  /** Association autocomplete on the sign-up form (official register, server-side). off = free text only. */
+  ASSOCIATION_SEARCH: z.enum(["on", "off"]).default("on"),
+  ASSOCIATION_SEARCH_URL: z.string().url().default("https://recherche-entreprises.api.gouv.fr/search"),
 
   S3_ENDPOINT: z.string().optional(),
   S3_REGION: z.string().default("fr-par"),

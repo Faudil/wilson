@@ -81,6 +81,20 @@ export const LoginInputSchema = z.object({
 });
 
 /** Public self-signup. The account stays inactive (cannot log in) until an admin approves it. */
+/**
+ * The association a volunteer belongs to. `siren`/`rna` are set only when picked from the official register
+ * (Recherche d'entreprises / RNA); a typed name without a match is kept as free text.
+ */
+export const AssociationRefSchema = z.object({
+  name: z.string().trim().min(2).max(200),
+  siren: z.string().regex(/^\d{9}$/).nullable().default(null),
+  rna: z.string().regex(/^W[0-9A-Z]{9}$/).nullable().default(null),
+  city: z.string().trim().max(100).nullable().default(null),
+});
+export type AssociationRef = z.infer<typeof AssociationRefSchema>;
+
+export const AssociationSearchInputSchema = z.object({ query: z.string().trim().min(3).max(100) });
+
 export const SignupInputSchema = z.object({
   name: z.string().trim().min(2).max(80),
   email: z.email().max(200),
@@ -88,6 +102,8 @@ export const SignupInputSchema = z.object({
   uiLanguage: LanguageSchema,
   /** "How would you like to help?" — read by the admin who approves. */
   note: z.string().trim().max(500).optional(),
+  /** Which association the person volunteers with (picked from the register, or typed). */
+  association: AssociationRefSchema.optional(),
   /** Must be true: the person accepts the confidentiality commitment shown on the form. */
   acceptsConfidentiality: z.literal(true),
 });
@@ -105,6 +121,7 @@ export const VolunteerAccountSchema = z.object({
   status: VolunteerAccountStatusSchema,
   uiLanguage: LanguageSchema,
   note: z.string().nullable(),
+  association: AssociationRefSchema.nullable(),
   createdAt: TimestampSchema,
   approvedAt: TimestampSchema.nullable(),
   approvedByName: z.string().nullable(),

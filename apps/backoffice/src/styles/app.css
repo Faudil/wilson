@@ -1295,6 +1295,59 @@ fieldset:disabled {
   margin-block-start: 2px;
 }
 
+/* Association autocomplete (sign-up) */
+.assoc-box {
+  position: relative;
+}
+.assoc-list {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: calc(100% + 4px);
+  z-index: 20;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  max-block-size: 50vh;
+  overflow-y: auto;
+}
+.assoc-list li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  min-block-size: var(--tap);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.assoc-list li.is-active,
+.assoc-list li:hover {
+  background: var(--brand-soft);
+}
+.assoc-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.vol-assoc {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 8px;
+  margin: 0;
+}
+.vol-assoc > .icon {
+  margin-block-start: 3px;
+}
+.vol-assoc-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
 /* ---------- Volunteers (admin) ---------- */
 .vol-card {
   display: grid;

@@ -615,5 +615,11 @@
   "perm.notes.moderate": "تعديل أو حذف ملاحظات الآخرين",
   "perm.tasks.assign": "إسناد المهام إلى متطوعين آخرين",
   "perm.skills.view": "رؤية دليل المهارات",
-  "perm.skills.edit_own": "ملء مهاراته الخاصة"
+  "perm.skills.edit_own": "ملء مهاراته الخاصة",
+  "signup.association": "جمعيتك",
+  "signup.associationPlaceholder": "اكتب الاسم، مثلًا Secours populaire",
+  "signup.associationHint": "اخترها من القائمة، أو اترك الاسم كما كتبته إن لم تكن موجودة.",
+  "signup.associationNotFound": "لم يتم العثور على جمعية: سيُحفظ الاسم كما كتبته.",
+  "signup.associationVerified": "تم العثور على الجمعية في السجل الرسمي",
+  "vol.associationFreeText": "مكتوبة يدويًا"
 }

@@ -23,6 +23,7 @@ const phone = "33614000001";
 /** A schema-valid input for each procedure, so rejection comes from the auth layer and not from input validation. */
 const INPUTS: Record<string, unknown> = {
   "auth.login": { email: "a@example.org", password: "whatever-pass" },
+  "auth.searchAssociations": { query: "secours" },
   "auth.signup": { name: "Coverage", email: "coverage-signup@example.org", password: "long-enough-pass", uiLanguage: "fr", acceptsConfidentiality: true },
   "auth.logout": undefined,
   "auth.me": undefined,
@@ -103,7 +104,7 @@ const REQUIRES: Record<string, Permission | null> = {
   "skills.mine": "skills.edit_own", "skills.updateMine": "skills.edit_own", "skills.directory": "skills.view",
   "skills.suggest": "skills.view", "skills.updateFor": "volunteers.manage",
 };
-const PUBLIC = new Set(["auth.login", "auth.signup", "system.health"]);
+const PUBLIC = new Set(["auth.login", "auth.signup", "auth.searchAssociations", "system.health"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */
 const ANON_OK = new Set([...PUBLIC, "auth.logout"]);
 const ALL = leaves(contract);
@@ -119,7 +120,7 @@ describe("contract coverage", () => {
     expect(Object.keys(INPUTS).sort()).toEqual([...ALL].sort());
   });
 
-  it("every procedure except auth.login / auth.signup / system.health / (idempotent) auth.logout rejects an anonymous caller with UNAUTHORIZED", async () => {
+  it("every procedure except auth.login / auth.signup / auth.searchAssociations / system.health / (idempotent) auth.logout rejects an anonymous caller with UNAUTHORIZED", async () => {
     const { client } = makeClient(t.deps);
     for (const p of ALL.filter((p) => !ANON_OK.has(p))) {
       expect([p, await code(call(client, p, INPUTS[p]))]).toEqual([p, "UNAUTHORIZED"]);
