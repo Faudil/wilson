@@ -1,5 +1,7 @@
 # Déploiement automatique sur votre serveur
 
+> Première mise en ligne ? La liste de tout ce qu'il faut faire à la main, dans l'ordre (Meta, serveur, HTTPS, secrets, IA, sécurité), est dans [mise-en-ligne.md](mise-en-ligne.md).
+
 Le workflow `.github/workflows/deploy.yml` :
 
 1. **à chaque push et pull request** : lance `typecheck` et les tests (avec un Postgres 17 de test) ;
