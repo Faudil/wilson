@@ -1,68 +1,15 @@
 import { z } from "zod";
 import { IdSchema, TimestampSchema } from "./common.js";
 import { LanguageSchema } from "./languages.js";
+import { PERMISSIONS, ROLE_PERMISSIONS, VOLUNTEER_ROLES } from "./values.js";
 
-/**
- * Fine-grained permissions. Server checks permissions, never roles; roles are only named bundles.
- * POC: every volunteer gets the "volunteer" bundle. Later: custom bundles / per-volunteer grants.
- */
-export const PermissionSchema = z.enum([
-  "letters.review", // see queue, read analysis, edit, approve, reject
-  "letters.view_photo",
-  "beneficiaries.view",
-  "beneficiaries.edit", // change language
-  "documents.view_metadata",
-  "documents.view_file",
-  "documents.edit", // fix type / expiry, archive
-  "sandbox.use",
-  "volunteers.manage",
-  "audit.view",
-  "knowledge.view", // browse sources, test search
-  "knowledge.manage", // trigger a sync
-  "conversations.view", // read chatbot conversations
-  "conversations.reply", // approve/reject drafts, reply, resolve
-  "usage.manage", // see Claude API usage and costs, set the monthly budget
-  "notes.view", // read case notes and follow-up tasks on a person, see "my tasks"
-  "notes.write", // add notes and tasks, edit/delete own notes, tick tasks done (needs notes.view to see them)
-  "notes.moderate", // edit or delete anyone's note or task text
-  "tasks.assign", // give a task to another volunteer (without it: only to yourself or to nobody)
-  "skills.view", // browse the skills directory and the "who can help" suggestions
-  "skills.edit_own", // fill in your own languages and skills
-]);
+/** Fine-grained permissions: the list, the role bundles and their rules live in values.ts (no zod, shared with the browser). */
+export const PermissionSchema = z.enum(PERMISSIONS);
 export type Permission = z.infer<typeof PermissionSchema>;
 
-/**
- * responder: answers beneficiaries in Conversations only (no letters, documents or files). Default for self-signups.
- * volunteer: full volunteer bundle (letters, documents, conversations). admin: + volunteers, audit, knowledge sync, usage.
- */
-export const VolunteerRoleSchema = z.enum(["responder", "volunteer", "admin"]);
+export const VolunteerRoleSchema = z.enum(VOLUNTEER_ROLES);
 export type VolunteerRole = z.infer<typeof VolunteerRoleSchema>;
-
-const VOLUNTEER: Permission[] = [
-  "letters.review",
-  "letters.view_photo",
-  "beneficiaries.view",
-  "beneficiaries.edit",
-  "documents.view_metadata",
-  "documents.view_file",
-  "documents.edit",
-  "sandbox.use",
-  "knowledge.view",
-  "conversations.view",
-  "conversations.reply",
-  "notes.view",
-  "notes.write",
-  "tasks.assign",
-  "skills.view",
-  "skills.edit_own",
-];
-/** Responders fill in their own skills (so hard cases can be routed to them) but see no case notes by default. */
-const RESPONDER: Permission[] = ["conversations.view", "conversations.reply", "knowledge.view", "skills.edit_own"];
-export const ROLE_PERMISSIONS: Record<VolunteerRole, readonly Permission[]> = {
-  responder: RESPONDER,
-  volunteer: VOLUNTEER,
-  admin: [...VOLUNTEER, "volunteers.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate"],
-};
+export { ROLE_PERMISSIONS };
 
 export const VolunteerSchema = z.object({
   id: IdSchema,
@@ -125,5 +72,9 @@ export const VolunteerAccountSchema = z.object({
   createdAt: TimestampSchema,
   approvedAt: TimestampSchema.nullable(),
   approvedByName: z.string().nullable(),
+  /** Effective permissions (role bundle + the overrides below). */
+  permissions: z.array(PermissionSchema),
+  /** Per-person grants (granted: true) or revocations (false) on top of the role bundle. */
+  overrides: z.array(z.object({ permission: PermissionSchema, granted: z.boolean() })),
 });
 export type VolunteerAccount = z.infer<typeof VolunteerAccountSchema>;

@@ -54,8 +54,15 @@
     {
       "idx": 7,
       "version": "7",
-      "when": 1794080758482,
-      "tag": "0007_volunteer_association",
+      "when": 1794080759406,
+      "tag": "0007_places_broadcasts",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794081383005,
+      "tag": "0008_volunteer_association",
       "breakpoints": true
     }
   ]

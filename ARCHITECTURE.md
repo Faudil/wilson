@@ -182,6 +182,12 @@ Goal: the "who to turn to" lines cite real, local, up-to-date offices and proced
 - Admins (`volunteers.manage`, `volunteers.*`): list, approve with a role (`approved_at`, `approved_by`), reject (row deleted), set role, disable/enable (sessions deleted at once). Not on themselves. Every action in `access_log`.
 - **Roles:** `responder` = `conversations.view`, `conversations.reply`, `knowledge.view` (no letters, photos, documents or beneficiary pages) — least privilege by default for people the association does not know yet; `volunteer` = full volunteer bundle; `admin`. Permissions are resolved per request, so a role change applies on the next click.
 
+## 8d bis. Places for today, announcements, per-person permissions
+
+- **Places** (`places` table, public data in clear, `places.view` / `places.manage`): kind, French name/details, address, phone, opens/closes, first/last day, ISO weekdays. `PlacesService.messageFor(lang)` lists those open today (Europe/Paris) grouped by kind, translated once per language (cached in `places.translations`, cleared on edit), addresses/phones/hours isolated in RTL, 115 line last. WhatsApp: menu `5`, or `planChat` intent `places` (prompt `chat-plan.v2`, new `needsPlaces` flag also set with `urgent`). Sent at once without review (volunteers' own text); nothing posted → normal knowledge-base answer. Every change in `access_log`.
+- **Announcements** (`broadcasts`, `broadcast_recipients`; `broadcasts.view` / `.create` / `.approve`): opt-in only (`beneficiaries.announcements_opt_in_at`, menu `6`, `STOP` or the template's "Stop" button opts out; "delete my data" clears it). Draft by one volunteer, approval by another (`BROADCAST_FOUR_EYES`, default on). Approval snapshots the estimate (recipients per language, in/outside the 24 h window, `WHATSAPP_PRICE_MARKETING_USD` × templates) and queues `broadcast.dispatch`: translations first (a failure retries before anyone gets anything), one recipient row per person (idempotent), one `wa.send {kind: broadcast}` each. In the window: text + stop hint + footer. Outside: the `announcement` **marketing** template once (`awaiting_reply`), the text when they tap "Read" or write.
+- **Per-person permissions**: `volunteers.setPermissions` replaces a volunteer's rows in `volunteer_permissions` (only differences from the role bundle are kept), not on yourself or a pending account; Bénévoles → Droits détaillés lists every permission of `PERMISSIONS` (contracts/values.ts, shared with the browser without zod). `contract.coverage.test.ts` revokes each permission in turn and checks that exactly the procedures needing it answer FORBIDDEN.
+
 ## 8e. Performance (low-end phones, slow connections)
 
 Volunteers open the back-office on cheap phones and old PCs, often over mobile data; beneficiaries wait for the bot's
@@ -241,6 +247,8 @@ The Meta webhook is the one HTTP route outside oRPC (format and signature impose
 | D8 | SeaweedFS as local S3 instead of MinIO | MinIO no longer publishes Docker images; any EU S3 provider works in production (only the endpoint changes) |
 | D9 | Self-signup lands pending with role `responder` (conversations only) | Strangers can register; nothing sensitive is visible until an admin approves, and letters/documents need an explicit promotion |
 | D10 | Take-over silences the bot instead of drafting in parallel | A beneficiary talking to a person must not get interleaved machine answers; the emergency numbers remain the only automatic text |
+| D11 | Places are sent without review; announcements need a second person | Places are the volunteers' own short facts and are needed tonight; an announcement goes to everyone at once and costs money outside the 24 h window |
+| D12 | Announcement template in the Marketing category, text released on reply | Meta only accepts utility templates tied to a user's request; the paid template stays short and the real text goes out free once the window reopens |
 
 ## 12. Answers from the association (2026-11-06)
 

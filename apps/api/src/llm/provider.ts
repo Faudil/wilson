@@ -38,7 +38,7 @@ export interface LlmProvider {
    * Chatbot step 1 — classify the latest beneficiary message (with short history) and produce a French search query
    * for the knowledge base. History holds plain texts only: no name, phone, or document content.
    */
-  planChat(input: { history: ChatTurn[]; language: LanguageCode }): Promise<{ intent: ChatIntent; frenchQuery: string; needsHuman: boolean }>;
+  planChat(input: { history: ChatTurn[]; language: LanguageCode }): Promise<ChatPlan>;
   /**
    * Chatbot step 2 — answer in the beneficiary's language from the snippets only (+ association), with a French
    * version for volunteers. Never legal advice, never invents addresses; if snippets don't cover it, say so and
@@ -54,6 +54,14 @@ export interface LlmProvider {
   }): Promise<{ text: string; textFr: string; usedIds: string[] }>;
   /** Generic translation (volunteer replies written in French; beneficiary messages shown in French to volunteers). */
   translateText(input: { text: string; from: LanguageCode | "auto"; to: LanguageCode }): Promise<string>;
+}
+
+export interface ChatPlan {
+  intent: ChatIntent;
+  frenchQuery: string;
+  needsHuman: boolean;
+  /** The person needs a place to sleep, eat, wash or get clothes today (also set with intent "urgent"). */
+  needsPlaces?: boolean;
 }
 
 export interface ChatTurn {

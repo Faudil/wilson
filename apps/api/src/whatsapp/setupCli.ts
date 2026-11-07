@@ -25,6 +25,7 @@ export interface SetupEnv {
   WHATSAPP_GRAPH_VERSION?: string;
   WHATSAPP_TEMPLATE_EXPLANATION_READY?: string;
   WHATSAPP_TEMPLATE_DOCUMENT_REMINDER?: string;
+  WHATSAPP_TEMPLATE_ANNOUNCEMENT?: string;
   ASSOCIATION_NAME?: string;
 }
 
@@ -51,6 +52,7 @@ export class Graph {
 const names = (env: SetupEnv) => ({
   explanation_ready: env.WHATSAPP_TEMPLATE_EXPLANATION_READY || "explanation_ready",
   document_reminder: env.WHATSAPP_TEMPLATE_DOCUMENT_REMINDER || "document_reminder",
+  announcement: env.WHATSAPP_TEMPLATE_ANNOUNCEMENT || "announcement",
 });
 
 function need(env: SetupEnv, ...keys: (keyof SetupEnv)[]): void {

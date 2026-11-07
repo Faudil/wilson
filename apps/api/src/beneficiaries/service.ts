@@ -12,6 +12,8 @@ export interface BeneficiaryRow {
   conversationState: ConversationState;
   lastInboundAt: Date | null;
   archivedAt: Date | null;
+  /** Said yes to announcements (menu 6); null = never sent any. */
+  announcementsOptInAt: Date | null;
 }
 
 export interface BeneficiariesService {

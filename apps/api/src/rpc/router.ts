@@ -11,6 +11,8 @@ import { skillsRouter } from "./skills.js";
 import { systemRouter } from "./system.js";
 import { usageRouter } from "./usage.js";
 import { volunteersRouter } from "./volunteers.js";
+import { placesRouter } from "./places.js";
+import { broadcastsRouter } from "./broadcasts.js";
 
 export const router = os.router({
   auth: authRouter,
@@ -26,5 +28,7 @@ export const router = os.router({
   notes: notesRouter,
   tasks: tasksRouter,
   skills: skillsRouter,
+  places: placesRouter,
+  broadcasts: broadcastsRouter,
 });
 export type AppRouter = typeof router;

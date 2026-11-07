@@ -61,6 +61,19 @@ const INPUTS: Record<string, unknown> = {
   "volunteers.reject": { id },
   "volunteers.setRole": { id, role: "volunteer" },
   "volunteers.setDisabled": { id, disabled: true },
+  "volunteers.setPermissions": { id, overrides: [{ permission: "places.manage", granted: false }] },
+  "places.list": { scope: "today" },
+  "places.create": { kind: "food", name: "Distribution", startsOn: "2026-11-06" },
+  "places.update": { id, place: { kind: "food", name: "Distribution", startsOn: "2026-11-06" } },
+  "places.remove": { id },
+  "places.preview": { language: "en" },
+  "broadcasts.list": undefined,
+  "broadcasts.estimate": { languages: null },
+  "broadcasts.create": { textFr: "Permanence juridique samedi" },
+  "broadcasts.update": { id, broadcast: { textFr: "Permanence juridique samedi" } },
+  "broadcasts.preview": { id, language: "en" },
+  "broadcasts.approve": { id },
+  "broadcasts.cancel": { id },
   "usage.summary": undefined,
   "usage.setBudget": { monthlyLimitUsd: 50, hardStop: false },
   "usage.listKeys": undefined,
@@ -96,7 +109,14 @@ const REQUIRES: Record<string, Permission | null> = {
   "conversations.approveDraft": "conversations.reply", "conversations.rejectDraft": "conversations.reply",
   "conversations.reply": "conversations.reply", "conversations.resolve": "conversations.reply", "conversations.takeOver": "conversations.reply",
   "volunteers.list": "volunteers.manage", "volunteers.approve": "volunteers.manage", "volunteers.reject": "volunteers.manage",
-  "volunteers.setRole": "volunteers.manage", "volunteers.setDisabled": "volunteers.manage",
+  "volunteers.setRole": "volunteers.manage", "volunteers.setDisabled": "volunteers.manage", "volunteers.setPermissions": "volunteers.manage",
+  "places.list": "places.view", "places.preview": "places.view",
+  "places.create": "places.manage", "places.update": "places.manage", "places.remove": "places.manage",
+  "broadcasts.list": "broadcasts.view", "broadcasts.estimate": "broadcasts.view", "broadcasts.preview": "broadcasts.view",
+  // cancel: needs view, then the author (broadcasts.create) or broadcasts.approve; tested in broadcasts.test.ts.
+  "broadcasts.cancel": "broadcasts.view",
+  "broadcasts.create": "broadcasts.create", "broadcasts.update": "broadcasts.create",
+  "broadcasts.approve": "broadcasts.approve",
   "usage.summary": "usage.manage", "usage.setBudget": "usage.manage", "usage.listKeys": "usage.manage",
   "usage.addKey": "usage.manage", "usage.updateKey": "usage.manage", "usage.removeKey": "usage.manage",
   "notes.list": "notes.view", "notes.add": "notes.write", "notes.edit": "notes.write", "notes.remove": "notes.write",
@@ -135,7 +155,7 @@ describe("contract coverage", () => {
       const v = await createVolunteer(t.deps);
       await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: perm, granted: false });
       // knowledge.manage / volunteers.manage are admin-only by role: grant them per-volunteer so every other procedure starts allowed.
-      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "usage.manage"] as const) {
+      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "usage.manage", "broadcasts.approve"] as const) {
         if (perm !== adminOnly) await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: adminOnly, granted: true });
       }
       const { client } = makeClient(t.deps);
@@ -146,7 +166,8 @@ describe("contract coverage", () => {
         else expect([perm, proc, c]).not.toEqual([perm, proc, "FORBIDDEN"]);
       }
     }
-  });
+    // One volunteer per permission × every procedure: about 2,000 calls, more than bun's 5 s default on CI runners.
+  }, 30_000);
 
   it("outputs of letters.get / beneficiaries.get / documents.deadlines parse with the contract schemas", async () => {
     const p = t.phone(phone);

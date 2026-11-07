@@ -51,7 +51,7 @@ describe("volunteer self-signup", () => {
 
     const me = await anon.client.auth.login({ email: "amina@example.org", password: "bien-long-mot-de-passe" });
     expect(me.role).toBe("responder");
-    expect(me.permissions.sort()).toEqual(["conversations.reply", "conversations.view", "knowledge.view", "skills.edit_own"]);
+    expect(me.permissions.sort()).toEqual(["conversations.reply", "conversations.view", "knowledge.view", "places.view", "skills.edit_own"]);
     expect(await code(anon.client.conversations.list({ filter: "all", limit: 5 }))).toBe("ok");
     expect(await code(anon.client.letters.list({ limit: 5 }))).toBe("FORBIDDEN");
     expect(await code(anon.client.beneficiaries.list({ limit: 5 }))).toBe("FORBIDDEN");
@@ -183,5 +183,53 @@ describe("volunteer takes a conversation over", () => {
     expect((await oc.conversations.list({ filter: "mine", limit: 10 })).items).toHaveLength(0);
     const logged = await t!.deps.db.select().from(accessLog).where(eq(accessLog.action, "conversations.take_over_forced"));
     expect(logged).toHaveLength(1);
+  });
+});
+
+describe("per-volunteer permissions (admin editor)", () => {
+  it("grants and revokes single permissions on top of the role, applied on the next request, logged", async () => {
+    t = await makeE2E();
+    const { client: admin, admin: a } = await adminClient(t);
+    const v = await createVolunteer(t.deps, { name: "Bénévole" });
+    const { client: vc } = makeClient(t.deps);
+    await vc.auth.login({ email: v.email, password: v.password });
+    expect(await code(vc.places.create({ kind: "food", name: "Repas", startsOn: "2026-11-06" }))).toBe("ok");
+    expect(await code(vc.broadcasts.approve({ id: v.id }))).toBe("FORBIDDEN");
+
+    // revoke places.manage, grant broadcasts.approve; an override equal to the role default is dropped
+    const acc = await admin.volunteers.setPermissions({
+      id: v.id,
+      overrides: [{ permission: "places.manage", granted: false }, { permission: "broadcasts.approve", granted: true }, { permission: "places.view", granted: true }],
+    });
+    expect(acc.overrides).toEqual([{ permission: "broadcasts.approve", granted: true }, { permission: "places.manage", granted: false }]);
+    expect(acc.permissions).toContain("broadcasts.approve");
+    expect(acc.permissions).not.toContain("places.manage");
+    expect(await code(vc.places.create({ kind: "food", name: "Repas", startsOn: "2026-11-06" }))).toBe("FORBIDDEN");
+    expect(await code(vc.places.list({ scope: "today" }))).toBe("ok");
+    expect(await code(vc.broadcasts.approve({ id: v.id }))).toBe("NOT_FOUND"); // allowed now; no such announcement
+    expect((await vc.auth.me()).permissions).toContain("broadcasts.approve");
+
+    const logged = await t.deps.db.select().from(accessLog).where(and(eq(accessLog.volunteerId, a.id), eq(accessLog.targetId, v.id)));
+    expect(logged.map((l) => l.action)).toEqual(["volunteers.set_permissions:-places.manage,+broadcasts.approve"]);
+
+    // listed for the admin with the overrides; back to the role defaults with an empty list
+    const listed = (await admin.volunteers.list({})).find((x) => x.id === v.id)!;
+    expect(listed.overrides).toHaveLength(2);
+    const reset = await admin.volunteers.setPermissions({ id: v.id, overrides: [] });
+    expect(reset.overrides).toEqual([]);
+    expect(await code(vc.places.create({ kind: "food", name: "Repas", startsOn: "2026-11-06" }))).toBe("ok");
+  });
+
+  it("not on yourself, not on a pending account, admins only", async () => {
+    t = await makeE2E();
+    const { client: admin, admin: a } = await adminClient(t);
+    expect(await code(admin.volunteers.setPermissions({ id: a.id, overrides: [] }))).toBe("CONFLICT");
+    const anon = makeClient(t.deps);
+    await anon.client.auth.signup(signupInput("pending@example.org"));
+    const [pending] = await admin.volunteers.list({ status: "pending" });
+    expect(pending!.permissions).toEqual([]); // nothing until approved
+    expect(await code(admin.volunteers.setPermissions({ id: pending!.id, overrides: [] }))).toBe("CONFLICT");
+    // a plain volunteer cannot give themselves (or anyone) rights
+    expect(await code(t.client.volunteers.setPermissions({ id: pending!.id, overrides: [{ permission: "volunteers.manage", granted: true }] }))).toBe("FORBIDDEN");
   });
 });

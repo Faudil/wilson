@@ -13,7 +13,7 @@ import {
   type LetterText,
 } from "@wilson/contracts";
 import { z } from "zod";
-import { LlmError, type ChatTurn, type LlmFile, type LlmProvider } from "./provider.js";
+import { LlmError, type ChatPlan, type ChatTurn, type LlmFile, type LlmProvider } from "./provider.js";
 import { promptVersion, renderPrompt, type PromptName } from "./prompts.js";
 import type { UsageTask } from "@wilson/contracts";
 import type { UsageMeter } from "../usage/service.js";
@@ -118,6 +118,7 @@ const ChatPlanSchema = z.object({
   intent: ChatIntentSchema,
   frenchQuery: z.string().max(300),
   needsHuman: z.boolean(),
+  needsPlaces: z.boolean().default(false),
 });
 
 const ChatReplyOutSchema = z.object({
@@ -348,7 +349,7 @@ export class AnthropicProvider implements LlmProvider {
     return text;
   }
 
-  async planChat(input: { history: ChatTurn[]; language: LanguageCode }): Promise<{ intent: ChatIntent; frenchQuery: string; needsHuman: boolean }> {
+  async planChat(input: { history: ChatTurn[]; language: LanguageCode }): Promise<ChatPlan> {
     const prompt = renderPrompt("chat-plan", {
       targetLanguageName: languageNameEn(input.language),
       targetLanguageCode: input.language,
@@ -356,7 +357,7 @@ export class AnthropicProvider implements LlmProvider {
     });
     const out = await this.callJson({ task: "chat-plan", language: input.language, fast: true }, [{ type: "text", text: prompt }], ChatPlanSchema);
     const needsHuman = out.needsHuman || out.intent === "legal" || out.intent === "urgent" || out.intent === "human";
-    return { intent: out.intent, frenchQuery: out.frenchQuery.trim(), needsHuman };
+    return { intent: out.intent, frenchQuery: out.frenchQuery.trim(), needsHuman, needsPlaces: out.needsPlaces || out.intent === "places" };
   }
 
   async chatReply(input: {

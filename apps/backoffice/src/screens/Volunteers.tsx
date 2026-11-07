@@ -1,4 +1,5 @@
-import type { VolunteerAccount, VolunteerRole } from "@wilson/contracts";
+import type { Permission, VolunteerAccount, VolunteerRole } from "@wilson/contracts";
+import { PERMISSIONS, ROLE_PERMISSIONS } from "@wilson/contracts/values";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Chip } from "../components/badges";
@@ -32,7 +33,73 @@ function RolePicker({ value, onChange }: { value: VolunteerRole; onChange: (r: V
   );
 }
 
-type Dialog = { kind: "approve" | "reject" | "role" | "disable"; account: VolunteerAccount } | null;
+type Dialog = { kind: "approve" | "reject" | "role" | "disable" | "permissions"; account: VolunteerAccount } | null;
+
+/** Permissions grouped by area ("letters.review" → "letters"), in PERMISSIONS order. */
+const GROUPS = PERMISSIONS.reduce<{ area: string; perms: Permission[] }[]>((acc, p) => {
+  const area = p.split(".")[0]!;
+  const g = acc.find((x) => x.area === area);
+  if (g) g.perms.push(p);
+  else acc.push({ area, perms: [p] });
+  return acc;
+}, []);
+
+/**
+ * Tick or untick single permissions on top of the role. What differs from the role is saved as an override;
+ * "Back to the role" clears them all.
+ */
+function PermissionsSheet({ account, onClose }: { account: VolunteerAccount; onClose: () => void }) {
+  const { t } = useI18n();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const bundle = new Set<Permission>(ROLE_PERMISSIONS[account.role]);
+  const [on, setOn] = useState<Set<Permission>>(new Set(account.permissions));
+  const save = useMutation({
+    ...orpc.volunteers.setPermissions.mutationOptions(),
+    onSuccess: () => {
+      toast(t("vol.savedToast"));
+      void qc.invalidateQueries({ queryKey: orpc.volunteers.key() });
+      onClose();
+    },
+  });
+  const overrides = PERMISSIONS.filter((p) => on.has(p) !== bundle.has(p)).map((permission) => ({ permission, granted: on.has(permission) }));
+  const flip = (p: Permission) => setOn((s) => {
+    const n = new Set(s);
+    if (n.has(p)) n.delete(p);
+    else n.add(p);
+    return n;
+  });
+  return (
+    <Sheet open onClose={onClose} title={t("vol.permsTitle", { name: account.name })} wide>
+      <div className="stack">
+        <p className="sheet-text">{t("vol.permsHelp", { role: t(`vol.role.${account.role}` as MessageKey) })}</p>
+        {GROUPS.map((g) => (
+          <fieldset key={g.area} className="perm-group">
+            <legend className="field-label">{t(`perm.area.${g.area}` as MessageKey)}</legend>
+            {g.perms.map((p) => (
+              <label key={p} className="check perm-row">
+                <input type="checkbox" checked={on.has(p)} onChange={() => flip(p)} />
+                <span>
+                  {t(`perm.${p}` as MessageKey)}
+                  {on.has(p) !== bundle.has(p) && <span className="chip chip-warn perm-changed">{on.has(p) ? t("vol.permAdded") : t("vol.permRemoved")}</span>}
+                </span>
+              </label>
+            ))}
+          </fieldset>
+        ))}
+        {save.error && <ErrorBox error={save.error} />}
+        <div className="stack-tight">
+          <button type="button" className="btn btn-block btn-primary" disabled={save.isPending} onClick={() => save.mutate({ id: account.id, overrides })}>
+            {t("vol.save")}
+          </button>
+          <button type="button" className="btn btn-block btn-quiet" disabled={save.isPending || overrides.length === 0} onClick={() => setOn(new Set(bundle))}>
+            {t("vol.permsReset")}
+          </button>
+        </div>
+      </div>
+    </Sheet>
+  );
+}
 
 export function Volunteers() {
   const { t, lang } = useI18n();
@@ -101,6 +168,10 @@ export function Volunteers() {
                             <Icon name="shield" size={18} />
                             {t("vol.changeRole")}
                           </button>
+                          <button type="button" role="menuitem" onClick={() => { close(); open("permissions", a); }}>
+                            <Icon name="check" size={18} />
+                            {t("vol.perms")}
+                          </button>
                           <button type="button" role="menuitem" onClick={() => { close(); open("disable", a); }}>
                             <Icon name="x" size={18} />
                             {t("vol.disable")}
@@ -116,6 +187,7 @@ export function Volunteers() {
                   </Chip>
                   {a.status === "disabled" && <Chip tone="error">{t("vol.status.disabled")}</Chip>}
                   {self && <Chip tone="ok">{t("vol.you")}</Chip>}
+                  {a.overrides.length > 0 && <Chip tone="warn">{t("vol.customPerms", { n: a.overrides.length })}</Chip>}
                 </div>
                 {a.association && (
                   <p className="vol-assoc">
@@ -196,6 +268,7 @@ export function Volunteers() {
           </div>
         </Sheet>
       )}
+      {dialog?.kind === "permissions" && <PermissionsSheet account={dialog.account} onClose={() => setDialog(null)} />}
       <ConfirmSheet
         open={dialog?.kind === "reject"}
         title={t("vol.rejectTitle")}
