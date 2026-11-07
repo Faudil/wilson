@@ -4,6 +4,8 @@ import type { Permission, VolunteerAccount, VolunteerAccountStatus, VolunteerRol
 import { effectivePermissions } from "../auth/service.js";
 import { beneficiaries, sessions, volunteerPermissions, volunteers } from "../db/schema.js";
 import type { Deps } from "../deps.js";
+import { getBuddies } from "../buddies/service.js";
+import { getWaDeps } from "../whatsapp/context.js";
 import { logAccess } from "./logAccess.js";
 import { os, requirePermission, type RpcContext } from "./base.js";
 
@@ -59,10 +61,14 @@ async function one(deps: Deps, id: string): Promise<VolunteerAccount> {
   return (await toAccounts(deps, [await mustRow(deps, id)]))[0]!;
 }
 
-/** Revoke every session of an account and release the conversations it held (back to "needs a person"). */
+/**
+ * Revoke every session of an account, release the conversations it held (back to "needs a person") and end its
+ * French practice pairings (the beneficiaries are told and can ask for a new buddy).
+ */
 async function revoke(deps: Deps, id: string) {
   await deps.db.delete(sessions).where(eq(sessions.volunteerId, id));
   await deps.db.update(beneficiaries).set({ chatAssigneeId: null, chatStatus: "needs_human" }).where(eq(beneficiaries.chatAssigneeId, id));
+  await getBuddies(getWaDeps()).endAllForVolunteer(id);
 }
 
 export const volunteersRouter = {

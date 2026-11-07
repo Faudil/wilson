@@ -6,7 +6,7 @@ export const sq: Record<WaKey, string> = {
   language_menu: LANGUAGE_MENU,
   language_set: "Gjuha e zgjedhur: {language}.",
   welcome: "Përshëndetje! Ju ndihmoj të kuptoni letrat zyrtare që merrni në Francë. Më dërgoni foton e letrës suaj.",
-  main_menu: "Çfarë doni të bëni?\n1 - Të shpjegoj një letër\n2 - Dokumentet e mia\n3 - Të ndryshoj gjuhën\n4 - Të bëj një pyetje\n5 - Fjetje, ushqim, dush\n6 - Njoftime\n0 - Të flas me një person\n9 - Të fshij të dhënat e mia\nPërgjigjuni me një numër.",
+  main_menu: "Çfarë doni të bëni?\n1 - Të shpjegoj një letër\n2 - Dokumentet e mia\n3 - Të ndryshoj gjuhën\n4 - Të bëj një pyetje\n5 - Fjetje, ushqim, dush\n6 - Njoftime\n7 - Praktiko frëngjisht\n0 - Të flas me një person\n9 - Të fshij të dhënat e mia\nPërgjigjuni me një numër.",
   not_understood: "Më vjen keq, nuk e kuptova. Përgjigjuni me një numër nga menuja.",
   human_contact: "Për të folur me një person: {name}, {contact}.",
   letter_ask_photo: "Dërgoni një foto të qartë të letrës. Vendoseni të sheshtë, me dritë, me të katër cepat të dukshëm.",

@@ -6,7 +6,7 @@ export const so: Record<WaKey, string> = {
   language_menu: LANGUAGE_MENU,
   language_set: "Luqadda la doortay: {language}.",
   welcome: "Salaan! Waxaan kaa caawinayaa inaad fahamto warqadaha rasmiga ah ee Faransiiska. Ii soo dir sawirka warqaddaada.",
-  main_menu: "Maxaad rabtaa inaad sameyso?\n1 - Sharax warqad\n2 - Dukumentiyadayda\n3 - Beddel luqadda\n4 - Weydii su'aal\n5 - Hurdo, cunto, maydhasho\n6 - Ogeysiisyo\n0 - La hadal qof\n9 - Tirtir xogtayda\nKu jawaab lambar.",
+  main_menu: "Maxaad rabtaa inaad sameyso?\n1 - Sharax warqad\n2 - Dukumentiyadayda\n3 - Beddel luqadda\n4 - Weydii su'aal\n5 - Hurdo, cunto, maydhasho\n6 - Ogeysiisyo\n7 - Ku celceli Faransiiska\n0 - La hadal qof\n9 - Tirtir xogtayda\nKu jawaab lambar.",
   not_understood: "Waan ka xumahay, ma fahmin. Ku jawaab lambar ka mid ah liiska.",
   human_contact: "Si aad qof ula hadasho: {name}, {contact}.",
   letter_ask_photo: "Soo dir sawir cad oo warqaddaada ah. Si siman u dhig, iftiin wanaagsan ku dhig, geesaha oo dhan ha muuqdaan.",

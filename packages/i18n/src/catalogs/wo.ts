@@ -6,7 +6,7 @@ export const wo: Record<WaKey, string> = {
   language_menu: LANGUAGE_MENU,
   language_set: "Làkk bi nga tànn: {language}.",
   welcome: "Salaam aleekum! Dama lay dimbali nga xam li ci kayit yu uwu yi nga jot ci Farãs. Yónnee ma nataalu sa kayit.",
-  main_menu: "Lan nga bëgg a def?\n1 - Ma firil la kayit\n2 - Sama dokumaŋ yi\n3 - Soppi làkk\n4 - Laaj ab laaj\n5 - Nelaw, lekk, sangu\n6 - Yégle\n0 - Wax ak nit\n9 - Far sama bataaxal yi\nTontul ak benn lim.",
+  main_menu: "Lan nga bëgg a def?\n1 - Ma firil la kayit\n2 - Sama dokumaŋ yi\n3 - Soppi làkk\n4 - Laaj ab laaj\n5 - Nelaw, lekk, sangu\n6 - Yégle\n7 - Jàng français\n0 - Wax ak nit\n9 - Far sama bataaxal yi\nTontul ak benn lim.",
   not_understood: "Baal ma, ma xamul li nga wax. Tontul ak benn lim bu ci menu bi.",
   human_contact: "Ngir wax ak nit: {name}, {contact}.",
   letter_ask_photo: "Yónnee nataal bu leer bu kayit bi. Tëjal ko ci kaw taabal, am leer, ak ñaar-fukki ngoon yépp ñu gis.",

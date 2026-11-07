@@ -1,5 +1,5 @@
 {
-  "id": "e71be0a9-386e-4512-aab1-d48ef23084f5",
+  "id": "fff41cbe-5393-4180-95c1-c080ea90e3a4",
   "prevId": "f4dfed69-b0dd-413d-ad62-3db509919d81",
   "version": "7",
   "dialect": "postgresql",
@@ -437,6 +437,719 @@
             "id"
           ],
           "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.buddy_matches": {
+      "name": "buddy_matches",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "beneficiary_id": {
+          "name": "beneficiary_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "volunteer_id": {
+          "name": "volunteer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "buddy_match_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'proposed'"
+        },
+        "weekday": {
+          "name": "weekday",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "time": {
+          "name": "time",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "buddy_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "place": {
+          "name": "place",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact_shared": {
+          "name": "contact_shared",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "proposed_by": {
+          "name": "proposed_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "accepted_at": {
+          "name": "accepted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ended_at": {
+          "name": "ended_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ended_by": {
+          "name": "ended_by",
+          "type": "buddy_party",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "buddy_matches_volunteer_idx": {
+          "name": "buddy_matches_volunteer_idx",
+          "columns": [
+            {
+              "expression": "volunteer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "buddy_matches_beneficiary_idx": {
+          "name": "buddy_matches_beneficiary_idx",
+          "columns": [
+            {
+              "expression": "beneficiary_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "buddy_matches_request_id_buddy_requests_id_fk": {
+          "name": "buddy_matches_request_id_buddy_requests_id_fk",
+          "tableFrom": "buddy_matches",
+          "tableTo": "buddy_requests",
+          "columnsFrom": [
+            "request_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "buddy_matches_beneficiary_id_beneficiaries_id_fk": {
+          "name": "buddy_matches_beneficiary_id_beneficiaries_id_fk",
+          "tableFrom": "buddy_matches",
+          "tableTo": "beneficiaries",
+          "columnsFrom": [
+            "beneficiary_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "buddy_matches_volunteer_id_volunteers_id_fk": {
+          "name": "buddy_matches_volunteer_id_volunteers_id_fk",
+          "tableFrom": "buddy_matches",
+          "tableTo": "volunteers",
+          "columnsFrom": [
+            "volunteer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "buddy_matches_proposed_by_volunteers_id_fk": {
+          "name": "buddy_matches_proposed_by_volunteers_id_fk",
+          "tableFrom": "buddy_matches",
+          "tableTo": "volunteers",
+          "columnsFrom": [
+            "proposed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.buddy_messages": {
+      "name": "buddy_messages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "match_id": {
+          "name": "match_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author": {
+          "name": "author",
+          "type": "buddy_party",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body_enc": {
+          "name": "body_enc",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "buddy_messages_match_idx": {
+          "name": "buddy_messages_match_idx",
+          "columns": [
+            {
+              "expression": "match_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "buddy_messages_match_id_buddy_matches_id_fk": {
+          "name": "buddy_messages_match_id_buddy_matches_id_fk",
+          "tableFrom": "buddy_messages",
+          "tableTo": "buddy_matches",
+          "columnsFrom": [
+            "match_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.buddy_profiles": {
+      "name": "buddy_profiles",
+      "schema": "",
+      "columns": {
+        "volunteer_id": {
+          "name": "volunteer_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "languages": {
+          "name": "languages",
+          "type": "language[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "slots": {
+          "name": "slots",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "modes": {
+          "name": "modes",
+          "type": "buddy_mode[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "max_buddies": {
+          "name": "max_buddies",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "meet_place": {
+          "name": "meet_place",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "buddy_profiles_volunteer_id_volunteers_id_fk": {
+          "name": "buddy_profiles_volunteer_id_volunteers_id_fk",
+          "tableFrom": "buddy_profiles",
+          "tableTo": "volunteers",
+          "columnsFrom": [
+            "volunteer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.buddy_reports": {
+      "name": "buddy_reports",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "match_id": {
+          "name": "match_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "by": {
+          "name": "by",
+          "type": "buddy_party",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text_enc": {
+          "name": "text_enc",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note_enc": {
+          "name": "note_enc",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handled_by": {
+          "name": "handled_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handled_at": {
+          "name": "handled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "buddy_reports_status_idx": {
+          "name": "buddy_reports_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "buddy_reports_match_id_buddy_matches_id_fk": {
+          "name": "buddy_reports_match_id_buddy_matches_id_fk",
+          "tableFrom": "buddy_reports",
+          "tableTo": "buddy_matches",
+          "columnsFrom": [
+            "match_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "buddy_reports_handled_by_volunteers_id_fk": {
+          "name": "buddy_reports_handled_by_volunteers_id_fk",
+          "tableFrom": "buddy_reports",
+          "tableTo": "volunteers",
+          "columnsFrom": [
+            "handled_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.buddy_requests": {
+      "name": "buddy_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "beneficiary_id": {
+          "name": "beneficiary_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "windows": {
+          "name": "windows",
+          "type": "buddy_window[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "buddy_mode_pref",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "buddy_request_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'waiting'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "buddy_requests_status_idx": {
+          "name": "buddy_requests_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "buddy_requests_one_waiting_idx": {
+          "name": "buddy_requests_one_waiting_idx",
+          "columns": [
+            {
+              "expression": "beneficiary_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "status = 'waiting'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "buddy_requests_beneficiary_id_beneficiaries_id_fk": {
+          "name": "buddy_requests_beneficiary_id_beneficiaries_id_fk",
+          "tableFrom": "buddy_requests",
+          "tableTo": "beneficiaries",
+          "columnsFrom": [
+            "beneficiary_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.buddy_sessions": {
+      "name": "buddy_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "match_id": {
+          "name": "match_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "starts_at": {
+          "name": "starts_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "buddy_session_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'scheduled'"
+        },
+        "cancelled_by": {
+          "name": "cancelled_by",
+          "type": "buddy_party",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reminded_at": {
+          "name": "reminded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "buddy_sessions_match_start_idx": {
+          "name": "buddy_sessions_match_start_idx",
+          "columns": [
+            {
+              "expression": "match_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "starts_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "buddy_sessions_due_idx": {
+          "name": "buddy_sessions_due_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "starts_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "buddy_sessions_match_id_buddy_matches_id_fk": {
+          "name": "buddy_sessions_match_id_buddy_matches_id_fk",
+          "tableFrom": "buddy_sessions",
+          "tableTo": "buddy_matches",
+          "columnsFrom": [
+            "match_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -2324,30 +3037,6 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
-        },
-        "association_name": {
-          "name": "association_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "association_siren": {
-          "name": "association_siren",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "association_rna": {
-          "name": "association_rna",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "association_city": {
-          "name": "association_city",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -2390,6 +3079,71 @@
         "sending",
         "sent",
         "cancelled"
+      ]
+    },
+    "public.buddy_match_status": {
+      "name": "buddy_match_status",
+      "schema": "public",
+      "values": [
+        "proposed",
+        "declined",
+        "active",
+        "suspended",
+        "ended"
+      ]
+    },
+    "public.buddy_mode": {
+      "name": "buddy_mode",
+      "schema": "public",
+      "values": [
+        "call",
+        "meet"
+      ]
+    },
+    "public.buddy_mode_pref": {
+      "name": "buddy_mode_pref",
+      "schema": "public",
+      "values": [
+        "call",
+        "meet",
+        "either"
+      ]
+    },
+    "public.buddy_party": {
+      "name": "buddy_party",
+      "schema": "public",
+      "values": [
+        "beneficiary",
+        "volunteer",
+        "coordinator"
+      ]
+    },
+    "public.buddy_request_status": {
+      "name": "buddy_request_status",
+      "schema": "public",
+      "values": [
+        "waiting",
+        "matched",
+        "cancelled"
+      ]
+    },
+    "public.buddy_session_status": {
+      "name": "buddy_session_status",
+      "schema": "public",
+      "values": [
+        "scheduled",
+        "cancelled",
+        "done"
+      ]
+    },
+    "public.buddy_window": {
+      "name": "buddy_window",
+      "schema": "public",
+      "values": [
+        "weekday_morning",
+        "weekday_afternoon",
+        "weekday_evening",
+        "weekend"
       ]
     },
     "public.chat_intent": {
@@ -2614,7 +3368,10 @@
         "notes.moderate",
         "tasks.assign",
         "skills.view",
-        "skills.edit_own"
+        "skills.edit_own",
+        "buddies.be_buddy",
+        "buddies.manage",
+        "buddies.reports"
       ]
     },
     "public.place_kind": {

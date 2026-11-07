@@ -93,6 +93,22 @@ const INPUTS: Record<string, unknown> = {
   "skills.directory": {},
   "skills.suggest": { beneficiaryId: id },
   "skills.updateFor": { volunteerId: id, languages: [], skills: [], note: null },
+  "buddies.myProfile": undefined,
+  "buddies.saveProfile": { active: true, languages: ["ar"], slots: [{ weekday: 2, time: "18:30" }], modes: ["meet"], maxBuddies: 1, meetPlace: "Local" },
+  "buddies.requests": undefined,
+  "buddies.candidates": { requestId: id },
+  "buddies.propose": { requestId: id, weekday: 2, time: "18:30", mode: "meet" },
+  "buddies.mine": undefined,
+  "buddies.all": {},
+  "buddies.get": { id },
+  "buddies.sendMessage": { matchId: id, text: "Bonjour" },
+  "buddies.skipSession": { sessionId: id },
+  "buddies.end": { matchId: id },
+  "buddies.contact": { matchId: id },
+  "buddies.report": { matchId: id, text: "Un problème" },
+  "buddies.reports": {},
+  "buddies.resolveReport": { id, action: "resume" },
+  "buddies.counts": undefined,
   "system.health": undefined,
 };
 /** The permission each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
@@ -123,6 +139,13 @@ const REQUIRES: Record<string, Permission | null> = {
   "tasks.list": "notes.view", "tasks.dueCount": "notes.view", "tasks.add": "notes.write", "tasks.update": "notes.write",
   "skills.mine": "skills.edit_own", "skills.updateMine": "skills.edit_own", "skills.directory": "skills.view",
   "skills.suggest": "skills.view", "skills.updateFor": "volunteers.manage",
+  // buddies: null here = allowed by any one of several buddy permissions (requests, get, end, counts), so revoking a single one never forbids it.
+  "buddies.myProfile": "buddies.be_buddy", "buddies.saveProfile": "buddies.be_buddy", "buddies.mine": "buddies.be_buddy",
+  "buddies.propose": "buddies.be_buddy", // proposing oneself; proposing someone else needs buddies.manage (buddies.test.ts)
+  "buddies.sendMessage": "buddies.be_buddy", "buddies.skipSession": "buddies.be_buddy", "buddies.contact": "buddies.be_buddy", "buddies.report": "buddies.be_buddy",
+  "buddies.candidates": "buddies.manage", "buddies.all": "buddies.manage",
+  "buddies.reports": "buddies.reports", "buddies.resolveReport": "buddies.reports",
+  "buddies.requests": null, "buddies.get": null, "buddies.end": null, "buddies.counts": null,
 };
 const PUBLIC = new Set(["auth.login", "auth.signup", "auth.searchAssociations", "system.health"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */
@@ -155,7 +178,7 @@ describe("contract coverage", () => {
       const v = await createVolunteer(t.deps);
       await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: perm, granted: false });
       // knowledge.manage / volunteers.manage are admin-only by role: grant them per-volunteer so every other procedure starts allowed.
-      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "usage.manage", "broadcasts.approve"] as const) {
+      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "usage.manage", "broadcasts.approve", "buddies.manage", "buddies.reports"] as const) {
         if (perm !== adminOnly) await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: adminOnly, granted: true });
       }
       const { client } = makeClient(t.deps);

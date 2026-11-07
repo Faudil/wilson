@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import {
   BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
+  type BuddySlot, type BuddyWindow, BuddyMatchStatusSchema, BuddyModePreferenceSchema, BuddyModeSchema, BuddyWindowSchema,
   TaskStatusSchema, UrgencySchema, VOLUNTEER_SKILLS, VolunteerRoleSchema,
 } from "@wilson/contracts";
 
@@ -44,6 +45,15 @@ export const knowledgeSourceEnum = pgEnum("knowledge_source", ["service_public",
 export const knowledgeKindEnum = pgEnum("knowledge_kind", ["procedure", "contact", "guide"]);
 export const volunteerSkillEnum = pgEnum("volunteer_skill", VOLUNTEER_SKILLS as unknown as [string, ...string[]]);
 export const taskStatusEnum = pgEnum("task_status", TaskStatusSchema.options as [string, ...string[]]);
+/** Typed enum values (casting zod options to string[] would erase the literal types of these columns). */
+const tuple = <T extends string>(xs: readonly T[]) => xs as unknown as [T, ...T[]];
+export const buddyWindowEnum = pgEnum("buddy_window", tuple(BuddyWindowSchema.options));
+export const buddyModeEnum = pgEnum("buddy_mode", tuple(BuddyModeSchema.options));
+export const buddyModePrefEnum = pgEnum("buddy_mode_pref", tuple(BuddyModePreferenceSchema.options));
+export const buddyRequestStatusEnum = pgEnum("buddy_request_status", ["waiting", "matched", "cancelled"]);
+export const buddyMatchStatusEnum = pgEnum("buddy_match_status", tuple(BuddyMatchStatusSchema.options));
+export const buddySessionStatusEnum = pgEnum("buddy_session_status", ["scheduled", "cancelled", "done"]);
+export const buddyPartyEnum = pgEnum("buddy_party", ["beneficiary", "volunteer", "coordinator"]);
 export const reminderStatusEnum = pgEnum("reminder_status", ["scheduled", "sent", "cancelled", "failed"]);
 
 /** Conversation state machine snapshot, owned by src/conversation/engine.ts. */
@@ -60,7 +70,18 @@ export type ConversationState =
   /** Menu 6: "receive the association's announcements? 1 yes 2 no". */
   | { step: "announcements" }
   /** Free-form chat ("ask a question"); any non-menu text also goes to the chatbot. */
-  | { step: "chat" };
+  | { step: "chat" }
+  // — French practice buddies (conversation/buddyFlow.ts) —
+  | { step: "buddy_when" }
+  | { step: "buddy_how"; window: BuddyWindow }
+  | { step: "buddy_waiting"; requestId: string }
+  | { step: "buddy_proposal"; matchId: string }
+  /** afterAccept: the person just said yes to the proposal (the welcome text follows the answer). */
+  | { step: "buddy_consent"; matchId: string; afterAccept?: boolean }
+  | { step: "buddy_menu"; matchId: string }
+  | { step: "buddy_write"; matchId: string }
+  | { step: "buddy_stop"; matchId: string }
+  | { step: "buddy_report"; matchId: string };
 
 export const beneficiaries = pgTable("beneficiaries", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -410,3 +431,91 @@ export const broadcastRecipients = pgTable("broadcast_recipients", {
   primaryKey({ columns: [t.broadcastId, t.beneficiaryId] }),
   index("broadcast_recipients_beneficiary_idx").on(t.beneficiaryId, t.status),
 ]);
+
+// ---------------------------------------------------------------- French practice buddies
+
+/**
+ * A volunteer's buddy profile. Spoken languages live here for now; once the skills directory (volunteer_skills)
+ * is merged, matching should read its `languages` column instead.
+ */
+export const buddyProfiles = pgTable("buddy_profiles", {
+  volunteerId: uuid("volunteer_id").primaryKey().references(() => volunteers.id, { onDelete: "cascade" }),
+  active: boolean("active").notNull().default(true),
+  languages: languageEnum("languages").array().notNull().default(sql`'{}'`),
+  slots: jsonb("slots").$type<BuddySlot[]>().notNull().default([]),
+  modes: buddyModeEnum("modes").array().notNull(),
+  maxBuddies: integer("max_buddies").notNull().default(1),
+  /** Public place / association premises; never a home address. Shown to the beneficiary. */
+  meetPlace: text("meet_place"),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const buddyRequests = pgTable("buddy_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  beneficiaryId: uuid("beneficiary_id").notNull().references(() => beneficiaries.id, { onDelete: "cascade" }),
+  windows: buddyWindowEnum("windows").array().notNull(),
+  mode: buddyModePrefEnum("mode").notNull(),
+  status: buddyRequestStatusEnum("status").notNull().default("waiting"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("buddy_requests_status_idx").on(t.status, t.createdAt),
+  // One open request per person.
+  uniqueIndex("buddy_requests_one_waiting_idx").on(t.beneficiaryId).where(sql`status = 'waiting'`),
+]);
+
+export const buddyMatches = pgTable("buddy_matches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  requestId: uuid("request_id").notNull().references(() => buddyRequests.id, { onDelete: "cascade" }),
+  beneficiaryId: uuid("beneficiary_id").notNull().references(() => beneficiaries.id, { onDelete: "cascade" }),
+  volunteerId: uuid("volunteer_id").notNull().references(() => volunteers.id, { onDelete: "cascade" }),
+  status: buddyMatchStatusEnum("status").notNull().default("proposed"),
+  weekday: integer("weekday").notNull(),
+  time: text("time").notNull(),
+  mode: buddyModeEnum("mode").notNull(),
+  place: text("place"),
+  /** Beneficiary said yes on WhatsApp to share their number with this volunteer. Revocable. */
+  contactShared: boolean("contact_shared").notNull().default(false),
+  proposedBy: uuid("proposed_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  acceptedAt: ts("accepted_at"),
+  endedAt: ts("ended_at"),
+  endedBy: buddyPartyEnum("ended_by"),
+}, (t) => [
+  index("buddy_matches_volunteer_idx").on(t.volunteerId, t.status),
+  index("buddy_matches_beneficiary_idx").on(t.beneficiaryId, t.status),
+]);
+
+export const buddySessions = pgTable("buddy_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  matchId: uuid("match_id").notNull().references(() => buddyMatches.id, { onDelete: "cascade" }),
+  startsAt: ts("starts_at").notNull(),
+  status: buddySessionStatusEnum("status").notNull().default("scheduled"),
+  cancelledBy: buddyPartyEnum("cancelled_by"),
+  remindedAt: ts("reminded_at"),
+}, (t) => [
+  uniqueIndex("buddy_sessions_match_start_idx").on(t.matchId, t.startsAt),
+  index("buddy_sessions_due_idx").on(t.status, t.startsAt),
+]);
+
+/** What the two people wrote to each other through Wilson. Encrypted with the beneficiary's DEK (crypto-shredded with them). */
+export const buddyMessages = pgTable("buddy_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  matchId: uuid("match_id").notNull().references(() => buddyMatches.id, { onDelete: "cascade" }),
+  author: buddyPartyEnum("author").notNull(),
+  bodyEnc: bytea("body_enc").notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+}, (t) => [index("buddy_messages_match_idx").on(t.matchId, t.createdAt)]);
+
+/** A problem reported by either side. Text encrypted with the beneficiary's DEK. The pairing is suspended meanwhile. */
+export const buddyReports = pgTable("buddy_reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  matchId: uuid("match_id").notNull().references(() => buddyMatches.id, { onDelete: "cascade" }),
+  by: buddyPartyEnum("by").notNull(),
+  textEnc: bytea("text_enc").notNull(),
+  status: text("status", { enum: ["open", "closed"] }).notNull().default("open"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  resolution: text("resolution", { enum: ["resumed", "ended"] }),
+  noteEnc: bytea("note_enc"),
+  handledBy: uuid("handled_by").references(() => volunteers.id, { onDelete: "set null" }),
+  handledAt: ts("handled_at"),
+}, (t) => [index("buddy_reports_status_idx").on(t.status, t.createdAt)]);

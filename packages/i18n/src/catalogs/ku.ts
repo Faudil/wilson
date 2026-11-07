@@ -6,7 +6,7 @@ export const ku: Record<WaKey, string> = {
   language_menu: LANGUAGE_MENU,
   language_set: "Zimanê hilbijartî: {language}.",
   welcome: "Silav! Ez alîkariya te dikim ku tu nameyên fermî yên li Fransayê werdigirî fêm bikî. Wêneya nameya xwe ji min re bişîne.",
-  main_menu: "Tu dixwazî çi bikî?\n1 - Nameyekê rave bike\n2 - Belgeyên min\n3 - Ziman biguherîne\n4 - Pirsek bipirse\n5 - Razan, xwarin, şuştin\n6 - Daxuyanî\n0 - Bi kesekî re biaxive\n9 - Daneyên min jê bibe\nBi jimarekê bersiv bide.",
+  main_menu: "Tu dixwazî çi bikî?\n1 - Nameyekê rave bike\n2 - Belgeyên min\n3 - Ziman biguherîne\n4 - Pirsek bipirse\n5 - Razan, xwarin, şuştin\n6 - Daxuyanî\n7 - Fransizî pratîk bike\n0 - Bi kesekî re biaxive\n9 - Daneyên min jê bibe\nBi jimarekê bersiv bide.",
   not_understood: "Bibore, min fêm nekir. Bi jimarekê ji menûyê bersiv bide.",
   human_contact: "Ji bo axaftina bi kesekî re: {name}, {contact}.",
   letter_ask_photo: "Wêneyekî zelal ji nameya xwe bişîne. Wê rast deyne, di ronahiyek baş de, û hemû quncik xuya bin.",

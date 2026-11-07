@@ -6,7 +6,7 @@ export const ln: Record<WaKey, string> = {
   language_menu: LANGUAGE_MENU,
   language_set: "Lokota oponi: {language}.",
   welcome: "Mbote! Nasalisaka yo na kososola mikanda ya leta oyo ozwi na France. Tinda ngai elongi ya mokanda na yo.",
-  main_menu: "Olingi kosala nini?\n1 - Nalimbolela yo mokanda\n2 - Mikanda na ngai\n3 - Kobongola lokota\n4 - Kotuna motuna\n5 - Kolala, kolia, kosukola\n6 - Mayebisi\n0 - Koloba na moto\n9 - Kolongola makambo na ngai\nPesa eyano na motango.",
+  main_menu: "Olingi kosala nini?\n1 - Nalimbolela yo mokanda\n2 - Mikanda na ngai\n3 - Kobongola lokota\n4 - Kotuna motuna\n5 - Kolala, kolia, kosukola\n6 - Mayebisi\n7 - Koyekola Lifalansé\n0 - Koloba na moto\n9 - Kolongola makambo na ngai\nPesa eyano na motango.",
   not_understood: "Limbisa ngai, nasosoli te. Pesa eyano na motango ya menu.",
   human_contact: "Mpo na koloba na moto: {name}, {contact}.",
   letter_ask_photo: "Tinda elongi ya polele ya mokanda. Tya yango na likolo ya mesa, na pole, bandelo nyonso emonana.",

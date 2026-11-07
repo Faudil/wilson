@@ -8,6 +8,7 @@ export const JOBS = {
   archivePurge: "archive.purge", // cron daily: documents/beneficiaries past purge_at
   knowledgeSync: "knowledge.sync", // cron weekly + on demand
   broadcastDispatch: "broadcast.dispatch", // on approval: translate, create recipients, queue one wa.send each
+  buddyDispatch: "buddy.dispatch", // cron */15: French practice buddies (next sessions, reminders, stale proposals)
 } as const;
 
 export interface JobPayloads {
@@ -27,6 +28,7 @@ export interface JobPayloads {
   [JOBS.mediaPurge]: Record<string, never>;
   [JOBS.archivePurge]: Record<string, never>;
   /** No sourceId = every enabled source. */
+  [JOBS.buddyDispatch]: { now?: string };
   [JOBS.knowledgeSync]: { sourceId?: "service_public" | "annuaire" | "association" | "watizat" };
 }
 

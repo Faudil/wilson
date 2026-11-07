@@ -124,6 +124,9 @@ export const PERMISSIONS = [
   "tasks.assign", // give a task to another volunteer (without it: only to yourself or to nobody)
   "skills.view", // browse the skills directory and the "who can help" suggestions
   "skills.edit_own", // fill in your own languages and skills
+  "buddies.be_buddy", // French practice: own buddy profile, take requests for oneself, see and message one's own buddies
+  "buddies.manage", // French practice: see all requests and pairings, propose any buddy, end any pairing (no messages, no numbers)
+  "buddies.reports", // French practice: read and handle reports (incl. the reported pairing's messages), resume or end it
 ] as const;
 export type PermissionValue = (typeof PERMISSIONS)[number];
 
@@ -150,6 +153,8 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
   "tasks.assign",
   "skills.view",
   "skills.edit_own",
+  // Approved volunteers may be someone's French buddy; responders (new, unknown to the association) may not.
+  "buddies.be_buddy",
 ];
 
 /**
@@ -158,12 +163,14 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
  * cases can be routed to them) but sees no case notes. Default for self-signups.
  * volunteer: full volunteer bundle: letters, documents, conversations, case notes and tasks, skills, posting places,
  * drafting announcements.
- * admin: + volunteers, audit, knowledge sync, usage, moderating notes, approving announcements.
+ * Volunteers can also be someone's French practice buddy.
+ * admin: + volunteers, audit, knowledge sync, usage, moderating notes, approving announcements, arranging French
+ * buddies and handling their reports.
  */
 export const ROLE_PERMISSIONS: Record<(typeof VOLUNTEER_ROLES)[number], readonly PermissionValue[]> = {
   responder: ["conversations.view", "conversations.reply", "knowledge.view", "places.view", "skills.edit_own"],
   volunteer: VOLUNTEER_BUNDLE,
-  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate", "broadcasts.approve"],
+  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate", "broadcasts.approve", "buddies.manage", "buddies.reports"],
 };
 
 /** Kinds of places volunteers post for the day (shown with an emoji in WhatsApp, grouped in this order). */
