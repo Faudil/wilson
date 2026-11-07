@@ -108,6 +108,17 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
 - **Mode instantané (`CHAT_MODE=auto`)** : les réponses partent tout de suite.
 - **Dans les deux modes**, le robot ne répond pas sur le fond aux questions juridiques (recours, chances, « que dois-je faire ») ni aux demandes de parler à quelqu'un : la discussion passe en **« Personne demandée »**. En cas d'urgence (danger, santé, dormir dehors), il envoie un message fixe avec les numéros 115, 15, 17, 112, 119, 114 et prévient les bénévoles.
 - Les bénévoles peuvent **répondre eux-mêmes en français** : le message est traduit automatiquement dans la langue de la personne. « Clore » termine une prise en charge.
+- **Prendre une discussion** : le bouton **« Je prends la discussion »** (ou simplement répondre) fait passer la discussion « Avec un·e bénévole » : le robot ne répond plus, la personne reçoit « un bénévole va vous répondre personnellement » dans sa langue, et ses nouveaux messages attendent la·le bénévole (traduction française affichée). Seule exception : en cas d'urgence, le message fixe avec les numéros d'urgence part quand même. **« Rendre à l'assistant »** remet le robot en route. L'onglet **Les miennes** liste les discussions que vous suivez ; une autre personne peut « Prendre le relais ».
+
+## 2d. Devenir bénévole (inscription en ligne)
+
+- Sur la page de connexion, **« Devenir bénévole »** ouvre un formulaire : nom, e-mail, mot de passe, « comment souhaitez-vous aider ? » et un engagement de confidentialité (pas de conseil juridique).
+- Le compte est créé **en attente** : impossible de se connecter tant qu'un·e admin ne l'a pas validé. L'admin voit les demandes dans **Plus → Bénévoles** (pastille sur l'accueil) et choisit le rôle :
+  - **Répondant·e** (par défaut) : uniquement les discussions WhatsApp (lire, répondre, prendre une discussion). Ne voit ni les courriers, ni les photos, ni les documents.
+  - **Bénévole** : tout le travail bénévole (courriers, documents, discussions).
+  - **Administrateur·rice** : en plus, gestion des comptes et des sources.
+- L'admin peut ensuite changer le rôle ou **désactiver** un compte (déconnexion immédiate ; ses discussions repassent « Personne demandée »). Une demande refusée est supprimée.
+- Pour fermer les inscriptions en ligne : `VOLUNTEER_SIGNUP=off`. Au-delà de `VOLUNTEER_SIGNUP_MAX_PENDING` demandes en attente (30 par défaut), les nouvelles sont refusées (anti-spam).
 - Les messages vocaux ne sont pas pris en charge (il faudrait un service de transcription tiers) : le robot demande d'écrire.
 - L'historique envoyé à l'IA ne contient que les derniers messages de la discussion (texte), jamais le numéro ni le nom.
 
@@ -123,12 +134,12 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
 | **Photo d'un courrier** | Stockage S3 | Chiffrée | **Supprimée après traitement** : dès que la personne répond « non » à « garder ce courrier ? », et au plus tard 48 h après l'envoi de l'explication. Conservée seulement si la personne choisit de la garder dans « Mes documents » |
 | Analyse du courrier (texte) | Base de données | Chiffrée | Pas de suppression automatique pour l'instant |
 | Documents (« Mes documents ») | Stockage S3 | Chiffrés | Jusqu'à ce que la personne les supprime ; ils sont alors **archivés 30 jours puis effacés définitivement** |
-| Comptes bénévoles, journal des accès | Base de données | Mots de passe hachés (argon2id) | Durée de l'engagement |
+| Comptes bénévoles, journal des accès | Base de données | Mots de passe hachés (argon2id) | Durée de l'engagement ; une demande d'inscription refusée est supprimée |
 
 - **Chiffrement** : chaque personne a sa propre clé, elle-même chiffrée par la clé maître (`MASTER_KEY`). Le fournisseur de stockage ne voit jamais les fichiers en clair. Quand une personne demande la suppression de ses données (menu 9), tout est archivé 30 jours, puis sa clé est détruite : ses données deviennent illisibles, puis sont effacées.
 - **Hébergement** : base de données et stockage en UE (France visée).
 - **Tiers** : uniquement **Meta** (transport WhatsApp) et le **fournisseur d'IA** (Anthropic par défaut). L'IA reçoit seulement l'image du courrier et la langue cible : ni nom de la personne, ni numéro, ni historique. Le fournisseur peut être changé (interface générique) pour un hébergement UE. Aucune statistique, aucun CDN, polices hébergées localement.
-- **Accès** : bénévoles connectés au back-office. Aujourd'hui, tout·e bénévole peut voir photos et documents ; **chaque consultation est enregistrée** (qui, quoi, quand). Des permissions fines sont prêtes pour restreindre plus tard. Seuls les admins gèrent les comptes.
+- **Accès** : bénévoles connectés au back-office. Les comptes « Bénévole » voient photos et documents ; les comptes « Répondant·e » (inscription en ligne, par défaut) ne voient que les discussions. **Chaque consultation est enregistrée** (qui, quoi, quand). Seuls les admins valident et gèrent les comptes.
 - **Droits des personnes** : la personne peut supprimer un document ou toutes ses données depuis WhatsApp (menu 2 et menu 9).
 
 ---

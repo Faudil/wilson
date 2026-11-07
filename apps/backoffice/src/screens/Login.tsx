@@ -1,9 +1,10 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Icon } from "../components/Icon";
 import { orpc, errorCode } from "../lib/api";
 import { useI18n } from "../i18n";
 import { ME_KEY } from "../lib/me";
+import { href } from "../lib/router";
 
 export function Login() {
   const { t } = useI18n();
@@ -11,6 +12,7 @@ export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
+  const health = useQuery({ ...orpc.system.health.queryOptions(), retry: false, staleTime: 60_000 });
   const login = useMutation({
     ...orpc.auth.login.mutationOptions(),
     onSuccess: (volunteer) => qc.setQueryData(ME_KEY, volunteer),
@@ -56,13 +58,19 @@ export function Login() {
         {login.isError && (
           <p className="notice notice-error" role="alert">
             <Icon name="alert" />
-            <span className="notice-body">{code === "UNAUTHORIZED" ? t("login.wrong") : t("error.generic")}</span>
+            <span className="notice-body">{code === "UNAUTHORIZED" ? t("login.wrong") : code === "FORBIDDEN" ? t("login.pending") : t("error.generic")}</span>
           </p>
         )}
         <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={login.isPending}>
           {login.isPending ? t("common.loading") : t("login.submit")}
         </button>
       </form>
+      {health.data?.signup && (
+        <p className="center login-signup">
+          <span className="muted">{t("login.noAccount")}</span>{" "}
+          <a href={href("signup")}>{t("login.signupLink")}</a>
+        </p>
+      )}
       <p className="center">
         <a className="link-quiet" href="#/languages">
           <Icon name="globe" size={16} /> {t("nav.languages")}

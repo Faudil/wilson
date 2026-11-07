@@ -46,9 +46,14 @@ export interface ChatService {
   flushQueued(beneficiaryId: string): Promise<void>;
   approveDraft(messageId: string, volunteerId: string, textFr?: string): Promise<string>;
   rejectDraft(messageId: string, volunteerId: string): Promise<string>;
+  /** Volunteer writes in French; translated, footer appended. Takes an unassigned conversation over. */
   volunteerReply(beneficiaryId: string, volunteerId: string, textFr: string): Promise<void>;
+  /** The bot goes silent; the beneficiary is told a volunteer answers personally (unless already told). */
+  takeOver(beneficiaryId: string, volunteerId: string, opts?: { force?: boolean }): Promise<void>;
+  /** Close the handoff and give the conversation back to the bot. */
   resolve(beneficiaryId: string, volunteerId: string): Promise<void>;
-  list(input: { filter: "attention" | "all"; cursor?: string; limit: number }): Promise<{ items: ConversationSummary[]; nextCursor: string | null }>;
+  /** `mine` = taken over by `volunteerId`. */
+  list(input: { filter: "attention" | "mine" | "all"; cursor?: string; limit: number; volunteerId?: string }): Promise<{ items: ConversationSummary[]; nextCursor: string | null }>;
   get(beneficiaryId: string): Promise<ConversationDetail | null>;
 }
 
@@ -78,8 +83,14 @@ export function createChatService(deps: Deps): ChatService {
     await db.update(beneficiaries).set({ chatStatus: status }).where(eq(beneficiaries.id, id));
   }
   async function getStatus(id: string): Promise<ChatStatus> {
-    const [r] = await db.select({ s: beneficiaries.chatStatus }).from(beneficiaries).where(eq(beneficiaries.id, id)).limit(1);
-    return r?.s ?? "bot";
+    return (await getChatState(id)).status;
+  }
+  async function getChatState(id: string): Promise<{ status: ChatStatus; assigneeId: string | null }> {
+    const [r] = await db.select({ s: beneficiaries.chatStatus, a: beneficiaries.chatAssigneeId }).from(beneficiaries).where(eq(beneficiaries.id, id)).limit(1);
+    return { status: r?.s ?? "bot", assigneeId: r?.a ?? null };
+  }
+  async function assign(id: string, volunteerId: string | null, status: ChatStatus) {
+    await db.update(beneficiaries).set({ chatStatus: status, chatAssigneeId: volunteerId }).where(eq(beneficiaries.id, id));
   }
   async function draftCount(id: string): Promise<number> {
     const [r] = await db.select({ n: sql<number>`count(*)::int` }).from(messages).where(and(eq(messages.beneficiaryId, id), eq(messages.chatState, "draft")));
@@ -179,7 +190,9 @@ export function createChatService(deps: Deps): ChatService {
       }).returning({ id: messages.id });
       inboundId = r!.id;
     }
-    if ((await getStatus(beneficiaryId)) === "resolved") await setStatus(beneficiaryId, "bot");
+    const status = await getStatus(beneficiaryId);
+    if (status === "resolved") await setStatus(beneficiaryId, "bot");
+    const withVolunteer = status === "with_volunteer";
 
     // 2. plan
     const turns = await history(beneficiaryId);
@@ -188,10 +201,17 @@ export function createChatService(deps: Deps): ChatService {
       plan = await llm.planChat({ history: turns, language: lang });
     } catch (e) {
       console.error("[chat] planChat failed:", e instanceof Error ? e.message : String(e));
-      await handoff(b, lang, "chat_handoff", "human");
+      if (!withVolunteer) await handoff(b, lang, "chat_handoff", "human");
       return;
     }
     await tag(inboundId, plan.intent);
+
+    // A volunteer holds the conversation: the bot stays silent and the message waits for them. Only the fixed
+    // emergency numbers still go out at once (safety net, no LLM text).
+    if (withVolunteer) {
+      if (plan.intent === "urgent") await sendFixed(beneficiaryId, lang, "chat_urgent", "urgent");
+      return;
+    }
 
     // 3. route
     switch (plan.intent) {
@@ -282,8 +302,8 @@ export function createChatService(deps: Deps): ChatService {
     async rejectDraft(messageId) {
       const m = await mustDraft(messageId);
       await db.update(messages).set({ chatState: "rejected" }).where(eq(messages.id, messageId));
-      // A rejected answer means the question still needs a person.
-      await setStatus(m.beneficiaryId, "needs_human");
+      // A rejected answer means the question still needs a person (unless a volunteer already holds it).
+      if ((await getStatus(m.beneficiaryId)) !== "with_volunteer") await setStatus(m.beneficiaryId, "needs_human");
       return m.beneficiaryId;
     },
 
@@ -293,30 +313,53 @@ export function createChatService(deps: Deps): ChatService {
       if (!fr) throw new ChatError("BAD_REQUEST", "empty reply");
       const target = b.language === "fr" ? fr : await llm.translateText({ text: fr, from: "fr", to: b.language });
       await sendRow(beneficiaryId, b.language, target, { author: "volunteer", textFr: fr, volunteerId });
+      // Answering by hand = taking the conversation: the bot must not talk over the volunteer afterwards.
+      const st = await getChatState(beneficiaryId);
+      if (st.status !== "with_volunteer" || !st.assigneeId) await assign(beneficiaryId, volunteerId, "with_volunteer");
+    },
+
+    async takeOver(beneficiaryId, volunteerId, opts = {}) {
+      const b = await mustBeneficiary(beneficiaryId);
+      const st = await getChatState(beneficiaryId);
+      if (st.status === "with_volunteer" && st.assigneeId === volunteerId) return;
+      if (st.status === "with_volunteer" && st.assigneeId && !opts.force) throw new ChatError("CONFLICT", "assigned");
+      await assign(beneficiaryId, volunteerId, "with_volunteer");
+      // needs_human already sent chat_handoff ("a volunteer will answer you personally"); do not repeat it.
+      if (st.status !== "needs_human" && st.status !== "with_volunteer") await sendFixed(beneficiaryId, b.language, "chat_handoff", null);
     },
 
     async resolve(beneficiaryId) {
       await mustBeneficiary(beneficiaryId);
-      await setStatus(beneficiaryId, (await draftCount(beneficiaryId)) > 0 ? "pending_review" : "resolved");
+      await assign(beneficiaryId, null, (await draftCount(beneficiaryId)) > 0 ? "pending_review" : "resolved");
     },
 
-    async list({ filter, cursor, limit }) {
+    async list({ filter, cursor, limit, volunteerId }) {
       const rows = await db.select({
-        id: beneficiaries.id, language: beneficiaries.language, status: beneficiaries.chatStatus,
+        id: beneficiaries.id, language: beneficiaries.language, status: beneficiaries.chatStatus, assigneeId: beneficiaries.chatAssigneeId,
         last: sql<Date | null>`max(${messages.createdAt})`,
         drafts: sql<number>`count(*) filter (where ${messages.chatState} = 'draft')::int`,
       }).from(beneficiaries).innerJoin(messages, and(eq(messages.beneficiaryId, beneficiaries.id), isNotNull(messages.author)))
         .where(sql`${beneficiaries.archivedAt} is null`)
         .groupBy(beneficiaries.id);
-      const rank = { needs_human: 0, pending_review: 1, bot: 2, resolved: 3 } as const;
-      const filtered = rows.filter((r) => filter === "all" || r.status === "needs_human" || r.status === "pending_review")
+      const waiting = await awaitingIds(rows.filter((r) => r.status === "with_volunteer").map((r) => r.id));
+      // with_volunteer needs attention only while the beneficiary is waiting for an answer.
+      const rank = (r: { id: string; status: ChatStatus }) =>
+        r.status === "needs_human" ? 0 : r.status === "with_volunteer" ? (waiting.has(r.id) ? 0 : 2) : r.status === "pending_review" ? 1 : 2;
+      const keep = (r: { id: string; status: ChatStatus; assigneeId: string | null }) =>
+        filter === "all" ? true
+        : filter === "mine" ? r.status === "with_volunteer" && r.assigneeId === volunteerId
+        : rank(r) < 2;
+      const filtered = rows.filter(keep)
         .map((r) => ({ ...r, last: r.last ? new Date(r.last) : null }))
-        .sort((a, z) => Math.min(rank[a.status], 2) - Math.min(rank[z.status], 2) || (z.last?.getTime() ?? 0) - (a.last?.getTime() ?? 0));
+        .sort((a, z) => rank(a) - rank(z) || (z.last?.getTime() ?? 0) - (a.last?.getTime() ?? 0));
       const start = cursor ? Math.max(0, Number(cursor) || 0) : 0;
       const page = filtered.slice(start, start + limit);
+      const names = await volunteerNames(page.flatMap((r) => (r.assigneeId ? [r.assigneeId] : [])));
       const items = await Promise.all(page.map(async (r): Promise<ConversationSummary> => ({
         beneficiaryId: r.id, beneficiaryLabel: await ben.label(r.id), language: r.language, status: r.status,
         lastMessageAt: r.last ? r.last.toISOString() : null, lastPreview: await lastPreview(r.id), pendingDrafts: r.drafts,
+        assignee: r.assigneeId ? { id: r.assigneeId, name: names.get(r.assigneeId) ?? "?" } : null,
+        awaitingReply: r.status === "with_volunteer" ? waiting.has(r.id) : await isAwaiting(r.id),
       })));
       return { items, nextCursor: start + limit < filtered.length ? String(start + limit) : null };
     },
@@ -326,11 +369,7 @@ export function createChatService(deps: Deps): ChatService {
       if (!b || b.archivedAt) return null;
       const dek = await ben.getDek(beneficiaryId);
       const rows = await db.select().from(messages).where(and(eq(messages.beneficiaryId, beneficiaryId), isNotNull(messages.author))).orderBy(asc(messages.createdAt), asc(messages.id));
-      const names = new Map<string, string>();
-      const vids = [...new Set(rows.flatMap((r) => (r.volunteerId ? [r.volunteerId] : [])))];
-      if (vids.length) {
-        for (const v of await db.select({ id: volunteers.id, name: volunteers.name }).from(volunteers).where(inArray(volunteers.id, vids))) names.set(v.id, v.name);
-      }
+      const names = await volunteerNames([...rows.flatMap((r) => (r.volunteerId ? [r.volunteerId] : [])), ...(b.chatAssigneeId ? [b.chatAssigneeId] : [])]);
       const msgs: ChatMessage[] = rows.map((r) => ({
         id: r.id,
         author: r.author!,
@@ -348,10 +387,39 @@ export function createChatService(deps: Deps): ChatService {
         lastMessageAt: rows.at(-1)?.createdAt.toISOString() ?? null,
         lastPreview: last ? (last.textFr ?? last.text) : null,
         pendingDrafts: msgs.filter((m) => m.state === "draft").length,
+        assignee: b.chatAssigneeId ? { id: b.chatAssigneeId, name: names.get(b.chatAssigneeId) ?? "?" } : null,
+        awaitingReply: awaiting(msgs),
         messages: msgs,
       };
     },
   };
+
+  async function volunteerNames(ids: string[]): Promise<Map<string, string>> {
+    const names = new Map<string, string>();
+    const unique = [...new Set(ids)];
+    if (unique.length) {
+      for (const v of await db.select({ id: volunteers.id, name: volunteers.name }).from(volunteers).where(inArray(volunteers.id, unique))) names.set(v.id, v.name);
+    }
+    return names;
+  }
+
+  /** Last chat message (ignoring drafts/rejected) is from the beneficiary = nobody answered yet. */
+  function awaiting(msgs: Pick<ChatMessage, "author" | "state">[]): boolean {
+    const last = [...msgs].reverse().find((m) => m.state === "received" || m.state === "sent");
+    return last?.author === "beneficiary";
+  }
+  async function isAwaiting(beneficiaryId: string): Promise<boolean> {
+    return (await awaitingIds([beneficiaryId])).has(beneficiaryId);
+  }
+  async function awaitingIds(ids: string[]): Promise<Set<string>> {
+    if (ids.length === 0) return new Set();
+    // Latest sent/received chat row per beneficiary; awaiting when it is the beneficiary's.
+    const rows = await db.selectDistinctOn([messages.beneficiaryId], { id: messages.beneficiaryId, author: messages.author })
+      .from(messages)
+      .where(and(inArray(messages.beneficiaryId, ids), isNotNull(messages.author), inArray(messages.chatState, ["received", "sent"])))
+      .orderBy(messages.beneficiaryId, desc(messages.createdAt), desc(messages.id));
+    return new Set(rows.filter((r) => r.author === "beneficiary").map((r) => r.id));
+  }
 
   async function lastPreview(beneficiaryId: string): Promise<string | null> {
     const [r] = await db.select().from(messages).where(and(eq(messages.beneficiaryId, beneficiaryId), eq(messages.author, "beneficiary"))).orderBy(desc(messages.createdAt), desc(messages.id)).limit(1);

@@ -1,6 +1,6 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-import { LoginInputSchema, VolunteerSchema } from "./auth.js";
+import { LoginInputSchema, SignupInputSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
 import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
@@ -13,7 +13,7 @@ import { SandboxMessageSchema, SandboxPhoneSchema, SandboxSendInputSchema } from
 /**
  * The single source of truth for every back-office ⇄ API call.
  * Server: `implement(contract)` in apps/api. Client: `ContractRouterClient<typeof contract>` in apps/backoffice.
- * All procedures require a volunteer session except `auth.login` and `system.health`.
+ * All procedures require a volunteer session except `auth.login`, `auth.signup` and `system.health`.
  */
 
 const base = oc.errors({
@@ -24,7 +24,14 @@ const base = oc.errors({
 });
 
 const auth = {
+  /** FORBIDDEN = right password but the account is still waiting for an admin's approval. */
   login: base.input(LoginInputSchema).output(VolunteerSchema),
+  /**
+   * Public self-signup → pending account, no access until `volunteers.approve`. Always answers `{ ok: true }` for a
+   * well-formed request (also when the email is already taken) so it cannot be used to find who volunteers here.
+   * FORBIDDEN when VOLUNTEER_SIGNUP=off; CONFLICT { reason: "too_many_pending" } when the pending list is full.
+   */
+  signup: base.input(SignupInputSchema).output(z.object({ ok: z.literal(true) })),
   logout: base.output(z.void()),
   me: base.output(VolunteerSchema),
   setUiLanguage: base.input(z.object({ language: LanguageSchema })).output(VolunteerSchema),
@@ -73,10 +80,22 @@ const sandbox = {
   reset: base.input(z.object({ phone: SandboxPhoneSchema })).output(z.void()),
 };
 
+/** Account management (admin, `volunteers.manage`): approve self-signups, change roles, disable accounts. */
+const volunteers = {
+  list: base.input(z.object({ status: VolunteerAccountStatusSchema.optional() })).output(z.array(VolunteerAccountSchema)),
+  /** Pending → active with the chosen role (default responder: conversations only). */
+  approve: base.input(z.object({ id: IdSchema, role: VolunteerRoleSchema.default("responder") })).output(VolunteerAccountSchema),
+  /** Refuse a pending request: the account row is deleted. */
+  reject: base.input(z.object({ id: IdSchema })).output(z.void()),
+  setRole: base.input(z.object({ id: IdSchema, role: VolunteerRoleSchema })).output(VolunteerAccountSchema),
+  /** Disable (sessions revoked at once) or re-enable an account. Not on yourself. */
+  setDisabled: base.input(z.object({ id: IdSchema, disabled: z.boolean() })).output(VolunteerAccountSchema),
+};
+
 /** Chatbot conversations: volunteers read them, approve/reject bot drafts, reply themselves, close handoffs. */
 const conversations = {
   list: base
-    .input(PageInputSchema.extend({ filter: z.enum(["attention", "all"]).default("attention") }))
+    .input(PageInputSchema.extend({ filter: z.enum(["attention", "mine", "all"]).default("attention") }))
     .output(pageOf(ConversationSummarySchema)),
   get: base.input(z.object({ beneficiaryId: IdSchema })).output(ConversationDetailSchema),
   /** Send a bot draft, optionally after editing its French version (then re-translated before sending). */
@@ -84,6 +103,13 @@ const conversations = {
   rejectDraft: base.input(z.object({ messageId: IdSchema })).output(ConversationDetailSchema),
   /** Volunteer writes in French; translated to the beneficiary's language by the LLM, footer appended. */
   reply: base.input(z.object({ beneficiaryId: IdSchema, textFr: z.string().min(1).max(3000) })).output(ConversationDetailSchema),
+  /**
+   * Take the conversation over: the bot stops answering, beneficiary messages wait for a volunteer, and the person is
+   * told (fixed text) that a volunteer answers personally. CONFLICT { reason: "assigned" } if someone else holds it,
+   * unless `force`. Replying also takes an unassigned conversation over.
+   */
+  takeOver: base.input(z.object({ beneficiaryId: IdSchema, force: z.boolean().default(false) })).output(ConversationDetailSchema),
+  /** Close the handoff / give the conversation back to the bot (clears the assignee). */
   resolve: base.input(z.object({ beneficiaryId: IdSchema })).output(ConversationDetailSchema),
 };
 
@@ -97,8 +123,8 @@ const knowledge = {
 };
 
 const system = {
-  health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional() })),
+  health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, system };
+export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, system };
 export type Contract = typeof contract;

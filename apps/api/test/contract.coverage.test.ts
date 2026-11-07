@@ -23,6 +23,7 @@ const phone = "33614000001";
 /** A schema-valid input for each procedure, so rejection comes from the auth layer and not from input validation. */
 const INPUTS: Record<string, unknown> = {
   "auth.login": { email: "a@example.org", password: "whatever-pass" },
+  "auth.signup": { name: "Coverage", email: "coverage-signup@example.org", password: "long-enough-pass", uiLanguage: "fr", acceptsConfidentiality: true },
   "auth.logout": undefined,
   "auth.me": undefined,
   "auth.setUiLanguage": { language: "fr" },
@@ -51,7 +52,13 @@ const INPUTS: Record<string, unknown> = {
   "conversations.approveDraft": { messageId: id },
   "conversations.rejectDraft": { messageId: id },
   "conversations.reply": { beneficiaryId: id, textFr: "Bonjour" },
+  "conversations.takeOver": { beneficiaryId: id },
   "conversations.resolve": { beneficiaryId: id },
+  "volunteers.list": {},
+  "volunteers.approve": { id },
+  "volunteers.reject": { id },
+  "volunteers.setRole": { id, role: "volunteer" },
+  "volunteers.setDisabled": { id, disabled: true },
   "system.health": undefined,
 };
 /** The permission each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
@@ -66,9 +73,11 @@ const REQUIRES: Record<string, Permission | null> = {
   "knowledge.sources": "knowledge.view", "knowledge.search": "knowledge.view", "knowledge.sync": "knowledge.manage",
   "conversations.list": "conversations.view", "conversations.get": "conversations.view",
   "conversations.approveDraft": "conversations.reply", "conversations.rejectDraft": "conversations.reply",
-  "conversations.reply": "conversations.reply", "conversations.resolve": "conversations.reply",
+  "conversations.reply": "conversations.reply", "conversations.resolve": "conversations.reply", "conversations.takeOver": "conversations.reply",
+  "volunteers.list": "volunteers.manage", "volunteers.approve": "volunteers.manage", "volunteers.reject": "volunteers.manage",
+  "volunteers.setRole": "volunteers.manage", "volunteers.setDisabled": "volunteers.manage",
 };
-const PUBLIC = new Set(["auth.login", "system.health"]);
+const PUBLIC = new Set(["auth.login", "auth.signup", "system.health"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */
 const ANON_OK = new Set([...PUBLIC, "auth.logout"]);
 const ALL = leaves(contract);
@@ -84,7 +93,7 @@ describe("contract coverage", () => {
     expect(Object.keys(INPUTS).sort()).toEqual([...ALL].sort());
   });
 
-  it("every procedure except auth.login / system.health / (idempotent) auth.logout rejects an anonymous caller with UNAUTHORIZED", async () => {
+  it("every procedure except auth.login / auth.signup / system.health / (idempotent) auth.logout rejects an anonymous caller with UNAUTHORIZED", async () => {
     const { client } = makeClient(t.deps);
     for (const p of ALL.filter((p) => !ANON_OK.has(p))) {
       expect([p, await code(call(client, p, INPUTS[p]))]).toEqual([p, "UNAUTHORIZED"]);
@@ -98,8 +107,10 @@ describe("contract coverage", () => {
     for (const perm of needed) {
       const v = await createVolunteer(t.deps);
       await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: perm, granted: false });
-      // knowledge.manage is admin-only by role: grant it per-volunteer so every other procedure starts allowed.
-      if (perm !== "knowledge.manage") await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: "knowledge.manage", granted: true });
+      // knowledge.manage / volunteers.manage are admin-only by role: grant them per-volunteer so every other procedure starts allowed.
+      for (const adminOnly of ["knowledge.manage", "volunteers.manage"] as const) {
+        if (perm !== adminOnly) await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: adminOnly, granted: true });
+      }
       const { client } = makeClient(t.deps);
       await client.auth.login({ email: v.email, password: v.password });
       for (const [proc, req] of Object.entries(REQUIRES)) {
