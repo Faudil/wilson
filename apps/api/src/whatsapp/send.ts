@@ -1,7 +1,8 @@
 import { and, eq, ne } from "drizzle-orm";
 import { documentTypeName, formatDate, waText } from "@wilson/i18n";
 import { JOBS, type JobPayloads } from "../jobs/names.js";
-import { messages, reminders } from "../db/schema.js";
+import { broadcastRecipients, broadcasts, messages, reminders } from "../db/schema.js";
+import { getBroadcasts } from "../broadcasts/service.js";
 import type { ConversationState } from "../db/schema.js";
 import type { WaDeps } from "./context.js";
 import { toInteractive } from "./interactive.js";
@@ -66,6 +67,7 @@ export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.
   }
 
   if (payload.kind === "chat") return runChatSend(deps, payload.messageId);
+  if (payload.kind === "broadcast") return runBroadcastSend(deps, payload.broadcastId, payload.beneficiaryId);
 
   const b = await beneficiaries.get(payload.beneficiaryId);
   if (!b) return;
@@ -146,6 +148,38 @@ async function runChatSend(deps: WaDeps, messageId: string): Promise<void> {
   const { waMessageId } = sent;
   await db.delete(messages).where(and(eq(messages.waMessageId, waMessageId), ne(messages.id, m.id)));
   await db.update(messages).set({ waMessageId, status: "sent" }).where(eq(messages.id, m.id));
+}
+
+/**
+ * One announcement to one person. Inside the 24 h window: the text (free service message). Outside: the paid
+ * `announcement` template once (status awaiting_reply); the text follows when they tap "Read" or write
+ * (BroadcastsService.releaseFor re-queues this job). Idempotent on the recipient row.
+ */
+async function runBroadcastSend(deps: WaDeps, broadcastId: string, beneficiaryId: string): Promise<void> {
+  const { db, wa, config, beneficiaries } = deps;
+  const where = and(eq(broadcastRecipients.broadcastId, broadcastId), eq(broadcastRecipients.beneficiaryId, beneficiaryId));
+  const [r] = await db.select().from(broadcastRecipients).where(where).limit(1);
+  if (!r || (r.status !== "queued" && r.status !== "awaiting_reply")) return;
+  const [bc] = await db.select({ status: broadcasts.status }).from(broadcasts).where(eq(broadcasts.id, broadcastId)).limit(1);
+  const b = await beneficiaries.get(beneficiaryId);
+  // Stopped announcements, deleted their data, or the announcement was withdrawn: nothing goes out.
+  if (!bc || bc.status === "cancelled" || !b || b.archivedAt || !b.announcementsOptInAt) {
+    await db.update(broadcastRecipients).set({ status: "skipped" }).where(where);
+    return;
+  }
+  const to = await beneficiaries.getWaId(b.id);
+  const viaTemplate = async () => {
+    if (r.status === "awaiting_reply") return; // template already sent; wait for their answer
+    const { waMessageId } = await wa.sendTemplate(to, config.WHATSAPP_TEMPLATE_ANNOUNCEMENT, b.language, []);
+    await storeOutbound(deps, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_ANNOUNCEMENT}]`, waMessageId);
+    await db.update(broadcastRecipients).set({ status: "awaiting_reply", viaTemplate: true }).where(where);
+  };
+  if (!windowOpen(deps, b.lastInboundAt)) return viaTemplate();
+  const text = await getBroadcasts(deps).render(broadcastId, b.language);
+  const sent = await sendTextOr(deps, to, text, viaTemplate);
+  if (!sent) return;
+  await storeOutbound(deps, b.id, "text", text, sent.waMessageId);
+  await db.update(broadcastRecipients).set({ status: "sent", sentAt: deps.now() }).where(where);
 }
 
 export function windowOpen(deps: Pick<WaDeps, "now" | "wa">, lastInboundAt: Date | null): boolean {

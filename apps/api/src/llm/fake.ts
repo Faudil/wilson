@@ -12,7 +12,7 @@ import {
   type LetterAnalysis,
   type LetterText,
 } from "@wilson/contracts";
-import type { ChatTurn, LlmFile, LlmProvider } from "./provider.js";
+import type { ChatPlan, ChatTurn, LlmFile, LlmProvider } from "./provider.js";
 
 /** Find the repo's /samples directory: $SAMPLES_DIR, else walk up from this file and from cwd. */
 export function resolveSamplesDir(): string {
@@ -159,13 +159,13 @@ export class FakeProvider implements LlmProvider {
     };
   }
 
-  async planChat(input: { history: ChatTurn[]; language: LanguageCode }): Promise<{ intent: ChatIntent; frenchQuery: string; needsHuman: boolean }> {
+  async planChat(input: { history: ChatTurn[]; language: LanguageCode }): Promise<ChatPlan> {
     const last = [...input.history].reverse().find((t) => t.role === "beneficiary")?.text ?? "";
     const intent = fakeIntent(last);
     const frenchQuery = ["info", "legal", "urgent"].includes(intent)
       ? last.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w)).slice(0, 8).join(" ")
       : "";
-    return { intent, frenchQuery, needsHuman: intent === "legal" || intent === "urgent" || intent === "human" };
+    return { intent, frenchQuery, needsHuman: intent === "legal" || intent === "urgent" || intent === "human", needsPlaces: intent === "places" || PLACES_RE.test(last) };
   }
 
   async chatReply(input: {
@@ -188,10 +188,13 @@ export class FakeProvider implements LlmProvider {
   }
 }
 
+const PLACES_RE = /dormir|manger|douche|repas|sleep|eat\b|food|shower|hungry|faim|où .*ce soir|tonight/i;
+
 const INTENT_PATTERNS: [ChatIntent, RegExp][] = [
   ["urgent", /urgence|urgent|danger|dormir dehors|à la rue|malade|police|emergency|violence|ambulance/i],
   ["legal", /avocat|recours|appeal|juge|oqtf|tribunal|lawyer|cnda|contester/i],
   ["human", /parler à quelqu|parler a quelqu|human|personne|bénévole|benevole|volunteer|speak to someone/i],
+  ["places", PLACES_RE],
   ["letter", /lettre|courrier|letter|convocation/i],
   ["document", /mes documents|my documents|document/i],
   ["smalltalk", /^(bonjour|bonsoir|salut|merci|hello|hi|thanks|thank you)[\s!.]*$/i],

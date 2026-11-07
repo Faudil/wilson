@@ -39,7 +39,7 @@ export type WaKey =
   | "language_menu" // numbered list of languages in native scripts (same text in every catalog)
   | "language_set" // {language}
   | "welcome"
-  | "main_menu" // 1 letter · 2 documents · 3 language · 4 ask a question · 0 human · 9 delete my data
+  | "main_menu" // 1 letter · 2 documents · 3 language · 4 ask a question · 5 sleep/eat/wash today · 6 announcements · 0 human · 9 delete my data
   | "not_understood"
   | "human_contact" // {name} {contact}
   | "letter_ask_photo"
@@ -79,6 +79,14 @@ export type WaKey =
   | "chat_voice_unsupported" // please write your message, voice notes are not supported yet
   | "chat_letter_redirect" // to explain a letter, send a photo (or menu 1)
   | "chat_document_redirect" // for your documents, reply 2
+  | "places_title" // {date} heading of the list of places posted for today
+  | "places_none" // volunteers have not posted places for today
+  | "places_115" // emergency shelter: call 115 (closes every list of places)
+  | "announcements_ask" // {name} receive announcements? 1 yes 2 no (opt-in, WhatsApp policy)
+  | "announcements_ask_on" // {name} already receiving: 1 continue 2 stop
+  | "announcements_on" // confirmed; write STOP to stop
+  | "announcements_off" // stopped; menu 6 to receive again
+  | "broadcast_stop_hint" // under every announcement: write STOP to stop
   | "footer"; // {name} {contact} — appended to every reply, never optional
 
 export type Params = Record<string, string | number>;

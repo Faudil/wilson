@@ -1,7 +1,8 @@
 import { ORPCError } from "@orpc/server";
 import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
-import type { VolunteerAccount, VolunteerAccountStatus } from "@wilson/contracts";
-import { beneficiaries, sessions, volunteers } from "../db/schema.js";
+import type { Permission, VolunteerAccount, VolunteerAccountStatus, VolunteerRole } from "@wilson/contracts";
+import { effectivePermissions } from "../auth/service.js";
+import { beneficiaries, sessions, volunteerPermissions, volunteers } from "../db/schema.js";
 import type { Deps } from "../deps.js";
 import { logAccess } from "./logAccess.js";
 import { os, requirePermission, type RpcContext } from "./base.js";
@@ -17,6 +18,12 @@ async function toAccounts(deps: Deps, rows: Row[]): Promise<VolunteerAccount[]> 
   if (approverIds.length) {
     for (const a of await deps.db.select({ id: volunteers.id, name: volunteers.name }).from(volunteers).where(inArray(volunteers.id, approverIds))) names.set(a.id, a.name);
   }
+  const overrides = new Map<string, { permission: Permission; granted: boolean }[]>();
+  if (rows.length) {
+    for (const o of await deps.db.select().from(volunteerPermissions).where(inArray(volunteerPermissions.volunteerId, rows.map((r) => r.id)))) {
+      overrides.set(o.volunteerId, [...(overrides.get(o.volunteerId) ?? []), { permission: o.permission as Permission, granted: o.granted }]);
+    }
+  }
   return rows.map((r) => ({
     id: r.id,
     name: r.name,
@@ -28,6 +35,9 @@ async function toAccounts(deps: Deps, rows: Row[]): Promise<VolunteerAccount[]> 
     createdAt: r.createdAt.toISOString(),
     approvedAt: r.approvedAt?.toISOString() ?? null,
     approvedByName: r.approvedBy ? (names.get(r.approvedBy) ?? null) : null,
+    // A pending account has no access at all, whatever its role says.
+    permissions: r.pendingApproval ? [] : effectivePermissions(r.role as VolunteerRole, overrides.get(r.id) ?? []).sort(),
+    overrides: (overrides.get(r.id) ?? []).sort((a, z) => a.permission.localeCompare(z.permission)),
   }));
 }
 
@@ -102,6 +112,23 @@ export const volunteersRouter = {
     await context.deps.db.update(volunteers).set({ disabledAt: input.disabled ? context.deps.now() : null }).where(eq(volunteers.id, input.id));
     if (input.disabled) await revoke(context.deps, input.id);
     await logAccess(context, input.disabled ? "volunteers.disable" : "volunteers.enable", input.id);
+    return one(context.deps, input.id);
+  }),
+
+  setPermissions: os.volunteers.setPermissions.use(manage).handler(async ({ input, context }) => {
+    notSelf(context, input.id);
+    const r = await mustRow(context.deps, input.id);
+    if (r.pendingApproval) throw new ORPCError("CONFLICT", { data: { reason: "pending" } });
+    // One entry per permission (the last one wins), and none that only repeats what the role already gives.
+    const bundle = new Set(effectivePermissions(r.role as VolunteerRole, []));
+    const wanted = new Map(input.overrides.map((o) => [o.permission, o.granted]));
+    const rows = [...wanted].filter(([p, granted]) => granted !== bundle.has(p)).map(([permission, granted]) => ({ volunteerId: input.id, permission, granted }));
+    await context.deps.db.transaction(async (tx) => {
+      await tx.delete(volunteerPermissions).where(eq(volunteerPermissions.volunteerId, input.id));
+      if (rows.length) await tx.insert(volunteerPermissions).values(rows);
+    });
+    // Resolved per request (auth.resolveVolunteer), so it applies on the person's next click. One log line per change.
+    await logAccess(context, `volunteers.set_permissions:${rows.map((o) => `${o.granted ? "+" : "-"}${o.permission}`).join(",") || "role_default"}`, input.id);
     return one(context.deps, input.id);
   }),
 };

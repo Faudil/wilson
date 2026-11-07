@@ -15,6 +15,7 @@ export const ChatIntentSchema = z.enum([
   "human", // wants to talk to a person
   "letter", // wants a letter explained → redirect to the photo flow
   "document", // about stored documents → redirect to "my documents"
+  "places", // where to sleep, eat, wash, get clothes today → the places volunteers posted (else knowledge base)
   "smalltalk",
   "out_of_scope",
 ]);

@@ -37,6 +37,6 @@ describe("contracts", () => {
     expect(WaWebhookSchema.parse(payload).entry[0]?.changes[0]?.value.messages?.[0]?.type).toBe("image");
   });
   it("exposes the expected procedure groups", () => {
-    expect(Object.keys(contract).sort()).toEqual(["auth", "beneficiaries", "conversations", "documents", "knowledge", "letters", "notes", "sandbox", "skills", "system", "tasks", "usage", "volunteers"]);
+    expect(Object.keys(contract).sort()).toEqual(["auth", "beneficiaries", "broadcasts", "conversations", "documents", "knowledge", "letters", "notes", "places", "sandbox", "skills", "system", "tasks", "usage", "volunteers"]);
   });
 });

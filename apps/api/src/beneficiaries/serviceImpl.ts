@@ -16,6 +16,7 @@ const toRow = (r: Row): BeneficiaryRow => ({
   conversationState: r.conversationState,
   lastInboundAt: r.lastInboundAt,
   archivedAt: r.archivedAt,
+  announcementsOptInAt: r.announcementsOptInAt,
 });
 
 export class BeneficiariesServiceImpl implements BeneficiariesService {
@@ -99,7 +100,7 @@ export class BeneficiariesServiceImpl implements BeneficiariesService {
     await db.transaction(async (tx) => {
       await tx
         .update(beneficiaries)
-        .set({ archivedAt: now, purgeAt })
+        .set({ archivedAt: now, purgeAt, announcementsOptInAt: null })
         .where(and(eq(beneficiaries.id, id), isNull(beneficiaries.archivedAt)));
       const docs = await tx
         .update(documents)

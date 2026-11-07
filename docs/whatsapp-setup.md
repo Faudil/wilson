@@ -101,12 +101,15 @@ bun run --filter @wilson/api wa:setup subscribe
 
 ## 5. Les modèles de messages (obligatoires pour les rappels)
 
-WhatsApp n'autorise un message libre que **dans les 24 h** qui suivent le dernier message de la personne. Au-delà, seul un **modèle approuvé par Meta** peut être envoyé. Wilson en utilise deux, catégorie *Utility* :
+WhatsApp n'autorise un message libre que **dans les 24 h** qui suivent le dernier message de la personne. Au-delà, seul un **modèle approuvé par Meta** peut être envoyé. Wilson en utilise trois : deux de catégorie *Utility*, un de catégorie *Marketing* (les annonces) :
 
 | Modèle | Quand | Texte (fr) |
 |---|---|---|
 | `explanation_ready` (+ bouton « Recevoir ») | Une explication de courrier relue, ou une réponse à une question, est prête mais la personne n'a pas écrit depuis plus de 24 h | « Bonjour, c'est {association}. Nous avons une réponse à votre demande. Appuyez sur « Recevoir » ou répondez à ce message pour la lire. » |
 | `document_reminder` | Rappel J-30 / J-7 d'un document qui expire | « Rappel de {association} : votre document « {{1}} » expire le {{2}}. Pensez à le renouveler à temps. Répondez à ce message si vous avez besoin d'aide. » |
+| `announcement` (+ boutons « Lire » / « Arrêter »), catégorie **Marketing** | Une annonce validée (Plus → Annonces) pour une personne inscrite aux annonces (menu 6) qui n'a pas écrit depuis plus de 24 h | « Bonjour, c'est {association}. Nous avons une nouvelle annonce pour vous (permanence, atelier, distribution…). Appuyez sur « Lire » pour la recevoir, ou sur « Arrêter » pour ne plus recevoir d'annonces. » |
+
+**Annonces et coût.** Une annonce n'est pas liée à une demande de la personne : Meta la classe en *Marketing*, payée à chaque envoi (environ 0,086 $ en France, à vérifier sur la grille tarifaire de Meta ; réglage `WHATSAPP_PRICE_MARKETING_USD`, utilisé pour l'estimation affichée avant validation). Dans les 24 h, l'annonce part en message libre, gratuit. Seules les personnes qui ont dit oui au menu 6 la reçoivent ; « STOP » ou le bouton « Arrêter » les désinscrit tout de suite. Meta peut limiter les envois marketing si trop de gens bloquent le numéro : gardez les annonces rares et utiles.
 
 Quand la personne appuie sur « Recevoir » (ou écrit n'importe quoi), la fenêtre de 24 h se rouvre et Wilson envoie le vrai message, dans sa langue.
 

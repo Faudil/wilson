@@ -44,6 +44,15 @@ const EnvSchema = z.object({
   WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional(),
   WHATSAPP_TEMPLATE_EXPLANATION_READY: z.string().default("explanation_ready"),
   WHATSAPP_TEMPLATE_DOCUMENT_REMINDER: z.string().default("document_reminder"),
+  /** Marketing-category template that announces a broadcast outside the 24 h window ("Read" / "Stop" buttons). */
+  WHATSAPP_TEMPLATE_ANNOUNCEMENT: z.string().default("announcement"),
+  /**
+   * Estimated price of one marketing template message, USD (Meta's rate card for France; check it, it changes).
+   * Only used for the cost shown before an announcement is approved. Messages inside the 24 h window are free.
+   */
+  WHATSAPP_PRICE_MARKETING_USD: z.coerce.number().min(0).default(0.0859),
+  /** on = an announcement must be approved by someone other than its author. */
+  BROADCAST_FOUR_EYES: boolEnv.default(true),
 
   LLM_MODE: z.enum(["anthropic", "fake"]).default("fake"),
   /** Server key, used after the keys admins add in the back-office (optional when such keys exist). */
