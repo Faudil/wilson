@@ -409,6 +409,8 @@
   "conv.showOriginal": "See the message in {language}",
   "conv.footerFolded": "“Information, not legal advice” notice added",
   "conv.windowClosed": "This person has not written for more than 24 h: your message will reach them when they write again.",
+  "sandbox.choices": "WhatsApp buttons",
+  "letter.detailsLabel": "Sent only if the person asks for “more explanation”",
   "nav.usage": "AI costs",
   "more.usage": "Claude usage and this month's budget",
   "usage.title": "AI costs",

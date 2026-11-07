@@ -16,6 +16,7 @@ export const ar: Record<WaKey, string> = {
   letter_offer_save: "هل تريد حفظ هذه الرسالة في وثائقي؟\n1 - نعم\n2 - لا (ستُحذف الصورة)",
   letter_saved: "تم حفظ الرسالة في وثائقي.",
   letter_not_saved: "حسنا. تم حذف صورة رسالتك.",
+  letter_more_details: "3 - مزيد من الشرح",
   document_ask_file: "أرسل صورة أو ملف PDF لوثيقتك (بطاقة الإقامة، الوصل، ...).",
   document_analyzing: "أقرأ وثيقتك الآن. من فضلك انتظر.",
   document_confirm: "الوثيقة: {type}\nتاريخ الانتهاء: {date}\n1 - صحيح\n2 - تغيير التاريخ",

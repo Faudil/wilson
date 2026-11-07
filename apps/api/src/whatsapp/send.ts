@@ -4,13 +4,19 @@ import { JOBS, type JobPayloads } from "../jobs/names.js";
 import { messages, reminders } from "../db/schema.js";
 import type { ConversationState } from "../db/schema.js";
 import type { WaDeps } from "./context.js";
+import { toInteractive } from "./interactive.js";
 import { META_ERRORS, MetaApiError } from "./meta.js";
 
 const WINDOW_MS = 24 * 3600 * 1000;
 
 /** The only way anything is sent to a beneficiary: enqueue a wa.send job (tests assert on the queue). */
-export function enqueueText(deps: Pick<WaDeps, "jobs">, beneficiaryId: string, body: string, extra: { letterId?: string; reminderId?: string } = {}): Promise<void> {
+export function enqueueText(deps: Pick<WaDeps, "jobs">, beneficiaryId: string, body: string, extra: { letterId?: string; reminderId?: string; interactive?: boolean } = {}): Promise<void> {
   return deps.jobs.send(JOBS.waSend, { kind: "text", beneficiaryId, body, ...extra });
+}
+
+/** After a letter explanation: keep it (1), drop the photo (2), or get more explanation (3). */
+export function letterOfferText(lang: Parameters<typeof waText>[0]): string {
+  return `${waText(lang, "letter_offer_save")}\n${waText(lang, "letter_more_details")}`;
 }
 
 /** Footer appended to messages that must carry the orientation pointer. */
@@ -18,7 +24,7 @@ export function footerFor(deps: Pick<WaDeps, "config">, lang: Parameters<typeof 
   return waText(lang, "footer", { name: deps.config.ASSOCIATION_NAME, contact: deps.config.ASSOCIATION_CONTACT });
 }
 
-async function storeOutbound(deps: WaDeps, beneficiaryId: string, kind: "text" | "template", body: string, waMessageId: string): Promise<void> {
+async function storeOutbound(deps: WaDeps, beneficiaryId: string, kind: "text" | "template" | "interactive", body: string, waMessageId: string): Promise<void> {
   // The sandbox transport records its own rows; only real transports are recorded here.
   if (deps.wa.mode === "sandbox") return;
   const dek = await deps.beneficiaries.getDek(beneficiaryId);
@@ -54,7 +60,7 @@ export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.
     await letters.markSent(out.letterId);
     if (OFFER_OK.includes(b.conversationState.step)) {
       await beneficiaries.setConversationState(b.id, { step: "offer_save_letter", letterId: out.letterId });
-      await enqueueText(deps, b.id, waText(b.language, "letter_offer_save"));
+      await enqueueText(deps, b.id, letterOfferText(b.language), { interactive: true });
     }
     return;
   }
@@ -85,12 +91,14 @@ export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.
     return false;
   };
   if (!windowOpen(deps, b.lastInboundAt) && (await viaTemplate())) return;
-  const sent = await sendTextOr(deps, to, payload.body, async () => {
+  const menu = payload.interactive && wa.sendInteractive ? toInteractive(payload.body) : null;
+  const send = menu ? () => wa.sendInteractive!(to, menu, payload.body) : () => wa.sendText(to, payload.body);
+  const sent = await sendOr(send, async () => {
     // Meta says the window is closed although our clock said open: same fallback, or drop a text that has none
     // (a menu or an acknowledgement makes no sense days later, and Meta would refuse it at every retry).
     if (!(await viaTemplate())) console.warn("[whatsapp] dropped a plain text outside the 24 h window (no template for it)");
   });
-  if (sent) await storeOutbound(deps, b.id, "text", payload.body, sent.waMessageId);
+  if (sent) await storeOutbound(deps, b.id, menu ? "interactive" : "text", payload.body, sent.waMessageId);
 }
 
 /**
@@ -98,9 +106,13 @@ export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.
  * clock can disagree by a few seconds, or a message was delayed in the queue), run `onWindowClosed` instead and
  * return null. Other errors propagate, so the job is retried.
  */
-async function sendTextOr(deps: WaDeps, to: string, body: string, onWindowClosed: () => Promise<void>): Promise<{ waMessageId: string } | null> {
+function sendTextOr(deps: WaDeps, to: string, body: string, onWindowClosed: () => Promise<void>): Promise<{ waMessageId: string } | null> {
+  return sendOr(() => deps.wa.sendText(to, body), onWindowClosed);
+}
+
+async function sendOr(send: () => Promise<{ waMessageId: string }>, onWindowClosed: () => Promise<void>): Promise<{ waMessageId: string } | null> {
   try {
-    return await deps.wa.sendText(to, body);
+    return await send();
   } catch (e) {
     if (e instanceof MetaApiError && e.metaCode === META_ERRORS.reEngagement) {
       await onWindowClosed();

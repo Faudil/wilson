@@ -12,6 +12,7 @@
     "start": "bun serve.ts --production"
   },
   "dependencies": {
+    "@fontsource/montserrat": "5.3.0",
     "@fontsource/noto-naskh-arabic": "5.3.0",
     "@fontsource/noto-sans": "5.3.0",
     "@fontsource/noto-sans-arabic": "5.3.0",

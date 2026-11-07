@@ -61,7 +61,7 @@ describe("critical path 1: letter in -> review -> sent (public surfaces only)", 
     const after = await t.client.letters.get({ id: item.id });
     expect(after.status).toBe("sent");
     expect(after.history.map((h) => h.action)).toEqual(expect.arrayContaining(["analyzed", "approved", "sent"]));
-    expect(await p.last()).toBe(waText("ar", "letter_offer_save"));
+    expect(await p.last()).toBe(`${waText("ar", "letter_offer_save")}\n${waText("ar", "letter_more_details")}`);
 
     await p.say("2");
     expect(await code(t.client.letters.photo({ id: item.id }))).toBe("NOT_FOUND");

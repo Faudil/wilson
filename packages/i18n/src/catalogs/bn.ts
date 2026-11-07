@@ -16,6 +16,7 @@ export const bn: Record<WaKey, string> = {
   letter_offer_save: "আপনি কি এই চিঠিটি আমার নথি-তে রাখতে চান?\n1 - হ্যাঁ\n2 - না (ছবিটি মুছে ফেলা হবে)",
   letter_saved: "চিঠিটি আমার নথি-তে সংরক্ষিত হয়েছে।",
   letter_not_saved: "ঠিক আছে। আপনার চিঠির ছবি মুছে ফেলা হয়েছে।",
+  letter_more_details: "3 - আরও ব্যাখ্যা",
   document_ask_file: "আপনার নথির ছবি বা PDF পাঠান (বসবাসের অনুমতি, récépissé, ...)।",
   document_analyzing: "আমি আপনার নথি পড়ছি। অনুগ্রহ করে অপেক্ষা করুন।",
   document_confirm: "নথি: {type}\nমেয়াদ শেষের তারিখ: {date}\n1 - ঠিক আছে\n2 - তারিখ বদলান",

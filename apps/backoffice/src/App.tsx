@@ -24,6 +24,7 @@ import { Sandbox } from "./screens/Sandbox";
 import { Signup } from "./screens/Signup";
 import { usePendingVolunteers, Volunteers } from "./screens/Volunteers";
 import { Usage } from "./screens/Usage";
+import markUrl from "./brand/mark.svg";
 
 function useLanguageChange() {
   const { lang, setLang } = useI18n();
@@ -132,9 +133,7 @@ function Shell({
     <div className={`shell${nav ? " has-nav" : ""}${focus ? " is-focus" : ""}`}>
       <header className="topbar">
         <a className="brand" href="#/">
-          <span className="brand-mark" aria-hidden="true">
-            <Icon name="mail" size={18} />
-          </span>
+          <img className="brand-mark" src={markUrl} alt="" width={38} height={38} />
           <span className="brand-text">
             <span className="brand-name">{t("app.name")}</span>
             <span className="brand-sub">{t("app.tagline")}</span>

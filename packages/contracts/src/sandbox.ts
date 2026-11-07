@@ -11,6 +11,11 @@ export const SandboxMessageSchema = z.object({
   text: z.string().nullable(),
   /** For inbound images: an object URL is built client-side; server only reports presence. */
   hasMedia: z.boolean(),
+  /**
+   * Outbound menu sent as WhatsApp buttons/list: the tap-able choices (id = number to send). `text` keeps the full
+   * typed-menu text; the sandbox page hides its "N - …" lines when choices are shown, as the phone does.
+   */
+  choices: z.array(z.object({ id: z.string(), title: z.string() })),
 });
 
 export const SandboxSendInputSchema = z.object({

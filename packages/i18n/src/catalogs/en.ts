@@ -15,6 +15,7 @@ export const en: Record<WaKey, string> = {
   letter_offer_save: "Do you want to keep this letter in My documents?\n1 - Yes\n2 - No (the photo will be deleted)",
   letter_saved: "The letter is saved in My documents.",
   letter_not_saved: "OK. The photo of your letter is deleted.",
+  letter_more_details: "3 - More explanation",
   document_ask_file: "Send a photo or a PDF of your document (residence permit, receipt, ...).",
   document_analyzing: "I am reading your document. Please wait.",
   document_confirm: "Document: {type}\nExpiry date: {date}\n1 - Correct\n2 - Change the date",

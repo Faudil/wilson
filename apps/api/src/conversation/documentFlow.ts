@@ -14,7 +14,7 @@ export async function announceDocumentDetection(deps: WaDeps, documentId: string
   const type = documentTypeName(doc.type, b.language);
   if (doc.expiresAt) {
     await deps.beneficiaries.setConversationState(b.id, { step: "confirm_document", documentId });
-    await enqueueText(deps, b.id, waText(b.language, "document_confirm", { type, date: formatDate(doc.expiresAt, b.language) }));
+    await enqueueText(deps, b.id, waText(b.language, "document_confirm", { type, date: formatDate(doc.expiresAt, b.language) }), { interactive: true });
   } else {
     await deps.beneficiaries.setConversationState(b.id, { step: "enter_document_date", documentId });
     await enqueueText(deps, b.id, waText(b.language, "document_confirm_no_date", { type }));

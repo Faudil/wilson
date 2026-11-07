@@ -108,6 +108,9 @@ export const LetterDetailSchema = LetterSummarySchema.extend({
   outgoingText: z.string().nullable(),
   /** Same message rendered from `analysis.fr`, so a French-speaking volunteer can check it. */
   outgoingTextFr: z.string().nullable(),
+  /** Second message, sent only if the person asks for more ("3 - More explanation"): summary + who can help. */
+  outgoingDetailsText: z.string().nullable(),
+  outgoingDetailsTextFr: z.string().nullable(),
   hasPhoto: z.boolean(),
   /** True when the reviewer edited the French prose: on approve, `target` is regenerated from `fr` by the LLM before sending. */
   frEdited: z.boolean(),

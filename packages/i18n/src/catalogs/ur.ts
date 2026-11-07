@@ -16,6 +16,7 @@ export const ur: Record<WaKey, string> = {
   letter_offer_save: "کیا آپ یہ خط میرے کاغذات میں رکھنا چاہتے ہیں؟\n1 - جی ہاں\n2 - نہیں (تصویر حذف ہو جائے گی)",
   letter_saved: "خط میرے کاغذات میں محفوظ ہو گیا۔",
   letter_not_saved: "ٹھیک ہے۔ آپ کے خط کی تصویر حذف کر دی گئی۔",
+  letter_more_details: "3 - مزید وضاحت",
   document_ask_file: "اپنے کاغذ کی تصویر یا PDF بھیجیں (رہائشی کارڈ، رسید، ...)۔",
   document_analyzing: "میں آپ کا کاغذ پڑھ رہا ہوں۔ براہ کرم انتظار کریں۔",
   document_confirm: "کاغذ: {type}\nختم ہونے کی تاریخ: {date}\n1 - درست ہے\n2 - تاریخ بدلیں",

@@ -3,6 +3,7 @@ import { isolate } from "@wilson/i18n";
 import type { Config } from "../config.js";
 import { META_TEMPLATE_LANGUAGE, templateLanguageFor } from "./templates.js";
 import type { WhatsAppTransport } from "./transport.js";
+import type { Interactive } from "./interactive.js";
 
 /** WhatsApp text messages are capped at 4096 characters. */
 export const MAX_TEXT = 4096;
@@ -95,6 +96,14 @@ export class MetaTransport implements WhatsAppTransport {
     let last: { waMessageId: string } | null = null;
     for (const part of splitText(body)) last = await this.postMessage({ to, type: "text", text: { body: part, preview_url: false } });
     return last!;
+  }
+
+  async sendInteractive(to: string, m: Interactive): Promise<{ waMessageId: string }> {
+    const interactive =
+      m.kind === "buttons"
+        ? { type: "button", body: { text: m.body }, action: { buttons: m.choices.map((c) => ({ type: "reply", reply: { id: c.id, title: c.title } })) } }
+        : { type: "list", body: { text: m.body }, action: { button: m.listButton, sections: [{ rows: m.choices.map((c) => ({ id: c.id, title: c.title, ...(c.description ? { description: c.description } : {}) })) }] } };
+    return this.postMessage({ to, type: "interactive", interactive });
   }
 
   async sendTemplate(to: string, template: string, language: LanguageCode, params: string[]): Promise<{ waMessageId: string }> {

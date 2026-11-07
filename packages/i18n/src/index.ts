@@ -49,6 +49,7 @@ export type WaKey =
   | "letter_offer_save" // 1 yes 2 no
   | "letter_saved"
   | "letter_not_saved"
+  | "letter_more_details" // "3 - More explanation": extra option under letter_offer_save (summary + who can help)
   | "document_ask_file"
   | "document_analyzing"
   | "document_confirm" // {type} {date}  1 correct 2 change date
@@ -327,26 +328,45 @@ export function renderLetterReply(input: {
   urgency: LetterAnalysis["urgency"];
   today: string;
   association: { name: string; contact: string };
+  /**
+   * full = everything in one message (back-office preview of the French).
+   * short = what the person gets first: urgency, title, date, what to do, and who can help when urgent (+ footer).
+   * details = sent on request ("3 - More explanation"): title, what the letter says, who can help (+ footer).
+   */
+  part?: "full" | "short" | "details";
 }): string {
   const { lang, text, deadline, urgency, today, association } = input;
+  const part = input.part ?? "full";
   const rtl = isRtl(lang);
   const prep = (s: string): string => (rtl ? isolateLatinRuns(s) : s);
 
   const build = (summary: string): { body: string; footer: string } => {
     const blocks: string[] = [];
-    if (urgency === "high") blocks.push(renderKey(lang, "letter_urgent"));
-    blocks.push(`*${prep(text.title.replace(/\*/g, ""))}*`);
-    blocks.push(prep(summary));
-    if (text.actions.length > 0) {
-      blocks.push([renderKey(lang, "letter_actions_title"), ...text.actions.map((a, i) => `${i + 1}. ${prep(a)}`)].join("\n"));
-    }
+    const title = `*${prep(text.title.replace(/\*/g, ""))}*`;
+    const actions = text.actions.length > 0 ? [renderKey(lang, "letter_actions_title"), ...text.actions.map((a, i) => `${i + 1}. ${prep(a)}`)].join("\n") : null;
+    let date: string | null = null;
     if (deadline) {
       const n = daysBetween(today, deadline.date);
       const relative =
         n < 0 ? renderKey(lang, "deadline_passed") : n === 0 ? renderKey(lang, "deadline_today") : n === 1 ? renderKey(lang, "deadline_tomorrow") : renderKey(lang, "deadline_in_days", { n });
-      blocks.push(renderKey(lang, "deadline_line", { date: formatDate(deadline.date, lang, { weekday: true }), relative }));
+      date = renderKey(lang, "deadline_line", { date: formatDate(deadline.date, lang, { weekday: true }), relative });
     }
-    blocks.push([renderKey(lang, "letter_orientation_title"), ...text.orientation.map((o) => `- ${prep(o)}`)].join("\n"));
+    const orientation = [renderKey(lang, "letter_orientation_title"), ...text.orientation.map((o) => `- ${prep(o)}`)].join("\n");
+    if (part !== "details" && urgency === "high") blocks.push(renderKey(lang, "letter_urgent"));
+    blocks.push(title);
+    if (part === "short") {
+      if (date) blocks.push(date);
+      if (actions) blocks.push(actions);
+      // Urgent letters: who can help belongs in the first message, not behind "more explanation".
+      if (urgency === "high") blocks.push(orientation);
+    } else if (part === "details") {
+      blocks.push(prep(summary), orientation);
+    } else {
+      blocks.push(prep(summary));
+      if (actions) blocks.push(actions);
+      if (date) blocks.push(date);
+      blocks.push(orientation);
+    }
     const body = blocks.join("\n\n");
     return { body, footer: renderKey(lang, "footer", association) };
   };
