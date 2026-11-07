@@ -69,6 +69,8 @@ Par défaut, `WHATSAPP_MODE=sandbox` et `LLM_MODE=fake` :
 
 Le back-office doit être servi en **HTTPS** en production (le cookie de session est `Secure`).
 
+**Déploiement automatique sur votre serveur** (tests puis déploiement SSH + Docker Compose à chaque push sur `main`, sauvegardes quotidiennes) : voir [docs/deploy.md](docs/deploy.md).
+
 Développement sans Docker : `pnpm install`, une base Postgres, puis `pnpm --filter @wilson/api dev` et `pnpm --filter @wilson/backoffice dev`. Tests : `pnpm test` (Postgres requis sur `localhost:5432`, utilisateur `wilson`).
 
 *Derrière un proxy d'entreprise qui intercepte TLS* : `docker build --secret id=extra_ca,src=<ca.crt> -f docker/api.Dockerfile -t wilson-api .` (idem pour `backoffice`), puis `docker compose up --no-build`.

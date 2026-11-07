@@ -1,0 +1,138 @@
+# Tests on every push and pull request; on main, deploys to the association's own server over SSH.
+# Setup (secrets to create, server preparation): docs/deploy.md
+name: CI / Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: wilson
+          POSTGRES_PASSWORD: wilson
+          POSTGRES_DB: wilson
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U wilson"
+          --health-interval 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # Bun once bun.lock is in the repo, pnpm until then.
+      - name: Detect package manager
+        id: pm
+        run: |
+          if [ -f bun.lock ] || [ -f bun.lockb ]; then echo "pm=bun" >> "$GITHUB_OUTPUT"; else echo "pm=pnpm" >> "$GITHUB_OUTPUT"; fi
+
+      - if: steps.pm.outputs.pm == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - if: steps.pm.outputs.pm == 'bun'
+        name: Typecheck and test (Bun)
+        run: |
+          bun install --frozen-lockfile
+          bun run typecheck
+          bun run test
+
+      - if: steps.pm.outputs.pm == 'pnpm'
+        uses: pnpm/action-setup@v4
+      - if: steps.pm.outputs.pm == 'pnpm'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - if: steps.pm.outputs.pm == 'pnpm'
+        name: Typecheck and test (pnpm)
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm typecheck
+          pnpm test
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Secrets live in the "production" environment (Settings > Environments).
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check deploy secrets
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          missing=""
+          for name in SSH_PRIVATE_KEY SSH_KNOWN_HOSTS SSH_HOST SSH_USER DEPLOY_PATH; do
+            eval "value=\${$name:-}"
+            [ -n "$value" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing secrets in the production environment:$missing (see docs/deploy.md)"
+            exit 1
+          fi
+
+      - name: Set up SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Pinned host key: the connection fails if the server's identity changes.
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host deploy-target
+            HostName $SSH_HOST
+            User $SSH_USER
+            Port $SSH_PORT
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 30
+          EOF
+
+      - name: Copy the code to the server
+        run: |
+          git rev-parse --short HEAD > REVISION
+          # .env, backups and runtime data on the server are excluded, so they are never overwritten or deleted.
+          rsync -az --delete \
+            --exclude '/.git/' --exclude '/.github/' \
+            --exclude '/.env' --exclude '/.env.local' --exclude '/backups/' --exclude '/.data/' \
+            --exclude 'node_modules/' --exclude 'dist/' \
+            ./ "deploy-target:$DEPLOY_PATH/"
+
+      - name: Build, back up, restart
+        run: ssh deploy-target "sh '$DEPLOY_PATH/scripts/deploy/remote-deploy.sh'"
+
+      - name: Remove the SSH key
+        if: always()
+        run: rm -rf ~/.ssh
