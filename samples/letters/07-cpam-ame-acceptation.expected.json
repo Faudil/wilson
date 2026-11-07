@@ -1,0 +1,68 @@
+{
+  "promptVersion": "letter-analysis@1",
+  "isOfficialLetter": true,
+  "letterType": "cpam",
+  "issuer": "CPAM de Valmont",
+  "references": [
+    "Dossier AME n° 2026-AME-77120"
+  ],
+  "letterDate": "2026-10-29",
+  "deadline": null,
+  "urgency": "low",
+  "confidence": 0.96,
+  "reviewerWarnings": [],
+  "fr": {
+    "title": "Bonne nouvelle : votre demande d'AME (aide médicale) est acceptée.",
+    "summary": "La CPAM a accepté votre demande d'aide médicale de l'État (AME). Vous avez ce droit du 1er octobre 2026 au 30 septembre 2027. Une attestation est jointe à la lettre. Votre carte arrive par courrier dans environ 3 semaines. Avec la carte, vous pouvez vous faire soigner sans avancer d'argent chez les professionnels qui acceptent l'AME. Il faudra demander le renouvellement deux mois avant la fin.",
+    "actions": [
+      "Gardez l'attestation jointe avec vos papiers importants.",
+      "Attendez la carte AME par courrier (environ 3 semaines).",
+      "Notez de demander le renouvellement deux mois avant le 30 septembre 2027."
+    ],
+    "orientation": [
+      "L'association peut vous aider à préparer le renouvellement de l'AME.",
+      "Pour une question sur votre dossier, contactez la CPAM de Valmont (coordonnées sur la lettre)."
+    ]
+  },
+  "target": {
+    "title": "Good news: your AME (medical aid) application has been accepted.",
+    "summary": "The CPAM has accepted your State Medical Aid (AME) application. You have this right from 1 October 2026 to 30 September 2027. A certificate is attached to the letter. Your card will arrive by post in about 3 weeks. With the card, you can get care without paying in advance from professionals who accept AME. You will need to ask for renewal two months before the end.",
+    "actions": [
+      "Keep the attached certificate with your important papers.",
+      "Wait for the AME card by post (about 3 weeks).",
+      "Note to ask for renewal two months before 30 September 2027."
+    ],
+    "orientation": [
+      "The association can help you prepare the AME renewal.",
+      "For a question about your file, contact the CPAM of Valmont (details on the letter)."
+    ]
+  },
+  "targets": {
+    "en": {
+      "title": "Good news: your AME (medical aid) application has been accepted.",
+      "summary": "The CPAM has accepted your State Medical Aid (AME) application. You have this right from 1 October 2026 to 30 September 2027. A certificate is attached to the letter. Your card will arrive by post in about 3 weeks. With the card, you can get care without paying in advance from professionals who accept AME. You will need to ask for renewal two months before the end.",
+      "actions": [
+        "Keep the attached certificate with your important papers.",
+        "Wait for the AME card by post (about 3 weeks).",
+        "Note to ask for renewal two months before 30 September 2027."
+      ],
+      "orientation": [
+        "The association can help you prepare the AME renewal.",
+        "For a question about your file, contact the CPAM of Valmont (details on the letter)."
+      ]
+    },
+    "ar": {
+      "title": "خبر سار: تمت الموافقة على طلب AME (المساعدة الطبية) الخاص بك.",
+      "summary": "وافقت CPAM على طلب المساعدة الطبية من الدولة (AME) الخاص بك. لديك هذا الحق من 1 أكتوبر 2026 إلى 30 سبتمبر 2027. شهادة مرفقة بالرسالة. ستصلك بطاقتك بالبريد خلال 3 أسابيع تقريبًا. بالبطاقة يمكنك العلاج دون دفع مسبق عند المهنيين الذين يقبلون AME. يجب أن تطلب التجديد قبل شهرين من النهاية.",
+      "actions": [
+        "احتفظ بالشهادة المرفقة مع أوراقك المهمة.",
+        "انتظر بطاقة AME بالبريد (حوالي 3 أسابيع).",
+        "سجّل أن تطلب التجديد قبل شهرين من 30 سبتمبر 2027."
+      ],
+      "orientation": [
+        "يمكن للجمعية أن تساعدك في تحضير تجديد AME.",
+        "لأي سؤال عن ملفك، اتصل بـ CPAM de Valmont (البيانات في الرسالة)."
+      ]
+    }
+  }
+}

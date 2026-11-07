@@ -1,0 +1,74 @@
+{
+  "promptVersion": "letter-analysis@1",
+  "isOfficialLetter": true,
+  "letterType": "france_travail",
+  "issuer": "France Travail - Agence de Valmont-Centre",
+  "references": [
+    "Identifiant : 9876543X",
+    "FT-2026-88231"
+  ],
+  "letterDate": "2026-11-02",
+  "deadline": {
+    "date": "2026-11-25",
+    "kind": "appointment",
+    "explicit": true,
+    "sourceQuote": "le 25 novembre 2026 à 14h00"
+  },
+  "urgency": "medium",
+  "confidence": 0.95,
+  "reviewerWarnings": [],
+  "fr": {
+    "title": "France Travail vous convoque à un entretien le 25 novembre 2026.",
+    "summary": "Votre conseiller France Travail vous demande de venir à un entretien le 25 novembre 2026 à 14h00, au bureau 3 de l'agence de Valmont-Centre. Il faut apporter votre titre de séjour qui autorise à travailler et votre CV. La présence est obligatoire. Si vous ne venez pas sans raison, vous pouvez être radié de la liste des demandeurs d'emploi. Si vous ne pouvez pas venir, il faut prévenir avant le rendez-vous.",
+    "actions": [
+      "Notez le rendez-vous : 25 novembre 2026 à 14h00, 20 avenue de la Gare, bureau 3.",
+      "Apportez le titre de séjour qui autorise à travailler, le CV à jour et vos attestations de formation.",
+      "Si vous ne pouvez pas venir, prévenez France Travail avant (espace personnel ou 39 49)."
+    ],
+    "orientation": [
+      "L'association peut vous aider à mettre votre CV à jour avant le rendez-vous.",
+      "Pour changer le rendez-vous, contactez votre conseiller France Travail (coordonnées sur la lettre)."
+    ]
+  },
+  "target": {
+    "title": "France Travail invites you to an appointment on 25 November 2026.",
+    "summary": "Your France Travail advisor asks you to come to an appointment on 25 November 2026 at 14:00, in room 3 of the Valmont-Centre office. You must bring your residence permit that allows you to work, and your CV. You must be there. If you do not come without a reason, you can be removed from the list of job seekers. If you cannot come, you must warn them before the appointment.",
+    "actions": [
+      "Write down the appointment: 25 November 2026 at 14:00, 20 avenue de la Gare, room 3.",
+      "Bring your residence permit that allows work, your updated CV and your training certificates.",
+      "If you cannot come, warn France Travail before (personal account or 39 49)."
+    ],
+    "orientation": [
+      "The association can help you update your CV before the appointment.",
+      "To change the appointment, contact your France Travail advisor (details on the letter)."
+    ]
+  },
+  "targets": {
+    "en": {
+      "title": "France Travail invites you to an appointment on 25 November 2026.",
+      "summary": "Your France Travail advisor asks you to come to an appointment on 25 November 2026 at 14:00, in room 3 of the Valmont-Centre office. You must bring your residence permit that allows you to work, and your CV. You must be there. If you do not come without a reason, you can be removed from the list of job seekers. If you cannot come, you must warn them before the appointment.",
+      "actions": [
+        "Write down the appointment: 25 November 2026 at 14:00, 20 avenue de la Gare, room 3.",
+        "Bring your residence permit that allows work, your updated CV and your training certificates.",
+        "If you cannot come, warn France Travail before (personal account or 39 49)."
+      ],
+      "orientation": [
+        "The association can help you update your CV before the appointment.",
+        "To change the appointment, contact your France Travail advisor (details on the letter)."
+      ]
+    },
+    "ar": {
+      "title": "تدعوك France Travail إلى موعد يوم 25 نوفمبر 2026.",
+      "summary": "مستشارك في France Travail يطلب منك الحضور إلى موعد يوم 25 نوفمبر 2026 الساعة 14:00، في المكتب رقم 3 بوكالة Valmont-Centre. يجب أن تحضر بطاقة الإقامة التي تسمح لك بالعمل وسيرتك الذاتية (CV). الحضور إلزامي. إذا لم تحضر دون سبب، فقد يتم شطبك من قائمة الباحثين عن عمل. إذا لم تستطع الحضور، يجب أن تخبرهم قبل الموعد.",
+      "actions": [
+        "سجّل الموعد: 25 نوفمبر 2026 الساعة 14:00، 20 avenue de la Gare، المكتب 3.",
+        "أحضر بطاقة الإقامة التي تسمح بالعمل، وسيرتك الذاتية المحدّثة، وشهادات التكوين.",
+        "إذا لم تستطع الحضور، أخبر France Travail قبل الموعد (حسابك الشخصي أو 39 49)."
+      ],
+      "orientation": [
+        "يمكن للجمعية أن تساعدك في تحديث سيرتك الذاتية قبل الموعد.",
+        "لتغيير الموعد، اتصل بمستشارك في France Travail (البيانات في الرسالة)."
+      ]
+    }
+  }
+}

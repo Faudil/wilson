@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Publication xmlns="http://lecoql.dila.gouv.fr/publication" xmlns:dc="http://purl.org/dc/elements/1.1/" ID="F18074" type="Fiche d'information" dateRefresh="2025-01-20">
+  <dc:title>Aide juridictionnelle</dc:title>
+  <dc:subject>Justice, frais de procédure, avocat</dc:subject>
+  <dc:date>2025-01-20</dc:date>
+  <dc:identifier>F18074</dc:identifier>
+  <Audience>Particuliers</Audience>
+  <FilDAriane><Niveau ID="N19806">Justice</Niveau></FilDAriane>
+  <Introduction><Texte><Paragraphe>L'aide juridictionnelle permet la prise en charge par l'État des frais d'avocat et de procédure, selon vos ressources. Elle peut être demandée pour contester une décision devant le tribunal administratif.</Paragraphe></Texte></Introduction>
+  <Texte>
+    <Chapitre>
+      <Titre><Paragraphe>Où faire la demande ?</Paragraphe></Titre>
+      <Paragraphe>Auprès du bureau d'aide juridictionnelle du tribunal judiciaire, ou dans un point-justice qui vous aidera gratuitement à remplir le dossier.</Paragraphe>
+    </Chapitre>
+  </Texte>
+</Publication>

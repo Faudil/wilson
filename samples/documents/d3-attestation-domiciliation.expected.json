@@ -1,0 +1,7 @@
+{
+  "promptVersion": "document-analysis@1",
+  "type": "domiciliation",
+  "expiresAt": "2026-12-31",
+  "expirySourceQuote": "Valable jusqu'au 31/12/2026",
+  "confidence": 0.95
+}

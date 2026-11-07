@@ -1,0 +1,75 @@
+{
+  "promptVersion": "letter-analysis@1",
+  "isOfficialLetter": true,
+  "letterType": "housing",
+  "issuer": "Habitat Valmont",
+  "references": [
+    "Réf. locataire : L-045211"
+  ],
+  "letterDate": "2026-11-03",
+  "deadline": {
+    "date": "2026-11-25",
+    "kind": "payment",
+    "explicit": true,
+    "sourceQuote": "avant le 25 novembre 2026"
+  },
+  "urgency": "high",
+  "confidence": 0.94,
+  "reviewerWarnings": [
+    "Mise en demeure du bailleur avec mention d'une procédure pouvant aller jusqu'à la résiliation du bail : orienter rapidement vers l'assistante sociale ou un juriste."
+  ],
+  "fr": {
+    "title": "Votre bailleur vous demande de payer des loyers en retard avant le 25 novembre 2026.",
+    "summary": "Votre bailleur dit que vous devez 1 240,00 euros de loyers et charges (septembre, octobre et novembre 2026). Il demande de payer avant le 25 novembre 2026, ou de le contacter pour faire un plan de paiement. Sans paiement ni contact, le bailleur écrit qu'il peut lancer une procédure, qui peut aller jusqu'à la fin du bail. La lettre conseille aussi de voir une assistante sociale ou le Fonds de solidarité pour le logement.",
+    "actions": [
+      "Appelez le bailleur au numéro de la lettre avant le 25 novembre 2026 pour parler d'un plan de paiement.",
+      "Gardez vos preuves de paiement (virements, reçus) et apportez-les.",
+      "Prenez rendez-vous avec une assistante sociale."
+    ],
+    "orientation": [
+      "Venez vite à l'association avec cette lettre et vos preuves de paiement.",
+      "L'assistante sociale ou le Fonds de solidarité pour le logement, cités dans la lettre, peuvent vous aider."
+    ]
+  },
+  "target": {
+    "title": "Your landlord asks you to pay late rent before 25 November 2026.",
+    "summary": "Your landlord says you owe 1,240.00 euros of rent and charges (September, October and November 2026). It asks you to pay before 25 November 2026, or to contact them to agree a payment plan. Without payment or contact, the landlord writes that it can start a procedure, which can go as far as ending the lease. The letter also suggests seeing a social worker or the Housing Solidarity Fund.",
+    "actions": [
+      "Call the landlord on the number in the letter before 25 November 2026 to talk about a payment plan.",
+      "Keep your proof of payment (transfers, receipts) and bring it.",
+      "Make an appointment with a social worker."
+    ],
+    "orientation": [
+      "Come quickly to the association with this letter and your proof of payment.",
+      "The social worker or the Housing Solidarity Fund, named in the letter, can help you."
+    ]
+  },
+  "targets": {
+    "en": {
+      "title": "Your landlord asks you to pay late rent before 25 November 2026.",
+      "summary": "Your landlord says you owe 1,240.00 euros of rent and charges (September, October and November 2026). It asks you to pay before 25 November 2026, or to contact them to agree a payment plan. Without payment or contact, the landlord writes that it can start a procedure, which can go as far as ending the lease. The letter also suggests seeing a social worker or the Housing Solidarity Fund.",
+      "actions": [
+        "Call the landlord on the number in the letter before 25 November 2026 to talk about a payment plan.",
+        "Keep your proof of payment (transfers, receipts) and bring it.",
+        "Make an appointment with a social worker."
+      ],
+      "orientation": [
+        "Come quickly to the association with this letter and your proof of payment.",
+        "The social worker or the Housing Solidarity Fund, named in the letter, can help you."
+      ]
+    },
+    "ar": {
+      "title": "يطلب منك مؤجّر السكن دفع إيجارات متأخرة قبل 25 نوفمبر 2026.",
+      "summary": "يقول مؤجّر السكن إنك مدين بمبلغ 1240٫00 يورو من الإيجار والرسوم (سبتمبر وأكتوبر ونوفمبر 2026). يطلب منك الدفع قبل 25 نوفمبر 2026، أو الاتصال به للاتفاق على خطة دفع. وإذا لم تدفع ولم تتصل، يكتب المؤجّر أنه قد يبدأ إجراءً قد يصل إلى إنهاء عقد الإيجار. وتنصحك الرسالة أيضًا بمقابلة مساعدة اجتماعية أو صندوق التضامن للسكن.",
+      "actions": [
+        "اتصل بالمؤجّر على الرقم المكتوب في الرسالة قبل 25 نوفمبر 2026 للحديث عن خطة دفع.",
+        "احتفظ بإثباتات الدفع (التحويلات، الإيصالات) وأحضرها.",
+        "احجز موعدًا مع مساعدة اجتماعية."
+      ],
+      "orientation": [
+        "تعال بسرعة إلى الجمعية ومعك هذه الرسالة وإثباتات الدفع.",
+        "يمكن للمساعدة الاجتماعية أو صندوق التضامن للسكن، المذكورَين في الرسالة، أن يساعداك."
+      ]
+    }
+  }
+}

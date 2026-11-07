@@ -1,0 +1,7 @@
+{
+  "promptVersion": "document-analysis@1",
+  "type": "attestation_demande_asile",
+  "expiresAt": "2027-01-20",
+  "expirySourceQuote": "Valable jusqu'au 20/01/2027",
+  "confidence": 0.95
+}

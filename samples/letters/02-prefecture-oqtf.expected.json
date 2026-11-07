@@ -1,0 +1,77 @@
+{
+  "promptVersion": "letter-analysis@1",
+  "isOfficialLetter": true,
+  "letterType": "prefecture_removal_order",
+  "issuer": "Préfecture de Valmont",
+  "references": [
+    "N° étranger : 9900 7777 12",
+    "Arrêté n° 2026-OQTF-0931"
+  ],
+  "letterDate": "2026-11-02",
+  "deadline": {
+    "date": "2026-12-02",
+    "kind": "appeal",
+    "explicit": false,
+    "sourceQuote": "dans un délai de trente jours à compter de sa notification"
+  },
+  "urgency": "high",
+  "confidence": 0.93,
+  "reviewerWarnings": [
+    "Obligation de quitter le territoire (OQTF) : un délai légal de recours est en jeu, à faire vérifier par un juriste ou une association.",
+    "La date limite du 2 décembre 2026 est calculée (30 jours à partir de la notification du 2 novembre 2026), elle n'est pas imprimée : à vérifier sur la lettre."
+  ],
+  "fr": {
+    "title": "La préfecture vous demande de quitter le territoire français (OQTF). C'est urgent.",
+    "summary": "La préfecture a refusé votre demande de titre de séjour. Elle écrit que vous devez quitter la France dans un délai de trente jours après la remise de cette lettre. La lettre dit aussi que vous pouvez faire un recours écrit devant le tribunal administratif, dans un délai de trente jours. Cette lettre est très importante. Il faut en parler vite à l'association ou à un avocat.",
+    "actions": [
+      "Allez vite à l'association ou voyez un avocat, avec cette lettre.",
+      "Gardez la lettre et l'enveloppe. Notez la date où vous l'avez reçue : 2 novembre 2026.",
+      "Apportez aussi vos autres papiers (récépissé, convocations, décisions)."
+    ],
+    "orientation": [
+      "Allez très vite à l'association ou chez un avocat pour parler de cette lettre. L'association peut vous aider à trouver un avocat.",
+      "Le tribunal administratif de Valmont, 5 rue du Palais, est indiqué sur la lettre pour les recours."
+    ]
+  },
+  "target": {
+    "title": "The prefecture orders you to leave French territory (OQTF). This is urgent.",
+    "summary": "The prefecture has refused your residence permit application. It writes that you must leave France within thirty days after you received this letter. The letter also says that you can make a written appeal to the administrative court, within thirty days. This letter is very important. You need to talk about it quickly with the association or a lawyer.",
+    "actions": [
+      "Go quickly to the association or see a lawyer, with this letter.",
+      "Keep the letter and the envelope. Write down the date you received it: 2 November 2026.",
+      "Bring your other papers too (récépissé, appointment letters, decisions)."
+    ],
+    "orientation": [
+      "Go very quickly to the association or to a lawyer to talk about this letter. The association can help you find a lawyer.",
+      "The letter names the administrative court of Valmont, 5 rue du Palais, for appeals."
+    ]
+  },
+  "targets": {
+    "en": {
+      "title": "The prefecture orders you to leave French territory (OQTF). This is urgent.",
+      "summary": "The prefecture has refused your residence permit application. It writes that you must leave France within thirty days after you received this letter. The letter also says that you can make a written appeal to the administrative court, within thirty days. This letter is very important. You need to talk about it quickly with the association or a lawyer.",
+      "actions": [
+        "Go quickly to the association or see a lawyer, with this letter.",
+        "Keep the letter and the envelope. Write down the date you received it: 2 November 2026.",
+        "Bring your other papers too (récépissé, appointment letters, decisions)."
+      ],
+      "orientation": [
+        "Go very quickly to the association or to a lawyer to talk about this letter. The association can help you find a lawyer.",
+        "The letter names the administrative court of Valmont, 5 rue du Palais, for appeals."
+      ]
+    },
+    "ar": {
+      "title": "تطلب منك المحافظة مغادرة الأراضي الفرنسية (OQTF). هذا الأمر عاجل.",
+      "summary": "رفضت المحافظة طلب بطاقة الإقامة الخاص بك. تكتب أنه يجب عليك مغادرة فرنسا خلال ثلاثين يومًا بعد استلام هذه الرسالة. وتقول الرسالة أيضًا إنه يمكنك تقديم طعن مكتوب أمام المحكمة الإدارية خلال ثلاثين يومًا. هذه الرسالة مهمة جدًا. يجب أن تتحدث عنها بسرعة مع الجمعية أو مع محامٍ.",
+      "actions": [
+        "اذهب بسرعة إلى الجمعية أو قابل محاميًا ومعك هذه الرسالة.",
+        "احتفظ بالرسالة والظرف. اكتب تاريخ استلامها: 2 نوفمبر 2026.",
+        "أحضر أيضًا أوراقك الأخرى (الوصل، رسائل المواعيد، القرارات)."
+      ],
+      "orientation": [
+        "اذهب بسرعة كبيرة إلى الجمعية أو إلى محامٍ للحديث عن هذه الرسالة. يمكن للجمعية أن تساعدك في إيجاد محامٍ.",
+        "تذكر الرسالة المحكمة الإدارية في Valmont، 5 rue du Palais، لتقديم الطعون."
+      ]
+    }
+  }
+}

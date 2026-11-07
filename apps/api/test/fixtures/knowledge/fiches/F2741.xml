@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Publication xmlns="http://lecoql.dila.gouv.fr/publication" xmlns:dc="http://purl.org/dc/elements/1.1/" ID="F2741" type="Fiche d'information" dateRefresh="2025-09-12">
+  <dc:title>Renouvellement d'un titre de séjour</dc:title>
+  <dc:creator>Direction de l'information légale et administrative</dc:creator>
+  <dc:subject>Titre de séjour, carte de séjour, renouvellement</dc:subject>
+  <dc:description>Vous devez demander le renouvellement de votre titre de séjour avant son expiration.</dc:description>
+  <dc:date>2025-09-12</dc:date>
+  <dc:type>Fiche pratique</dc:type>
+  <dc:identifier>F2741</dc:identifier>
+  <Audience>Particuliers</Audience>
+  <FilDAriane>
+    <Niveau ID="N19804" type="Thème">Étranger - Europe</Niveau>
+    <Niveau ID="N110" type="Sous-thème">Titres de séjour</Niveau>
+  </FilDAriane>
+  <Theme ID="N19804"><Titre>Étranger - Europe</Titre></Theme>
+  <Introduction>
+    <Texte><Paragraphe>Le renouvellement de votre <MiseEnEvidence>titre de séjour</MiseEnEvidence> doit être demandé à la préfecture, en ligne ou sur rendez-vous, avant la date d'expiration.</Paragraphe></Texte>
+  </Introduction>
+  <Texte>
+    <Chapitre>
+      <Titre><Paragraphe>Quand faire la demande ?</Paragraphe></Titre>
+      <Paragraphe>Vous devez déposer votre demande de renouvellement de titre de séjour entre 4 et 2 mois avant l'expiration de votre carte. Au-delà, vous risquez de perdre vos droits.</Paragraphe>
+      <Liste type="puce">
+        <Item><Paragraphe>Passeport en cours de validité</Paragraphe></Item>
+        <Item><Paragraphe>Justificatif de domicile de moins de 6 mois</Paragraphe></Item>
+        <Item><Paragraphe>Photos d'identité</Paragraphe></Item>
+      </Liste>
+    </Chapitre>
+    <Chapitre>
+      <Titre><Paragraphe>Récépissé</Paragraphe></Titre>
+      <Paragraphe>Un récépissé de demande de renouvellement vous est remis par la préfecture. Il prouve que vous êtes en règle pendant l&apos;instruction.</Paragraphe>
+    </Chapitre>
+  </Texte>
+  <OuSAdresser ID="R1">
+    <Titre><Paragraphe>Où s'adresser ?</Paragraphe></Titre>
+    <Texte><Paragraphe>Préfecture ou sous-préfecture de votre lieu de résidence.</Paragraphe></Texte>
+  </OuSAdresser>
+</Publication>

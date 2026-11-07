@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Publication xmlns="http://lecoql.dila.gouv.fr/publication" xmlns:dc="http://purl.org/dc/elements/1.1/" ID="F3079" type="Fiche Question-réponse" dateRefresh="2025-06-02">
+  <dc:title>Aide médicale de l'État (AME) : conditions et démarches</dc:title>
+  <dc:subject>Santé, étrangers en situation irrégulière</dc:subject>
+  <dc:date>2025-06-02</dc:date>
+  <dc:identifier>F3079</dc:identifier>
+  <Audience>Particuliers</Audience>
+  <FilDAriane><Niveau ID="N19805">Santé</Niveau><Niveau ID="N19806">Assurance maladie</Niveau></FilDAriane>
+  <Introduction><Texte><Paragraphe>L'AME permet aux étrangers en situation irrégulière de bénéficier d'une prise en charge de leurs soins médicaux, sous conditions de résidence et de ressources.</Paragraphe></Texte></Introduction>
+  <ListeSituations>
+    <Situation>
+      <Titre><Paragraphe>Première demande</Paragraphe></Titre>
+      <Texte><Paragraphe>Déposez le formulaire à la caisse primaire d'assurance maladie (CPAM) avec un justificatif d'identité, de résidence en France depuis plus de 3 mois et de ressources.</Paragraphe></Texte>
+    </Situation>
+    <Situation>
+      <Titre><Paragraphe>Renouvellement</Paragraphe></Titre>
+      <Texte><Paragraphe>Le renouvellement doit être demandé deux mois avant la fin des droits.</Paragraphe></Texte>
+    </Situation>
+  </ListeSituations>
+</Publication>

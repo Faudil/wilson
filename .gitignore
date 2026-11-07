@@ -147,3 +147,10 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Wilson
+dist/
+.env
+*.tsbuildinfo
+.data/
+.env.local

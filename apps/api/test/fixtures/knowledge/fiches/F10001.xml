@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Publication xmlns="http://lecoql.dila.gouv.fr/publication" xmlns:dc="http://purl.org/dc/elements/1.1/" ID="F10001" type="Fiche d'information" dateRefresh="2025-03-01">
+  <dc:title>Permis de chasser</dc:title>
+  <dc:subject>Loisirs, chasse</dc:subject>
+  <dc:date>2025-03-01</dc:date>
+  <dc:identifier>F10001</dc:identifier>
+  <Audience>Particuliers</Audience>
+  <FilDAriane><Niveau ID="N20000">Loisirs</Niveau></FilDAriane>
+  <Introduction><Texte><Paragraphe>Le permis de chasser est délivré après un examen théorique et pratique.</Paragraphe></Texte></Introduction>
+</Publication>
