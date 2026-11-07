@@ -15,6 +15,8 @@ import { isAnnouncementStopButton } from "../whatsapp/templates.js";
 import { withUsageContext } from "../usage/context.js";
 import { getBuddies } from "../buddies/service.js";
 import { buddyEntry, isBuddyStep, onBuddyState, type BuddyFlowCtx } from "./buddyFlow.js";
+import { getAppointments } from "../appointments/service.js";
+import { isHelpState, onHelpState, startHelp, type FlowIo } from "../appointments/flow.js";
 
 const MAX_MEDIA_BYTES = 12 * 1024 * 1024;
 const SUPPORTED_MIME = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"]);
@@ -174,8 +176,18 @@ const buddyCtx = (c: Ctx): BuddyFlowCtx => ({
 
 // ---------------------------------------------------------------- dispatcher
 
+const helpIo = (c: Ctx): FlowIo => ({
+  deps: c.deps, beneficiaryId: c.b.id, lang: c.lang,
+  setState: (s) => setState(c, s),
+  showMainMenu: () => showMainMenu(c),
+});
+
 async function dispatch(c: Ctx, input: Input): Promise<void> {
   if (isBuddyStep(c.state)) return onBuddyState(buddyCtx(c), c.state, input);
+  if (isHelpState(c.state)) {
+    if (input.type === "text" && isMenuWord(input.text)) return showMainMenu(c);
+    return onHelpState(helpIo(c), c.state, input.type === "text" ? input.text : null);
+  }
   switch (c.state.step) {
     case "choose_language": return onChooseLanguage(c, input);
     case "main_menu":
@@ -285,6 +297,7 @@ async function onFreeState(c: Ctx, input: Input): Promise<void> {
       await setState(c, { step: "announcements" });
       return sayMenu(c, c.b.announcementsOptInAt ? "announcements_ask_on" : "announcements_ask", { name: c.deps.config.ASSOCIATION_NAME });
     case "7": return buddyEntry(buddyCtx(c));
+    case "8": return startHelp(helpIo(c));
     case "0":
       await setState(c, { step: "main_menu" });
       // Flag the conversation for volunteers ("a volunteer will answer you personally"), and still give the
@@ -415,6 +428,7 @@ async function onConfirmDelete(c: Ctx, input: Input): Promise<void> {
     await setState(c, { step: "main_menu" });
     await say(c, `${waText(c.lang, "delete_done")}\n\n${footerFor(c.deps, c.lang)}`);
     await getBuddies(c.deps).endAllForBeneficiary(c.b.id); // the buddy can no longer reach them
+    await getAppointments(c.deps).cancelAllFor(c.b.id); // before archiving: nothing stays open or scheduled
     return c.deps.beneficiaries.archiveAll(c.b.id);
   }
   if (choice === "2") return showMainMenu(c);
