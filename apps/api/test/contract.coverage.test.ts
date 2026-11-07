@@ -59,6 +59,12 @@ const INPUTS: Record<string, unknown> = {
   "volunteers.reject": { id },
   "volunteers.setRole": { id, role: "volunteer" },
   "volunteers.setDisabled": { id, disabled: true },
+  "usage.summary": undefined,
+  "usage.setBudget": { monthlyLimitUsd: 50, hardStop: false },
+  "usage.listKeys": undefined,
+  "usage.addKey": { label: "Coverage", apiKey: "sk-ant-api03-coverageXXXXXXXXXXXXXXXX", monthlyLimitUsd: 10 },
+  "usage.updateKey": { id, label: "x" },
+  "usage.removeKey": { id },
   "system.health": undefined,
 };
 /** The permission each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
@@ -76,6 +82,8 @@ const REQUIRES: Record<string, Permission | null> = {
   "conversations.reply": "conversations.reply", "conversations.resolve": "conversations.reply", "conversations.takeOver": "conversations.reply",
   "volunteers.list": "volunteers.manage", "volunteers.approve": "volunteers.manage", "volunteers.reject": "volunteers.manage",
   "volunteers.setRole": "volunteers.manage", "volunteers.setDisabled": "volunteers.manage",
+  "usage.summary": "usage.manage", "usage.setBudget": "usage.manage", "usage.listKeys": "usage.manage",
+  "usage.addKey": "usage.manage", "usage.updateKey": "usage.manage", "usage.removeKey": "usage.manage",
 };
 const PUBLIC = new Set(["auth.login", "auth.signup", "system.health"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */
@@ -108,7 +116,7 @@ describe("contract coverage", () => {
       const v = await createVolunteer(t.deps);
       await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: perm, granted: false });
       // knowledge.manage / volunteers.manage are admin-only by role: grant them per-volunteer so every other procedure starts allowed.
-      for (const adminOnly of ["knowledge.manage", "volunteers.manage"] as const) {
+      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "usage.manage"] as const) {
         if (perm !== adminOnly) await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: adminOnly, granted: true });
       }
       const { client } = makeClient(t.deps);

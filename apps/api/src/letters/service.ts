@@ -13,6 +13,7 @@ import { LlmError } from "../llm/provider.js";
 import { buildRagQuery } from "./ragQuery.js";
 import { footerFor, enqueueText } from "../whatsapp/send.js";
 import { todayIn } from "../whatsapp/context.js";
+import { withUsageContext } from "../usage/context.js";
 
 export type LetterEdit = z.infer<typeof LetterEditSchema>;
 
@@ -190,12 +191,12 @@ export function createLettersService(deps: Deps, beneficiaries: BeneficiariesSer
       try {
         const dek = await beneficiaries.getDek(r.beneficiaryId);
         const bytes = crypto.decrypt(dek, await blobs.get(r.photoKey));
-        analysis = await llm.analyzeLetter({ file: { bytes, mimeType: r.photoMime ?? "image/jpeg" }, targetLanguage: b.language, today: today() });
+        analysis = await withUsageContext(r.beneficiaryId, () => llm.analyzeLetter({ file: { bytes, mimeType: r.photoMime ?? "image/jpeg" }, targetLanguage: b.language, today: today() }));
       } catch (e) {
         if (e instanceof LlmError) return fail(e.message.slice(0, 300));
         throw e; // transient (storage, network): let the queue retry
       }
-      const nSources = await enrichOrientation(letterId, analysis, b.language);
+      const nSources = await withUsageContext(r.beneficiaryId, () => enrichOrientation(letterId, analysis, b.language));
       await db.update(letters).set({
         analysisEnc: await encryptAnalysis(r.beneficiaryId, analysis),
         letterType: analysis.letterType,
@@ -284,7 +285,7 @@ export function createLettersService(deps: Deps, beneficiaries: BeneficiariesSer
       let analysisEnc: Buffer | undefined;
       if (r.frEdited) {
         // LlmError propagates: the volunteer sees the failure and can retry or edit `target` by hand.
-        a.target = await llm.translateLetterText({ fr: a.fr, targetLanguage: b.language });
+        a.target = await withUsageContext(r.beneficiaryId, () => llm.translateLetterText({ fr: a.fr, targetLanguage: b.language }));
         analysisEnc = await encryptAnalysis(r.beneficiaryId, a);
         await event(id, "retranslated", volunteerId);
       }

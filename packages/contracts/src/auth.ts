@@ -21,12 +21,13 @@ export const PermissionSchema = z.enum([
   "knowledge.manage", // trigger a sync
   "conversations.view", // read chatbot conversations
   "conversations.reply", // approve/reject drafts, reply, resolve
+  "usage.manage", // see Claude API usage and costs, set the monthly budget
 ]);
 export type Permission = z.infer<typeof PermissionSchema>;
 
 /**
  * responder: answers beneficiaries in Conversations only (no letters, documents or files). Default for self-signups.
- * volunteer: full volunteer bundle (letters, documents, conversations). admin: + volunteers, audit, knowledge sync.
+ * volunteer: full volunteer bundle (letters, documents, conversations). admin: + volunteers, audit, knowledge sync, usage.
  */
 export const VolunteerRoleSchema = z.enum(["responder", "volunteer", "admin"]);
 export type VolunteerRole = z.infer<typeof VolunteerRoleSchema>;
@@ -48,7 +49,7 @@ const RESPONDER: Permission[] = ["conversations.view", "conversations.reply", "k
 export const ROLE_PERMISSIONS: Record<VolunteerRole, readonly Permission[]> = {
   responder: RESPONDER,
   volunteer: VOLUNTEER,
-  admin: [...VOLUNTEER, "volunteers.manage", "audit.view", "knowledge.manage"],
+  admin: [...VOLUNTEER, "volunteers.manage", "audit.view", "knowledge.manage", "usage.manage"],
 };
 
 export const VolunteerSchema = z.object({
