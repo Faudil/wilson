@@ -71,6 +71,8 @@ Par défaut, `WHATSAPP_MODE=sandbox` et `LLM_MODE=fake` :
 
 Le back-office doit être servi en **HTTPS** en production (le cookie de session est `Secure`).
 
+**Première mise en ligne, étape par étape** (Meta, serveur, HTTPS, secrets GitHub, clés IA, sécurité) : [docs/mise-en-ligne.md](docs/mise-en-ligne.md).
+
 **Déploiement automatique sur votre serveur** (tests puis déploiement SSH + Docker Compose à chaque push sur `main`, sauvegardes quotidiennes) : voir [docs/deploy.md](docs/deploy.md).
 
 Développement sans Docker : `bun install`, une base Postgres, puis `bun run --filter @wilson/api dev` et `bun run --filter @wilson/backoffice dev`. Tests : `bun run test` (lance `bun test` dans chaque paquet ; Postgres requis sur `localhost:5432`, utilisateur `wilson`). Vérification des types : `bun run typecheck`.
