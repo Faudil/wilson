@@ -293,3 +293,18 @@ describe("renderLetterReply", () => {
     for (const lang of LANGUAGE_CODES) expect(renderLetterReply({ lang, ...base })).toContain("Asso");
   });
 });
+
+describe("parseUserDateTime / formatTime (Rendez-vous)", () => {
+  it("reads a date and a time typed in many ways", async () => {
+    const { parseUserDateTime, formatTime } = await import("../src/index.js");
+    expect(parseUserDateTime("14/03/2027 9:30")).toEqual({ date: "2027-03-14", time: "09:30" });
+    expect(parseUserDateTime("14-3-27 14h")).toEqual({ date: "2027-03-14", time: "14:00" });
+    expect(parseUserDateTime("14.03.2027 à 9h30")).toEqual({ date: "2027-03-14", time: "09:30" });
+    expect(parseUserDateTime("١٤/٣/٢٠٢٧ ٩:٣٠")).toEqual({ date: "2027-03-14", time: "09:30" });
+    expect(parseUserDateTime("14/03/2027")).toBeNull(); // a time is required
+    expect(parseUserDateTime("14/03/2027 25:00")).toBeNull();
+    expect(parseUserDateTime("31/02/2027 10:00")).toBeNull();
+    expect(formatTime("09:30", "fr")).toBe("09:30");
+    expect(formatTime("09:30", "ar")).toBe("٠٩:٣٠ (09:30)");
+  });
+});

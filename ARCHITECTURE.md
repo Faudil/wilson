@@ -112,6 +112,9 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 | `llm_usage` | one row per Claude call: at, task (prompt name), model, language, beneficiary_id (opaque, set null on purge), api_key_id, input/output/cache tokens, `cost_micro_usd` (estimate from `llm/pricing.ts`). No prompt, reply, name or phone |
 | `llm_api_keys` | admin-added Claude keys (donors): label, `key_enc` under the key's own DEK (wrapped by MASTER_KEY), last 4 chars, monthly limit, disabled_at, last error. The key is never returned to the back-office |
 | `llm_budget` | single row: global monthly limit (USD cents) + hard stop flag |
+| `help_requests` | Rendez-vous: beneficiary_id, kind (accompaniment/form_session), topic, status (draft/open/accepted/done/cancelled/expired), starts_at, duration_min, `city_enc`, `meeting_point_enc`, volunteer_id, slot_id, documents_consent, created/accepted/closed_at |
+| `help_slots` | form-filling slots a volunteer publishes: volunteer_id, starts_at, duration_min, place (venue, not personal), request_id (claimed atomically when booked) |
+| `help_reminders` | WhatsApp reminders to the person: request_id, kind (d1/h2), due_at, status — unique scheduled (request_id, kind) |
 
 Type, dates, urgency and status stay in clear so the queue can sort and filter; they are low-sensitivity and never include names. Names, phone numbers, letter content and document labels are encrypted.
 
@@ -188,6 +191,14 @@ Goal: the "who to turn to" lines cite real, local, up-to-date offices and proced
 - **Announcements** (`broadcasts`, `broadcast_recipients`; `broadcasts.view` / `.create` / `.approve`): opt-in only (`beneficiaries.announcements_opt_in_at`, menu `6`, `STOP` or the template's "Stop" button opts out; "delete my data" clears it). Draft by one volunteer, approval by another (`BROADCAST_FOUR_EYES`, default on). Approval snapshots the estimate (recipients per language, in/outside the 24 h window, `WHATSAPP_PRICE_MARKETING_USD` × templates) and queues `broadcast.dispatch`: translations first (a failure retries before anyone gets anything), one recipient row per person (idempotent), one `wa.send {kind: broadcast}` each. In the window: text + stop hint + footer. Outside: the `announcement` **marketing** template once (`awaiting_reply`), the text when they tap "Read" or write.
 - **Per-person permissions**: `volunteers.setPermissions` replaces a volunteer's rows in `volunteer_permissions` (only differences from the role bundle are kept), not on yourself or a pending account; Bénévoles → Droits détaillés lists every permission of `PERMISSIONS` (contracts/values.ts, shared with the browser without zod). `contract.coverage.test.ts` revokes each permission in turn and checks that exactly the procedures needing it answer FORBIDDEN.
 
+## 8f. Rendez-vous (accompaniment, form-filling sessions)
+
+- WhatsApp menu 8 (`src/appointments/flow.ts`): accompaniment (place → date + time → city or 0 → confirm) or form session (which form → up to 9 free slots as a list, or "none" → "may the volunteer see your saved documents for this appointment?"). States `help_*` only carry ids; the city and meeting point are encrypted in `help_requests` (a `draft` row while typed, deleted after 24 h if abandoned).
+- One model for both (`src/appointments/service.ts`): `open` → `accept` (atomic `where status = 'open'`; the volunteer gives a meeting point, and a time for a form session without one) → `accepted` → `done`. `release` puts it back to `open` (a form session also loses its time and slot); the person can cancel from WhatsApp; managers can `cancel`. Booking a slot claims it with `update … where request_id is null`, so two people never get the same slot.
+- Messages to the person (accepted, released, cancelled, expired, reminders) are fixed i18n texts with a `{summary}` (topic from the menu label, date + time written out, place), stored as chat rows so they show in Conversations and wait behind the opt-in template outside the 24 h window.
+- `help.dispatch` cron (every 15 min): reminders D-1 and H-2 (claimed `scheduled → sent`, exactly once), open requests whose time passed → `expired` (person told), accepted ones 24 h after their end → `done`, stale drafts deleted. Volunteers get their reminder from the `.ics` file (alarms D-1 and H-2) and the home tile.
+- Permissions: `appointments.view` (open requests without identity), `.accept` (accept/release/done), `.slots`, `.documents`, `.manage`. The masked label and beneficiary id are only in the DTO for the holder or a manager. `appointments.documents` / `documentFile` additionally require: holder, form session, consent, accepted, and now ≤ end + 24 h; the file must be one of that person's current documents. Every action is in `access_log`.
+
 ## 8e. Performance (low-end phones, slow connections)
 
 Volunteers open the back-office on cheap phones and old PCs, often over mobile data; beneficiaries wait for the bot's
@@ -222,6 +233,7 @@ oRPC contract, consumed by `implement(contract)` on the server and a typed clien
 | `knowledge` | sources, search (same retrieval as the orientation step), sync (admin) |
 | `conversations` | list (attention / mine / all), get, approveDraft, rejectDraft, reply (French → translated), takeOver, resolve |
 | `volunteers` | list, approve, reject, setRole, setDisabled (admin) |
+| `appointments` | list (open / mine / all), counts, accept, release, complete, cancel, documents, documentFile, slots, addSlot, removeSlot |
 | `system` | health |
 
 The Meta webhook is the one HTTP route outside oRPC (format and signature imposed by Meta); its payload is still defined in `contracts/whatsapp.ts` and validated with Zod.
@@ -249,6 +261,7 @@ The Meta webhook is the one HTTP route outside oRPC (format and signature impose
 | D10 | Take-over silences the bot instead of drafting in parallel | A beneficiary talking to a person must not get interleaved machine answers; the emergency numbers remain the only automatic text |
 | D11 | Places are sent without review; announcements need a second person | Places are the volunteers' own short facts and are needed tonight; an announcement goes to everyone at once and costs money outside the 24 h window |
 | D12 | Announcement template in the Marketing category, text released on reply | Meta only accepts utility templates tied to a user's request; the paid template stays short and the real text goes out free once the window reopens |
+| D13 | Rendez-vous: volunteers see a request's topic, date, city and language, but who it is only after accepting; responders get no appointment right by default | Least privilege: meeting someone in person and opening their documents need an admin's trust and the person's own consent |
 
 ## 12. Answers from the association (2026-11-06)
 

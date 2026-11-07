@@ -127,6 +127,12 @@ export const PERMISSIONS = [
   "buddies.be_buddy", // French practice: own buddy profile, take requests for oneself, see and message one's own buddies
   "buddies.manage", // French practice: see all requests and pairings, propose any buddy, end any pairing (no messages, no numbers)
   "buddies.reports", // French practice: read and handle reports (incl. the reported pairing's messages), resume or end it
+  // — Rendez-vous (accompaniment to appointments, form-filling sessions) —
+  "appointments.view", // see requests waiting for a volunteer (topic, date, city, language; never who) and your own
+  "appointments.accept", // accept a request, give it back, mark it done
+  "appointments.slots", // publish your own form-filling slots that people book on WhatsApp
+  "appointments.documents", // open the person's saved documents, only for a session you hold and only if they agreed
+  "appointments.manage", // see every appointment and who holds it, cancel any, remove anyone's slot
 ] as const;
 export type PermissionValue = (typeof PERMISSIONS)[number];
 
@@ -155,6 +161,10 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
   "skills.edit_own",
   // Approved volunteers may be someone's French buddy; responders (new, unknown to the association) may not.
   "buddies.be_buddy",
+  "appointments.view",
+  "appointments.accept",
+  "appointments.slots",
+  "appointments.documents",
 ];
 
 /**
@@ -162,16 +172,30 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
  * but not post them (a posted place reaches beneficiaries without review). Fills in their own skills (so hard
  * cases can be routed to them) but sees no case notes. Default for self-signups.
  * volunteer: full volunteer bundle: letters, documents, conversations, case notes and tasks, skills, posting places,
- * drafting announcements.
+ * drafting announcements, accepting appointments and publishing form-filling slots. Responders get no appointments:
+ * meeting people in person needs an admin's trust, so it is granted per person.
  * Volunteers can also be someone's French practice buddy.
  * admin: + volunteers, audit, knowledge sync, usage, moderating notes, approving announcements, arranging French
- * buddies and handling their reports.
+ * buddies and handling their reports, managing appointments.
  */
 export const ROLE_PERMISSIONS: Record<(typeof VOLUNTEER_ROLES)[number], readonly PermissionValue[]> = {
   responder: ["conversations.view", "conversations.reply", "knowledge.view", "places.view", "skills.edit_own"],
   volunteer: VOLUNTEER_BUNDLE,
-  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate", "broadcasts.approve", "buddies.manage", "buddies.reports"],
+  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"],
 };
 
 /** Kinds of places volunteers post for the day (shown with an emoji in WhatsApp, grouped in this order). */
 export const PLACE_KINDS = ["shelter", "food", "shower", "clothes", "health", "other"] as const;
+/** What a volunteer can do with a beneficiary (Rendez-vous): come along to an appointment, or fill in a form together. */
+export const HELP_KINDS = ["accompaniment", "form_session"] as const;
+
+/**
+ * Where the appointment is (accompaniment) or which form (form_session). Order = order in the WhatsApp menus
+ * (`help_place_menu` 1–5, `help_form_menu` 1–4).
+ */
+export const ACCOMPANIMENT_TOPICS = ["prefecture", "ofii", "hospital", "ofpra", "other_place"] as const;
+export const FORM_TOPICS = ["caf", "anef", "ame", "other_form"] as const;
+export const HELP_TOPICS = [...ACCOMPANIMENT_TOPICS, ...FORM_TOPICS] as const;
+
+/** draft = being typed on WhatsApp (never shown to volunteers). */
+export const HELP_STATUSES = ["draft", "open", "accepted", "done", "cancelled", "expired"] as const;
