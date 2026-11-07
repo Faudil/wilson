@@ -88,9 +88,18 @@ export async function handleWhatsAppWebhook(req: IncomingMessage, res: ServerRes
 
 /** Shared by the HTTP webhook and the sandbox: statuses first, then messages in order. Never throws. */
 export async function processWebhookPayload(deps: WaDeps, payload: WaWebhook): Promise<void> {
+  const ownNumber = deps.config.WHATSAPP_MODE === "meta" ? deps.config.WHATSAPP_PHONE_NUMBER_ID : undefined;
   for (const entry of payload.entry) {
     for (const change of entry.changes) {
+      // One Meta app can serve several numbers (e.g. a test number and the real one): only handle ours.
+      if (ownNumber && change.value.metadata.phone_number_id !== ownNumber) continue;
       for (const st of change.value.statuses ?? []) {
+        if (!st.status) continue;
+        if (st.status === "failed") {
+          // Error codes only (never the recipient or body): 131026 undeliverable, 131049 ecosystem limit, 131047 window…
+          const codes = (st.errors ?? []).map((e) => `${e.code}${e.title ? ` ${e.title}` : ""}`).join(", ");
+          console.warn(`[whatsapp] message delivery failed: ${codes || "no error code"}`);
+        }
         try {
           await applyStatus(deps, st.id, st.status);
         } catch (e) {
@@ -103,6 +112,7 @@ export async function processWebhookPayload(deps: WaDeps, payload: WaWebhook): P
         } catch (e) {
           console.error(`[whatsapp] processing message ${msg.id} failed`, (e as Error).message);
         }
+        deps.wa.markRead?.(msg.id).catch((e: Error) => console.warn("[whatsapp] mark read failed", e.message));
       }
     }
   }

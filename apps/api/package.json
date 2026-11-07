@@ -11,7 +11,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/db/seed.ts",
-    "knowledge:sync": "tsx src/knowledge/cli.ts"
+    "knowledge:sync": "tsx src/knowledge/cli.ts",
+    "wa:setup": "tsx src/whatsapp/setupCli.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.6.0",

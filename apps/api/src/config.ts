@@ -36,6 +36,8 @@ const EnvSchema = z.object({
   WHATSAPP_APP_SECRET: z.string().optional(),
   WHATSAPP_VERIFY_TOKEN: z.string().optional(),
   WHATSAPP_GRAPH_VERSION: z.string().default("v23.0"),
+  /** WhatsApp Business Account id: only needed by `wa:setup` (templates, webhook subscription), not at runtime. */
+  WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional(),
   WHATSAPP_TEMPLATE_EXPLANATION_READY: z.string().default("explanation_ready"),
   WHATSAPP_TEMPLATE_DOCUMENT_REMINDER: z.string().default("document_reminder"),
 
