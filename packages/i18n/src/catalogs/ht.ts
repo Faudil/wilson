@@ -6,7 +6,7 @@ export const ht: Record<WaKey, string> = {
   language_menu: LANGUAGE_MENU,
   language_set: "Lang ou chwazi a: {language}.",
   welcome: "Bonjou! Mwen ede w konprann lèt ofisyèl ou resevwa nan Frans. Voye foto lèt ou a ban mwen.",
-  main_menu: "Kisa ou vle fè?\n1 - Eksplike yon lèt\n2 - Dokiman mwen yo\n3 - Chanje lang\n4 - Poze yon kesyon\n5 - Dòmi, manje, benyen\n6 - Anons\n0 - Pale ak yon moun\n9 - Efase done mwen yo\nReponn ak yon nimewo.",
+  main_menu: "Kisa ou vle fè?\n1 - Eksplike yon lèt\n2 - Dokiman mwen yo\n3 - Chanje lang\n4 - Poze yon kesyon\n5 - Dòmi, manje, benyen\n6 - Anons\n7 - Pratike fransè\n0 - Pale ak yon moun\n9 - Efase done mwen yo\nReponn ak yon nimewo.",
   not_understood: "Padon, mwen pa konprann. Reponn ak yon nimewo nan meni an.",
   human_contact: "Pou pale ak yon moun: {name}, {contact}.",
   letter_ask_photo: "Voye yon bon foto lèt la. Mete l plat, ak limyè, ak tout kwen yo ki parèt.",

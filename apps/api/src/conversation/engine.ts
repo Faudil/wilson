@@ -13,6 +13,8 @@ import { getBroadcasts } from "../broadcasts/service.js";
 import { getPlaces } from "../places/service.js";
 import { isAnnouncementStopButton } from "../whatsapp/templates.js";
 import { withUsageContext } from "../usage/context.js";
+import { getBuddies } from "../buddies/service.js";
+import { buddyEntry, isBuddyStep, onBuddyState, type BuddyFlowCtx } from "./buddyFlow.js";
 
 const MAX_MEDIA_BYTES = 12 * 1024 * 1024;
 const SUPPORTED_MIME = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"]);
@@ -163,10 +165,17 @@ const showMainMenu = async (c: Ctx, intro?: Parameters<typeof waText>[1]) => {
   await sayMenu(c, "main_menu");
 };
 const today = (c: Ctx) => todayIn(c.deps.now(), c.deps.config.TIMEZONE);
+const buddyCtx = (c: Ctx): BuddyFlowCtx => ({
+  deps: c.deps, beneficiaryId: c.b.id, lang: c.lang, state: c.state,
+  setState: (s) => setState(c, s),
+  say: (text, opts) => enqueueText(c.deps, c.b.id, text, opts?.menu ? { interactive: true } : {}),
+  showMainMenu: () => showMainMenu(c),
+});
 
 // ---------------------------------------------------------------- dispatcher
 
 async function dispatch(c: Ctx, input: Input): Promise<void> {
+  if (isBuddyStep(c.state)) return onBuddyState(buddyCtx(c), c.state, input);
   switch (c.state.step) {
     case "choose_language": return onChooseLanguage(c, input);
     case "main_menu":
@@ -275,6 +284,7 @@ async function onFreeState(c: Ctx, input: Input): Promise<void> {
     case "6":
       await setState(c, { step: "announcements" });
       return sayMenu(c, c.b.announcementsOptInAt ? "announcements_ask_on" : "announcements_ask", { name: c.deps.config.ASSOCIATION_NAME });
+    case "7": return buddyEntry(buddyCtx(c));
     case "0":
       await setState(c, { step: "main_menu" });
       // Flag the conversation for volunteers ("a volunteer will answer you personally"), and still give the
@@ -404,6 +414,7 @@ async function onConfirmDelete(c: Ctx, input: Input): Promise<void> {
   if (choice === "1") {
     await setState(c, { step: "main_menu" });
     await say(c, `${waText(c.lang, "delete_done")}\n\n${footerFor(c.deps, c.lang)}`);
+    await getBuddies(c.deps).endAllForBeneficiary(c.b.id); // the buddy can no longer reach them
     return c.deps.beneficiaries.archiveAll(c.b.id);
   }
   if (choice === "2") return showMainMenu(c);

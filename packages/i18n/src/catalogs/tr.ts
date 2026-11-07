@@ -6,7 +6,7 @@ export const tr: Record<WaKey, string> = {
   language_menu: LANGUAGE_MENU,
   language_set: "Seçilen dil: {language}.",
   welcome: "Merhaba! Fransa'da aldığınız resmi mektupları anlamanıza yardım ediyorum. Bana mektubunuzun fotoğrafını gönderin.",
-  main_menu: "Ne yapmak istiyorsunuz?\n1 - Bir mektubu açıkla\n2 - Belgelerim\n3 - Dili değiştir\n4 - Soru sor\n5 - Uyku, yemek, duş\n6 - Duyurular\n0 - Bir kişiyle konuş\n9 - Verilerimi sil\nBir numarayla cevap verin.",
+  main_menu: "Ne yapmak istiyorsunuz?\n1 - Bir mektubu açıkla\n2 - Belgelerim\n3 - Dili değiştir\n4 - Soru sor\n5 - Uyku, yemek, duş\n6 - Duyurular\n7 - Fransızca pratik\n0 - Bir kişiyle konuş\n9 - Verilerimi sil\nBir numarayla cevap verin.",
   not_understood: "Üzgünüm, anlamadım. Menüden bir numarayla cevap verin.",
   human_contact: "Bir kişiyle konuşmak için: {name}, {contact}.",
   letter_ask_photo: "Mektubunuzun net bir fotoğrafını gönderin. Düz koyun, iyi ışıkta, dört köşesi de görünsün.",

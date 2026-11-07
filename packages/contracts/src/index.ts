@@ -12,6 +12,7 @@ export * from "./chat.js";
 export * from "./usage.js";
 export * from "./notes.js";
 export * from "./skills.js";
+export * from "./buddies.js";
 export * from "./contract.js";
 export * from "./places.js";
 export * from "./broadcasts.js";

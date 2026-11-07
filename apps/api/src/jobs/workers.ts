@@ -4,6 +4,7 @@ import { purgeArchived } from "../documents/purge.js";
 import { handleDocumentAnalyze } from "../documents/worker.js";
 import { registerWhatsAppWorkers } from "../whatsapp/workers.js";
 import { getServices } from "../services.js";
+import { getBuddies } from "../buddies/service.js";
 import { JOBS } from "./names.js";
 import type { WorkerQueue } from "./queue.js";
 
@@ -33,6 +34,9 @@ export async function registerWorkers(deps: WaDeps, queue: WorkerQueue): Promise
         console.error(`[knowledge] sync ${s.id} failed:`, (err as Error).message);
       }
     }
+  });
+  await queue.registerWorker(JOBS.buddyDispatch, async (p) => {
+    await getBuddies(deps).dispatch(p.now ? new Date(p.now) : deps.now());
   });
   await registerWhatsAppWorkers(deps, queue);
 }

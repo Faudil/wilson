@@ -6,7 +6,7 @@ export const ff: Record<WaKey, string> = {
   language_menu: LANGUAGE_MENU,
   language_set: "Ɗemngal suɓaaɗum: {language}.",
   welcome: "Jam waali! Mi ballat ma faamugo ɗaɓɓitiiji ceertuɗi ɗi aawtaa e Farayse. Neldu-mi foto ɗaɓɓitirgol maaɗa.",
-  main_menu: "Ɗume ngiɗ-ɗa waɗugo?\n1 - Ngol mi sifaa ɗaɓɓitirgol\n2 - Dokimaa am\n3 - Waylugo ɗemngal\n4 - Ƴamugo ƴamol\n5 - Ɗaanaade, ñaamde, lootaade\n6 - Kabaaruuji\n0 - Haala e neɗɗo\n9 - Ittugo keɓal am\nJaabo e limngal.",
+  main_menu: "Ɗume ngiɗ-ɗa waɗugo?\n1 - Ngol mi sifaa ɗaɓɓitirgol\n2 - Dokimaa am\n3 - Waylugo ɗemngal\n4 - Ƴamugo ƴamol\n5 - Ɗaanaade, ñaamde, lootaade\n6 - Kabaaruuji\n7 - Jaŋde Farayseere\n0 - Haala e neɗɗo\n9 - Ittugo keɓal am\nJaabo e limngal.",
   not_understood: "Yaafu, mi faamaay. Jaabo e limngal diga menu ngu.",
   human_contact: "Ngam haalugo e neɗɗo: {name}, {contact}.",
   letter_ask_photo: "Neldu foto cenaaɗum ɗaɓɓitirgol ngol. Wallit ngol dow taabal, e annduɗe, e gooɗe ɗiɗi fuu ɗi cuɓaa.",

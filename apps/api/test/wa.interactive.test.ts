@@ -16,7 +16,7 @@ describe("toInteractive (numbered menu -> WhatsApp buttons / list)", () => {
       const m = toInteractive(waText(l, "main_menu"));
       expect(m, l).not.toBeNull();
       expect(m!.kind).toBe("list");
-      expect(m!.choices.map((c) => c.id)).toEqual(["1", "2", "3", "4", "5", "6", "0", "9"]);
+      expect(m!.choices.map((c) => c.id)).toEqual(["1", "2", "3", "4", "5", "6", "7", "0", "9"]);
       expect(m!.choices.every((c) => c.title.length <= 24 && (c.description ?? "").length <= 72 && !/[\u200e\u200f\u2066-\u2069]/.test(c.title)), l).toBe(true);
       expect(m!.listButton.length).toBeLessThanOrEqual(20);
       expect(m!.body).not.toMatch(/^\s*\d - /m);
@@ -47,7 +47,7 @@ describe("toInteractive (numbered menu -> WhatsApp buttons / list)", () => {
     await t.sendInteractive("336", toInteractive("Ok?\n1 - Yes\n2 - No")!);
     await t.sendInteractive("336", toInteractive(waText("en", "main_menu"))!);
     expect(calls[0]).toMatchObject({ to: "336", type: "interactive", interactive: { type: "button", body: { text: "Ok?" }, action: { buttons: [{ type: "reply", reply: { id: "1", title: "Yes" } }, { type: "reply", reply: { id: "2", title: "No" } }] } } });
-    expect(calls[1]).toMatchObject({ type: "interactive", interactive: { type: "list", action: { button: "☰ 1·2·3·4·5·6·0·9" } } });
+    expect(calls[1]).toMatchObject({ type: "interactive", interactive: { type: "list", action: { button: "☰ 1·2·3·4·5·6·7·0·9" } } });
   });
 });
 

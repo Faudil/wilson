@@ -6,7 +6,7 @@ export const bm: Record<WaKey, string> = {
   language_menu: LANGUAGE_MENU,
   language_set: "Kan sugandilen: {language}.",
   welcome: "I ni ce! N bɛ i dɛmɛ ka Faransi gafe kɛlɛnnenw faamu. A ka i ka gafe ja ci n ma.",
-  main_menu: "I b'a fɛ ka mun kɛ?\n1 - Gafe ɲɛfɔ\n2 - N ka sɛbɛnw\n3 - Kan lakɔrɔ\n4 - Ɲininkali kɛ\n5 - Sunɔgɔ, dumuni, kolikoli\n6 - Kunnafoniw\n0 - Ka kuma mɔgɔ fɛ\n9 - N ka kunnafoniw bɔ\nI ka jaabi ni nɔmɔrɔ ye.",
+  main_menu: "I b'a fɛ ka mun kɛ?\n1 - Gafe ɲɛfɔ\n2 - N ka sɛbɛnw\n3 - Kan lakɔrɔ\n4 - Ɲininkali kɛ\n5 - Sunɔgɔ, dumuni, kolikoli\n6 - Kunnafoniw\n7 - Faransikan kalan\n0 - Ka kuma mɔgɔ fɛ\n9 - N ka kunnafoniw bɔ\nI ka jaabi ni nɔmɔrɔ ye.",
   not_understood: "Hakɛto, n ma faamu. I ka jaabi ni nɔmɔrɔ ye min bɛ menu kɔnɔ.",
   human_contact: "Ka kuma mɔgɔ fɛ: {name}, {contact}.",
   letter_ask_photo: "I ka gafe ja jɛlen ci n ma. A da dugu kan, yeelen kɔnɔ, a kɔnɔw bɛɛ ka ye.",
