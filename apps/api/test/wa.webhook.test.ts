@@ -63,8 +63,8 @@ describe("whatsapp webhook", () => {
   it("unknown language on first contact shows the language menu; numbers (Arabic-Indic too) pick a language", async () => {
     t.tllm.nextLanguage = { language: null, confidence: 0 };
     await t.say("33600000003", "???");
-    const { waText } = await import("@wilson/i18n");
-    expect((await t.outbound("33600000003"))[0]).toBe(waText("fr", "language_menu"));
+    const { waText, LANGUAGE_MENU_HEADER } = await import("@wilson/i18n");
+    expect((await t.outbound("33600000003"))[0]).toBe(`${LANGUAGE_MENU_HEADER}\n\n${waText("fr", "language_menu")}`);
     await t.say("33600000003", "٣"); // 3 = Arabic
     const { beneficiary } = await t.services.beneficiaries.findOrCreateByWaId("33600000003");
     expect(beneficiary.language).toBe("ar");

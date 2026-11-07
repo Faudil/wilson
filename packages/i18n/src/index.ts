@@ -82,7 +82,7 @@ export type WaKey =
 
 export type Params = Record<string, string | number>;
 
-export { LANGUAGE_MENU } from "./menu.js";
+export { LANGUAGE_MENU, LANGUAGE_MENU_HEADER } from "./menu.js";
 
 export const CATALOGS: Record<LanguageCode, Record<WaKey, string>> = {
   fr, en, ar, fa, ps, ur, uk, ti, so, am,

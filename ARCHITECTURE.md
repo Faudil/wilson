@@ -96,13 +96,13 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 
 | Table | Key columns |
 |---|---|
-| `beneficiaries` | id, `wa_id_hash` (HMAC-SHA256, lookup), `wa_id_enc`, language, `language_confirmed`, `conversation_state` jsonb (menu step), `wrapped_dek` (DEK encrypted by master key), created_at, last_message_at, deleted_at |
+| `beneficiaries` | id, `wa_id_hash` (HMAC-SHA256, lookup), `wa_id_enc`, language, `language_confirmed`, `conversation_state` jsonb (menu step), `wrapped_dek` (DEK encrypted by master key), created_at, last_message_at, deleted_at, chat_status, chat_assignee_id (volunteer holding the conversation) |
 | `messages` | id, beneficiary_id, direction (in/out), wa_message_id, kind (text/image/document/template), `body_enc`, status (queued/sent/delivered/read/failed), created_at |
 | `letters` | id, beneficiary_id, status, `photo_key` (nullable, nulled on purge), `analysis_enc` (LetterAnalysis JSON), `target_stale`, letter_type, urgency, deadline (plain, for sorting), low_confidence, received_at, reviewed_by, reviewed_at, sent_at |
 | `letter_events` | id, letter_id, volunteer_id, action, note, at — review audit trail |
 | `documents` | id, beneficiary_id, type, `label_enc`, expires_at, expiry_source, object_key, mime_type, size_bytes, sha256, created_at, archived_at, purge_at |
 | `reminders` | id, document_id, kind (d30/d7), due_at, status, sent_at — unique (document_id, kind) |
-| `volunteers` | id, email, password_hash (argon2id), name, role (volunteer/admin), ui_language, disabled_at |
+| `volunteers` | id, email, password_hash (argon2id), name, role (responder/volunteer/admin), ui_language, disabled_at, pending_approval, signup_note, approved_at, approved_by |
 | `volunteer_permissions` | volunteer_id, permission, granted (bool) — per-volunteer overrides on top of the role bundle (empty in the POC) |
 | `sessions` | id (random, httpOnly cookie), volunteer_id, expires_at |
 | `access_log` | volunteer_id, action (view_photo, view_document, edit…), target id, at — who looked at what |
@@ -157,20 +157,29 @@ Goal: the "who to turn to" lines cite real, local, up-to-date offices and proced
 - Entry: main menu `4`, or any free text (not a menu number) in the main menu / chat / while waiting for a photo or file. Voice notes → "please write".
 - `ChatService.handleMessage`: store inbound (+ French translation for volunteers) → `llm.planChat` (intent + French search query, last `CHAT_HISTORY_TURNS` turns of text only) → by intent: `urgent` fixed emergency text + needs_human; `human`/`legal` handoff (no answer on substance) + needs_human; `letter`/`document` redirect to the flows; `info`/`smalltalk`/`out_of_scope` → knowledge search → `llm.chatReply` (answer in the user's language + French, from snippets only) → `CHAT_MODE=review` (default): draft for volunteers, user told an answer is coming; `auto`: sent at once. Footer always appended.
 - Volunteers (Conversations screen, `conversations.*`): approve/edit/reject drafts, reply in French (auto-translated), close handoffs. Every action logged.
+- **Take-over** (`conversations.takeOver`, or the first manual `reply`): `chat_status = with_volunteer`, `chat_assignee_id = volunteer`. The beneficiary gets the fixed `chat_handoff` text (unless already sent by a needs_human handoff). While held, inbound text is stored + translated to French and `planChat` only tags the intent: no bot draft, no `chat_pending`; an `urgent` intent still sends the fixed `chat_urgent` numbers. Another volunteer gets CONFLICT unless `force` (logged as `take_over_forced`). `resolve` clears the assignee ("Rendre à l'assistant"). The attention list includes held conversations whose last message is the beneficiary's (`awaitingReply`); filter `mine` = held by me. Disabling a volunteer releases their conversations back to `needs_human`.
+
+## 8d. Volunteer accounts and self-signup
+
+- `auth.signup` (public, `VOLUNTEER_SIGNUP=on|off`): creates a `volunteers` row with `pending_approval = true`, role `responder`, the free-text `signup_note`. Same `{ ok: true }` answer whether or not the email exists (no enumeration; password hashed in both cases). Pending rows are capped (`VOLUNTEER_SIGNUP_MAX_PENDING`, CONFLICT `too_many_pending`). The form requires a confidentiality/no-legal-advice commitment.
+- A pending account cannot log in (`auth.login` → FORBIDDEN only when the password is right, so the UI can say "waiting for approval") and never resolves a session.
+- Admins (`volunteers.manage`, `volunteers.*`): list, approve with a role (`approved_at`, `approved_by`), reject (row deleted), set role, disable/enable (sessions deleted at once). Not on themselves. Every action in `access_log`.
+- **Roles:** `responder` = `conversations.view`, `conversations.reply`, `knowledge.view` (no letters, photos, documents or beneficiary pages) — least privilege by default for people the association does not know yet; `volunteer` = full volunteer bundle; `admin`. Permissions are resolved per request, so a role change applies on the next click.
 
 ## 9. API contract overview (`packages/contracts`)
 
-oRPC contract, consumed by `implement(contract)` on the server and a typed client in the back-office. Every procedure requires a volunteer session except `auth.login` and `system.health`.
+oRPC contract, consumed by `implement(contract)` on the server and a typed client in the back-office. Every procedure requires a volunteer session except `auth.login`, `auth.signup` and `system.health`.
 
 | Group | Procedures |
 |---|---|
-| `auth` | login, logout, me, setUiLanguage |
+| `auth` | login, signup (public), logout, me, setUiLanguage |
 | `letters` | list (by status, cursor), get, photo (File), edit, approve (auto-retranslates if French edited), reject |
 | `beneficiaries` | list (search by last digits), get (documents + letters), setLanguage |
 | `documents` | deadlines (within N days), file (File), update (type/label/expiry), archive |
 | `sandbox` | send (text and/or file as a fake phone), thread, runReminders (as of a date), reset — only mounted when `WHATSAPP_MODE=sandbox` |
 | `knowledge` | sources, search (same retrieval as the orientation step), sync (admin) |
-| `conversations` | list (attention / all), get, approveDraft, rejectDraft, reply (French → translated), resolve |
+| `conversations` | list (attention / mine / all), get, approveDraft, rejectDraft, reply (French → translated), takeOver, resolve |
+| `volunteers` | list, approve, reject, setRole, setDisabled (admin) |
 | `system` | health |
 
 The Meta webhook is the one HTTP route outside oRPC (format and signature imposed by Meta); its payload is still defined in `contracts/whatsapp.ts` and validated with Zod.
@@ -194,6 +203,8 @@ The Meta webhook is the one HTTP route outside oRPC (format and signature impose
 | D6 | Webhook as plain HTTP route with contract-defined Zod schema | Meta imposes format + raw-body signature |
 | D7 | Back-office UI in fr + en + ar first, WhatsApp catalogs in all 10 | Volunteers are francophone; ar proves RTL UI; beneficiary-facing text is what must be in all languages. Machine-drafted translations flagged for native review |
 | D8 | SeaweedFS as local S3 instead of MinIO | MinIO no longer publishes Docker images; any EU S3 provider works in production (only the endpoint changes) |
+| D9 | Self-signup lands pending with role `responder` (conversations only) | Strangers can register; nothing sensitive is visible until an admin approves, and letters/documents need an explicit promotion |
+| D10 | Take-over silences the bot instead of drafting in parallel | A beneficiary talking to a person must not get interleaved machine answers; the emergency numbers remain the only automatic text |
 
 ## 12. Answers from the association (2026-11-06)
 

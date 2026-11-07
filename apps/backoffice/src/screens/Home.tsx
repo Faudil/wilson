@@ -3,6 +3,7 @@ import { Icon, type IconName } from "../components/Icon";
 import { Empty, Skeleton } from "../components/ui";
 import { useLetterStats, useWeekDeadlines } from "../lib/counts";
 import { useAttentionCount } from "./Conversations";
+import { usePendingVolunteers } from "./Volunteers";
 import { firstName, longDate } from "../lib/relative";
 import { href } from "../lib/router";
 import { useSession } from "../lib/session";
@@ -58,6 +59,8 @@ export function Home() {
   const letters = useLetterStats(canLetters);
   const chats = useAttentionCount(canChats);
   const deadlines = useWeekDeadlines(canDeadlines);
+  const canVolunteers = can("volunteers.manage");
+  const signups = usePendingVolunteers(canVolunteers);
 
   const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/Paris" }).format(new Date())) % 24;
   const greetKey: MessageKey = hour < 12 ? "home.morning" : hour < 18 ? "home.afternoon" : "home.evening";
@@ -89,6 +92,9 @@ export function Home() {
               />
             )}
             {canChats && <Tile to={href("conversations")} icon="chat" tone="accent" count={chats} loading={false} title={t("home.chats.title")} desc={t("home.chats.desc")} />}
+            {canVolunteers && signups > 0 && (
+              <Tile to={href("volunteers")} icon="users" tone="info" count={signups} loading={false} title={t("home.volunteers.title")} desc={t("home.volunteers.desc")} />
+            )}
             {canDeadlines && <Tile to={href("deadlines")} icon="calendar" tone="info" count={deadlines.count} loading={false} title={t("home.deadlines.title")} desc={t("home.deadlines.desc")} />}
           </div>
           {nothing && (
