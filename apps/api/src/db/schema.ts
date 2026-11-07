@@ -224,6 +224,18 @@ export const reminders = pgTable("reminders", {
   index("reminders_due_idx").on(t.status, t.dueAt),
 ]);
 
+/** Associations working on this instance. Created by a global admin (associations.manage). */
+export const associations = pgTable("associations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  /** From the official register when picked there (API Recherche d'entreprises), else null. */
+  siren: text("siren").unique(),
+  rna: text("rna").unique(),
+  city: text("city"),
+  createdBy: uuid("created_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
 export const volunteers = pgTable("volunteers", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
@@ -255,6 +267,26 @@ export const volunteers = pgTable("volunteers", {
   associationSiren: text("association_siren"),
   associationRna: text("association_rna"),
   associationCity: text("association_city"),
+  /** Association the volunteer belongs to (null = managed by global admins only). */
+  associationId: uuid("association_id").references((): AnyPgColumn => associations.id, { onDelete: "set null" }),
+  /** Association admin: gets members.manage, limited by the server to members of associationId. */
+  associationAdmin: boolean("association_admin").notNull().default(false),
+});
+
+/** Single-use invite links created by an association admin (or a global admin). Only the token hash is stored. */
+export const invitations = pgTable("invitations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tokenHash: text("token_hash").notNull().unique(),
+  associationId: uuid("association_id").references(() => associations.id, { onDelete: "cascade" }),
+  role: roleEnum("role").notNull(), // no DB default: an enum value added in the same migration batch cannot be used before commit
+  /** Free label to recognise the invite in the list ("Fatima, permanence du mardi"). */
+  label: text("label"),
+  createdBy: uuid("created_by").notNull().references(() => volunteers.id, { onDelete: "cascade" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  expiresAt: ts("expires_at").notNull(),
+  usedAt: ts("used_at"),
+  usedBy: uuid("used_by").references(() => volunteers.id, { onDelete: "set null" }),
+  revokedAt: ts("revoked_at"),
 });
 
 /**

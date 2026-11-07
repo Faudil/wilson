@@ -8,10 +8,21 @@ import { useI18n } from "../i18n";
 import { errorCode, orpc } from "../lib/api";
 import { href } from "../lib/router";
 
-/** Public "become a volunteer" form. The account is created pending; an admin approves it in Bénévoles. */
-export function Signup() {
+/**
+ * Public "become a volunteer" form. The account is created pending; an admin approves it in Bénévoles.
+ * With a valid invite link (#/join/<token>) the account is active at once, in the inviting association.
+ */
+export function Signup({ invitationToken }: { invitationToken?: string } = {}) {
   const { t, lang } = useI18n();
   const health = useQuery({ ...orpc.system.health.queryOptions(), retry: false, staleTime: 60_000 });
+  const preview = useQuery({
+    ...orpc.auth.invitation.queryOptions({ input: { token: invitationToken ?? "" } }),
+    enabled: !!invitationToken && invitationToken.length >= 20 && invitationToken.length <= 100,
+    retry: false,
+    staleTime: Infinity,
+  });
+  const invited = preview.data?.valid === true;
+  const badInvite = !!invitationToken && (preview.isError || preview.data?.valid === false || invitationToken.length < 20 || invitationToken.length > 100);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,22 +36,25 @@ export function Signup() {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!accepted) return;
-    signup.mutate({ name: name.trim(), email: email.trim(), password, uiLanguage: lang, note: note.trim() || undefined, association: association ?? undefined, acceptsConfidentiality: true, website: website || undefined });
+    signup.mutate({
+      name: name.trim(), email: email.trim(), password, uiLanguage: lang, note: note.trim() || undefined,
+      association: invited ? undefined : (association ?? undefined), invitationToken: invited ? invitationToken : undefined, acceptsConfidentiality: true, website: website || undefined,
+    });
   };
   const code = errorCode(signup.error);
-  const closed = health.data?.signup === false || code === "FORBIDDEN";
+  const closed = !invited && (health.data?.signup === false || code === "FORBIDDEN");
 
   if (signup.isSuccess) {
     return (
       <div className="login">
         <div className="card">
-          <Empty art="done" sub={t(health.data?.emailVerification ? "signup.doneTextEmail" : "signup.doneText")}>
-            {t("signup.doneTitle")}
+          <Empty art="done" sub={invited ? t("join.doneText") : t(health.data?.emailVerification ? "signup.doneTextEmail" : "signup.doneText")}>
+            {invited ? t("join.doneTitle") : t("signup.doneTitle")}
           </Empty>
         </div>
         <p className="center">
-          <a className="btn btn-block" href={href("")}>
-            {t("signup.backToLogin")}
+          <a className={`btn btn-block${invited ? " btn-primary" : ""}`} href={href("")}>
+            {invited ? t("join.login") : t("signup.backToLogin")}
           </a>
         </p>
       </div>
@@ -54,8 +68,25 @@ export function Signup() {
           <Icon name="hand" size={34} />
         </span>
       </div>
-      <h1>{t("signup.title")}</h1>
-      <p className="muted">{t("signup.intro")}</p>
+      <h1>{invited ? t("join.title") : t("signup.title")}</h1>
+      {invitationToken && preview.isPending && !badInvite ? null : invited ? (
+        <p className="notice notice-ok" role="status">
+          <Icon name="checkCircle" />
+          <span className="notice-body">
+            {preview.data?.associationName ? t("join.intro", { name: preview.data.associationName }) : t("join.introNoAssociation")}
+          </span>
+        </p>
+      ) : (
+        <>
+          {badInvite && (
+            <p className="notice notice-warn" role="status">
+              <Icon name="info" />
+              <span className="notice-body">{t("join.invalid")}</span>
+            </p>
+          )}
+          <p className="muted">{t("signup.intro")}</p>
+        </>
+      )}
       {closed ? (
         <p className="notice notice-warn" role="status">
           <Icon name="info" />
@@ -91,7 +122,7 @@ export function Signup() {
               </button>
             </span>
           </label>
-          <AssociationField value={association} onChange={setAssociation} />
+          {!invited && <AssociationField value={association} onChange={setAssociation} />}
           <label className="field">
             <span className="field-label">
               {t("signup.note")} <span className="muted small">({t("common.optional")})</span>
@@ -109,7 +140,7 @@ export function Signup() {
             </p>
           )}
           <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={signup.isPending || !accepted}>
-            {signup.isPending ? t("common.loading") : t("signup.submit")}
+            {signup.isPending ? t("common.loading") : invited ? t("join.submit") : t("signup.submit")}
           </button>
         </form>
       )}

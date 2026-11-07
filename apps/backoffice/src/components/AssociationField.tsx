@@ -12,7 +12,17 @@ export const freeText = (name: string): AssociationRef | null => (name.trim().le
  * Lightweight combobox (no library): debounced server-side search in the official association register,
  * keyboard + touch friendly, free text always allowed.
  */
-export function AssociationField({ value, onChange }: { value: AssociationRef | null; onChange: (v: AssociationRef | null) => void }) {
+export function AssociationField({
+  value,
+  onChange,
+  label,
+  optional = true,
+}: {
+  value: AssociationRef | null;
+  onChange: (v: AssociationRef | null) => void;
+  label?: string;
+  optional?: boolean;
+}) {
   const { t } = useI18n();
   const id = useId();
   const [text, setText] = useState(value?.name ?? "");
@@ -46,7 +56,7 @@ export function AssociationField({ value, onChange }: { value: AssociationRef | 
   return (
     <div className="field assoc-field">
       <label className="field-label" htmlFor={id}>
-        {t("signup.association")} <span className="muted small">({t("common.optional")})</span>
+        {label ?? t("signup.association")} {optional && <span className="muted small">({t("common.optional")})</span>}
       </label>
       <div className="assoc-box">
         <input

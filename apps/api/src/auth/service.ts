@@ -1,11 +1,11 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, gt, inArray, isNotNull, lt, sql } from "drizzle-orm";
-import { ROLE_PERMISSIONS, TWO_FACTOR_PERMISSIONS, type Permission, type SignupInput, type Volunteer, type VolunteerRole } from "@wilson/contracts";
+import { and, eq, gt, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+import { ASSOCIATION_ADMIN_PERMISSIONS, ROLE_PERMISSIONS, TWO_FACTOR_PERMISSIONS, type Permission, type SignupInput, type Volunteer, type VolunteerRole } from "@wilson/contracts";
 import { alert } from "../alerts.js";
 import type { Config } from "../config.js";
 import type { Crypto } from "../crypto/keys.js";
 import type { Db } from "../db/client.js";
-import { sessions, volunteerPermissions, volunteers } from "../db/schema.js";
+import { associations, invitations, sessions, volunteerPermissions, volunteers } from "../db/schema.js";
 import { getMailer } from "../mail.js";
 import { Attempts, Locks } from "./limiter.js";
 import { newTotpSecret, totpUri, verifyTotp } from "./totp.js";
@@ -19,8 +19,17 @@ export const sha256Hex = (s: string): string => createHash("sha256").update(s).d
 
 type VolunteerRow = typeof volunteers.$inferSelect;
 
-export function effectivePermissions(role: VolunteerRole, overrides: { permission: Permission; granted: boolean }[]): Permission[] {
+/**
+ * Role bundle + association-admin rights (members.manage, only with an association) + per-person overrides.
+ * Overrides come last, so a global admin can still revoke members.manage from one association admin.
+ */
+export function effectivePermissions(
+  role: VolunteerRole,
+  overrides: { permission: Permission; granted: boolean }[],
+  association: { associationId: string | null; associationAdmin: boolean } = { associationId: null, associationAdmin: false },
+): Permission[] {
   const set = new Set<Permission>(ROLE_PERMISSIONS[role]);
+  if (association.associationAdmin && association.associationId) for (const p of ASSOCIATION_ADMIN_PERMISSIONS) set.add(p);
   for (const o of overrides) {
     if (o.granted) set.add(o.permission);
     else set.delete(o.permission);
@@ -36,7 +45,10 @@ export async function permissionsOf(db: Db, ids: string[]): Promise<Map<string, 
   const out = new Map<string, Permission[]>();
   const unique = [...new Set(ids)];
   if (unique.length === 0) return out;
-  const rows = await db.select({ id: volunteers.id, role: volunteers.role, disabledAt: volunteers.disabledAt, pending: volunteers.pendingApproval })
+  const rows = await db.select({
+    id: volunteers.id, role: volunteers.role, disabledAt: volunteers.disabledAt, pending: volunteers.pendingApproval,
+    associationId: volunteers.associationId, associationAdmin: volunteers.associationAdmin,
+  })
     .from(volunteers).where(inArray(volunteers.id, unique));
   const overrides = await db.select().from(volunteerPermissions).where(inArray(volunteerPermissions.volunteerId, unique));
   for (const r of rows) {
@@ -45,7 +57,7 @@ export async function permissionsOf(db: Db, ids: string[]): Promise<Map<string, 
       continue;
     }
     const own = overrides.filter((o) => o.volunteerId === r.id) as { permission: Permission; granted: boolean }[];
-    out.set(r.id, effectivePermissions(r.role as VolunteerRole, own));
+    out.set(r.id, effectivePermissions(r.role as VolunteerRole, own, r));
   }
   return out;
 }
@@ -80,17 +92,26 @@ export interface AuthService {
 }
 
 export class SignupError extends Error {
-  constructor(readonly reason: "too_many_pending" | "rate_limited", readonly retryAfterSeconds = 0) {
+  constructor(readonly reason: "too_many_pending" | "rate_limited" | "signup_closed", readonly retryAfterSeconds = 0) {
     super(reason);
     this.name = "SignupError";
   }
+}
+
+export const INVITATION_TTL_DAYS = 7;
+
+/** Open invitation for a raw token, or null (unknown, used, revoked, expired). */
+export async function openInvitation(db: Db, token: string, now: Date) {
+  const [inv] = await db.select().from(invitations).where(eq(invitations.tokenHash, sha256Hex(token))).limit(1);
+  if (!inv || inv.usedAt || inv.revokedAt || inv.expiresAt <= now) return null;
+  return inv;
 }
 
 const HOUR = 3600_000;
 const EMAIL_TOKEN_TTL_MS = 48 * HOUR;
 
 type AuthConfig = Pick<Config,
-  "SESSION_TTL_HOURS" | "VOLUNTEER_SIGNUP_MAX_PENDING" | "SIGNUP_PER_IP_PER_HOUR" | "SIGNUP_PER_DAY" | "ADMIN_2FA" |
+  "SESSION_TTL_HOURS" | "VOLUNTEER_SIGNUP" | "VOLUNTEER_SIGNUP_MAX_PENDING" | "SIGNUP_PER_IP_PER_HOUR" | "SIGNUP_PER_DAY" | "ADMIN_2FA" |
   "LOGIN_MAX_FAILURES" | "LOGIN_MAX_FAILURES_PER_IP" | "LOGIN_LOCK_MINUTES" | "SMTP_URL" | "MAIL_FROM" |
   "PUBLIC_BACKOFFICE_ORIGIN" | "ASSOCIATION_NAME" | "ALERT_WEBHOOK_URL">;
 
@@ -117,8 +138,11 @@ export function createAuthService(deps: { db: Db; config: AuthConfig; crypto: Cr
 
   async function toVolunteer(row: VolunteerRow): Promise<Volunteer> {
     const overrides = await db.select().from(volunteerPermissions).where(eq(volunteerPermissions.volunteerId, row.id));
-    const all = effectivePermissions(row.role as VolunteerRole, overrides as { permission: Permission; granted: boolean }[]);
+    const all = effectivePermissions(row.role as VolunteerRole, overrides as { permission: Permission; granted: boolean }[], row);
     const { permissions, missing } = withTwoFactorRule(all, !!row.totpEnabledAt, config.ADMIN_2FA);
+    const [assoc] = row.associationId
+      ? await db.select({ id: associations.id, name: associations.name }).from(associations).where(eq(associations.id, row.associationId)).limit(1)
+      : [];
     return {
       id: row.id,
       name: row.name,
@@ -128,6 +152,8 @@ export function createAuthService(deps: { db: Db; config: AuthConfig; crypto: Cr
       permissions,
       twoFactorEnabled: !!row.totpEnabledAt,
       twoFactorMissing: missing,
+      association: assoc ?? null,
+      associationAdmin: !!assoc && row.associationAdmin,
     };
   }
 
@@ -220,19 +246,45 @@ export function createAuthService(deps: { db: Db; config: AuthConfig; crypto: Cr
       const passwordHash = await hashPassword(input.password);
       // Unverified requests whose link expired are dropped (they never had access).
       await db.delete(volunteers).where(and(eq(volunteers.pendingApproval, true), eq(volunteers.emailVerified, false), isNotNull(volunteers.emailTokenExpiresAt), lt(volunteers.emailTokenExpiresAt, deps.now())));
+      const invitation = input.invitationToken ? await openInvitation(db, input.invitationToken, deps.now()) : null;
+      // Without a valid invite this is a public sign-up: closed when VOLUNTEER_SIGNUP=off.
+      if (!invitation && config.VOLUNTEER_SIGNUP !== "on") throw new SignupError("signup_closed");
       const [existing] = await db.select({ id: volunteers.id }).from(volunteers).where(eq(volunteers.email, email));
-      if (existing) return;
-      const [pending] = await db.select({ n: sql<number>`count(*)::int` }).from(volunteers).where(eq(volunteers.pendingApproval, true));
-      if ((pending?.n ?? 0) >= config.VOLUNTEER_SIGNUP_MAX_PENDING) throw new SignupError("too_many_pending");
-      const mailer = getMailer(deps);
-      const token = mailer ? randomBytes(32).toString("base64url") : null;
-      const inserted = await db.insert(volunteers).values({
-        email, passwordHash, name: input.name.trim(), role: "responder", uiLanguage: input.uiLanguage,
-        pendingApproval: true, signupNote: input.note?.trim() || null,
+      if (existing) return; // the invite stays usable for the right address
+      const claimed = {
         associationName: input.association?.name.trim() || null,
         associationSiren: input.association?.siren ?? null,
         associationRna: input.association?.rna ?? null,
         associationCity: input.association?.city ?? null,
+      };
+
+      if (invitation) {
+        // Someone the inviter knows, reached by hand: active at once, no e-mail check, no pending cap.
+        await db.transaction(async (tx) => {
+          const [row] = await tx.insert(volunteers).values({
+            email, passwordHash, name: input.name.trim(), role: invitation.role, uiLanguage: input.uiLanguage,
+            pendingApproval: false, approvedAt: deps.now(), approvedBy: invitation.createdBy, emailVerified: true,
+            signupNote: input.note?.trim() || null, associationId: invitation.associationId, ...claimed,
+          }).onConflictDoNothing({ target: volunteers.email }).returning({ id: volunteers.id });
+          if (!row) return;
+          // Single use: only flips if still open (two tabs racing on the same link cannot both win).
+          const used = await tx.update(invitations).set({ usedAt: deps.now(), usedBy: row.id })
+            .where(and(eq(invitations.id, invitation.id), isNull(invitations.usedAt), isNull(invitations.revokedAt))).returning({ id: invitations.id });
+          if (used.length === 0) throw new Error("invitation already used");
+        });
+        return;
+      }
+
+      const [pending] = await db.select({ n: sql<number>`count(*)::int` }).from(volunteers).where(eq(volunteers.pendingApproval, true));
+      if ((pending?.n ?? 0) >= config.VOLUNTEER_SIGNUP_MAX_PENDING) throw new SignupError("too_many_pending");
+      const mailer = getMailer(deps);
+      const token = mailer ? randomBytes(32).toString("base64url") : null;
+      // Picked from the register and known here (same SIREN/RNA) → the request goes to that association's admins.
+      const ids = [claimed.associationSiren && eq(associations.siren, claimed.associationSiren), claimed.associationRna && eq(associations.rna, claimed.associationRna)].filter((c) => !!c);
+      const [match] = ids.length ? await db.select({ id: associations.id }).from(associations).where(or(...ids)).limit(1) : [];
+      const inserted = await db.insert(volunteers).values({
+        email, passwordHash, name: input.name.trim(), role: "responder", uiLanguage: input.uiLanguage,
+        pendingApproval: true, signupNote: input.note?.trim() || null, associationId: match?.id ?? null, ...claimed,
         emailVerified: !mailer,
         emailTokenHash: token ? sha256Hex(token) : null,
         emailTokenExpiresAt: token ? new Date(now + EMAIL_TOKEN_TTL_MS) : null,

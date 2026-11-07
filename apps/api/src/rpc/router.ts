@@ -14,6 +14,7 @@ import { skillsRouter } from "./skills.js";
 import { systemRouter } from "./system.js";
 import { usageRouter } from "./usage.js";
 import { volunteersRouter } from "./volunteers.js";
+import { associationsRouter, invitationsRouter } from "./associations.js";
 import { placesRouter } from "./places.js";
 import { broadcastsRouter } from "./broadcasts.js";
 
@@ -27,6 +28,8 @@ export const router = os.router({
   knowledge: knowledgeRouter,
   conversations: conversationsRouter,
   volunteers: volunteersRouter,
+  associations: associationsRouter,
+  invitations: invitationsRouter,
   usage: usageRouter,
   notes: notesRouter,
   tasks: tasksRouter,

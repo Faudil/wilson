@@ -25,6 +25,7 @@ const INPUTS: Record<string, unknown> = {
   "auth.login": { email: "a@example.org", password: "whatever-pass" },
   "auth.searchAssociations": { query: "secours" },
   "auth.signup": { name: "Coverage", email: "coverage-signup@example.org", password: "long-enough-pass", uiLanguage: "fr", acceptsConfidentiality: true },
+  "auth.invitation": { token: "x".repeat(32) },
   "auth.logout": undefined,
   "auth.me": undefined,
   "auth.setUiLanguage": { language: "fr" },
@@ -67,6 +68,13 @@ const INPUTS: Record<string, unknown> = {
   "volunteers.setDisabled": { id, disabled: true },
   "volunteers.resetTwoFactor": { id },
   "volunteers.setPermissions": { id, overrides: [{ permission: "places.manage", granted: false }] },
+  "associations.list": undefined,
+  "associations.create": { name: "Coverage asso", siren: null, rna: null, city: null },
+  "associations.setMember": { volunteerId: id, associationId: null },
+  "associations.setAdmin": { volunteerId: id, associationId: id, admin: true },
+  "invitations.list": undefined,
+  "invitations.create": { role: "responder" },
+  "invitations.revoke": { id },
   "places.list": { scope: "today" },
   "places.create": { kind: "food", name: "Distribution", startsOn: "2026-11-06" },
   "places.update": { id, place: { kind: "food", name: "Distribution", startsOn: "2026-11-06" } },
@@ -149,6 +157,10 @@ const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "conversations.reply": "conversations.reply", "conversations.resolve": "conversations.reply", "conversations.takeOver": "conversations.reply",
   "volunteers.list": "volunteers.manage", "volunteers.approve": "volunteers.manage", "volunteers.reject": "volunteers.manage",
   "volunteers.setRole": "volunteers.manage", "volunteers.setDisabled": "volunteers.manage", "volunteers.setPermissions": "volunteers.manage", "volunteers.resetTwoFactor": "volunteers.manage",
+  "associations.list": "associations.manage", "associations.create": "associations.manage",
+  "associations.setMember": "associations.manage", "associations.setAdmin": "associations.manage",
+  // members.manage also opens these, but only with an association (scoping tested in associations.admin.test.ts).
+  "invitations.list": "volunteers.manage", "invitations.create": "volunteers.manage", "invitations.revoke": "volunteers.manage",
   "places.list": "places.view", "places.preview": "places.view",
   "places.create": "places.manage", "places.update": "places.manage", "places.remove": "places.manage",
   "broadcasts.list": "broadcasts.view", "broadcasts.estimate": "broadcasts.view", "broadcasts.preview": "broadcasts.view",
@@ -178,7 +190,7 @@ const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "numbers.releaseAllGlobal": "numbers.moderate", "numbers.block": "numbers.moderate", "numbers.unblock": "numbers.moderate",
 };
 const needs = (req: Permission | Permission[] | null, perm: Permission) => (Array.isArray(req) ? req.includes(perm) : req === perm);
-const PUBLIC = new Set(["auth.login", "auth.signup", "auth.searchAssociations", "auth.verifyEmail", "system.health"]);
+const PUBLIC = new Set(["auth.login", "auth.signup", "auth.searchAssociations", "auth.verifyEmail", "auth.invitation", "system.health"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */
 const ANON_OK = new Set([...PUBLIC, "auth.logout"]);
 const ALL = leaves(contract);
@@ -194,7 +206,7 @@ describe("contract coverage", () => {
     expect(Object.keys(INPUTS).sort()).toEqual([...ALL].sort());
   });
 
-  it("every procedure except auth.login / auth.signup / auth.searchAssociations / system.health / (idempotent) auth.logout rejects an anonymous caller with UNAUTHORIZED", async () => {
+  it("every procedure except auth.login / auth.signup / auth.searchAssociations / auth.invitation / system.health / (idempotent) auth.logout rejects an anonymous caller with UNAUTHORIZED", async () => {
     const { client } = makeClient(t.deps);
     for (const p of ALL.filter((p) => !ANON_OK.has(p))) {
       expect([p, await code(call(client, p, INPUTS[p]))]).toEqual([p, "UNAUTHORIZED"]);
@@ -209,7 +221,7 @@ describe("contract coverage", () => {
       const v = await createVolunteer(t.deps);
       await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: perm, granted: false });
       // knowledge.manage / volunteers.manage are admin-only by role: grant them per-volunteer so every other procedure starts allowed.
-      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "usage.manage", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"] as const) {
+      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "associations.manage", "usage.manage", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"] as const) {
         if (perm !== adminOnly) await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: adminOnly, granted: true });
       }
       const { client } = makeClient(t.deps);

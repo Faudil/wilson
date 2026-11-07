@@ -106,7 +106,9 @@ export const PERMISSIONS = [
   "documents.view_file",
   "documents.edit", // fix type / expiry, archive
   "sandbox.use",
-  "volunteers.manage", // approve signups, roles, per-person permissions, disable accounts
+  "volunteers.manage", // every account: approve signups, roles, per-person permissions, disable accounts
+  "associations.manage", // create associations, name or remove their admins, move volunteers between associations
+  "members.manage", // same as volunteers.manage but only for members of your own association (association admins)
   "audit.view",
   "knowledge.view", // browse sources, test search
   "knowledge.manage", // trigger a sync
@@ -180,10 +182,19 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
  * admin: + volunteers, audit, knowledge sync, usage, moderating notes, approving announcements, arranging French
  * buddies and handling their reports, managing appointments.
  */
+/**
+ * Granted on top of the role to an association admin (set by a global admin), never part of a role bundle:
+ * the server limits it to members of that association.
+ */
+export const ASSOCIATION_ADMIN_PERMISSIONS: readonly PermissionValue[] = ["members.manage"];
+
+/** What an association admin may never hand out (to keep them inside their association and below global admins). */
+export const GLOBAL_ONLY_PERMISSIONS: readonly PermissionValue[] = ["volunteers.manage", "associations.manage", "members.manage", "usage.manage", "knowledge.manage", "audit.view"];
+
 export const ROLE_PERMISSIONS: Record<(typeof VOLUNTEER_ROLES)[number], readonly PermissionValue[]> = {
   responder: ["conversations.view", "conversations.reply", "knowledge.view", "places.view", "skills.edit_own"],
   volunteer: VOLUNTEER_BUNDLE,
-  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"],
+  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "associations.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"],
 };
 
 /** Kinds of places volunteers post for the day (shown with an emoji in WhatsApp, grouped in this order). */
