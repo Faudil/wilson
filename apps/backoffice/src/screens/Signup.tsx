@@ -1,9 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { AssociationRef } from "@wilson/contracts";
 import { AssociationField } from "../components/AssociationField";
 import { Icon } from "../components/Icon";
-import { Empty } from "../components/ui";
+import { Empty, ErrorBox, Skeleton } from "../components/ui";
 import { useI18n } from "../i18n";
 import { errorCode, orpc } from "../lib/api";
 import { href } from "../lib/router";
@@ -19,12 +19,13 @@ export function Signup() {
   const [association, setAssociation] = useState<AssociationRef | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [show, setShow] = useState(false);
+  const [website, setWebsite] = useState(""); // honeypot, see below
   const signup = useMutation(orpc.auth.signup.mutationOptions());
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!accepted) return;
-    signup.mutate({ name: name.trim(), email: email.trim(), password, uiLanguage: lang, note: note.trim() || undefined, association: association ?? undefined, acceptsConfidentiality: true });
+    signup.mutate({ name: name.trim(), email: email.trim(), password, uiLanguage: lang, note: note.trim() || undefined, association: association ?? undefined, acceptsConfidentiality: true, website: website || undefined });
   };
   const code = errorCode(signup.error);
   const closed = health.data?.signup === false || code === "FORBIDDEN";
@@ -33,7 +34,7 @@ export function Signup() {
     return (
       <div className="login">
         <div className="card">
-          <Empty art="done" sub={t("signup.doneText")}>
+          <Empty art="done" sub={t(health.data?.emailVerification ? "signup.doneTextEmail" : "signup.doneText")}>
             {t("signup.doneTitle")}
           </Empty>
         </div>
@@ -62,6 +63,8 @@ export function Signup() {
         </p>
       ) : (
         <form onSubmit={submit} className="card stack">
+          {/* Honeypot: invisible to people and screen readers, bots fill it in and their request is ignored. */}
+          <input className="visually-hidden" tabIndex={-1} aria-hidden="true" autoComplete="off" name="website" value={website} onChange={(e) => setWebsite(e.target.value)} />
           <label className="field">
             <span className="field-label">{t("signup.name")}</span>
             <input autoComplete="name" required minLength={2} maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
@@ -102,7 +105,7 @@ export function Signup() {
           {signup.isError && (
             <p className="notice notice-error" role="alert">
               <Icon name="alert" />
-              <span className="notice-body">{code === "CONFLICT" ? t("signup.full") : t("error.generic")}</span>
+              <span className="notice-body">{code === "CONFLICT" ? t("signup.full") : code === "TOO_MANY_REQUESTS" ? t("signup.tooMany") : t("error.generic")}</span>
             </p>
           )}
           <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={signup.isPending || !accepted}>
@@ -112,6 +115,34 @@ export function Signup() {
       )}
       <p className="center">
         <a className="link-quiet" href={href("")}>
+          {t("signup.backToLogin")}
+        </a>
+      </p>
+    </div>
+  );
+}
+
+/** The link in the verification e-mail: #/verify/<token>. */
+export function VerifyEmail({ token }: { token: string }) {
+  const { t } = useI18n();
+  const verify = useMutation(orpc.auth.verifyEmail.mutationOptions());
+  const { mutate } = verify;
+  useEffect(() => mutate({ token }), [mutate, token]);
+  return (
+    <div className="login">
+      <div className="card">
+        {verify.isError ? (
+          <ErrorBox error={verify.error} retry={() => mutate({ token })} />
+        ) : verify.isSuccess ? (
+          <Empty art="done" sub={t("verify.text")}>
+            {t("verify.title")}
+          </Empty>
+        ) : (
+          <Skeleton lines={2} card={false} />
+        )}
+      </div>
+      <p className="center">
+        <a className="btn btn-block" href={href("")}>
           {t("signup.backToLogin")}
         </a>
       </p>

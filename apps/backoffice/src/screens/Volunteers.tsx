@@ -33,7 +33,7 @@ function RolePicker({ value, onChange }: { value: VolunteerRole; onChange: (r: V
   );
 }
 
-type Dialog = { kind: "approve" | "reject" | "role" | "disable" | "permissions"; account: VolunteerAccount } | null;
+type Dialog = { kind: "approve" | "reject" | "role" | "disable" | "permissions" | "reset2fa"; account: VolunteerAccount } | null;
 
 /** Permissions grouped by area ("letters.review" → "letters"), in PERMISSIONS order. */
 const GROUPS = PERMISSIONS.reduce<{ area: string; perms: Permission[] }[]>((acc, p) => {
@@ -120,8 +120,10 @@ export function Volunteers() {
   const reject = useMutation({ ...orpc.volunteers.reject.mutationOptions(), onSuccess: done(t("vol.rejectedToast")) });
   const setRoleM = useMutation({ ...orpc.volunteers.setRole.mutationOptions(), onSuccess: done(t("vol.savedToast")) });
   const setDisabled = useMutation({ ...orpc.volunteers.setDisabled.mutationOptions(), onSuccess: done(t("vol.savedToast")) });
-  const busy = approve.isPending || reject.isPending || setRoleM.isPending || setDisabled.isPending;
-  const error = approve.error ?? reject.error ?? setRoleM.error ?? setDisabled.error;
+  const reset2fa = useMutation({ ...orpc.volunteers.resetTwoFactor.mutationOptions(), onSuccess: done(t("vol.savedToast")) });
+  const busy = approve.isPending || reject.isPending || setRoleM.isPending || setDisabled.isPending || reset2fa.isPending;
+  const error = approve.error ?? reject.error ?? setRoleM.error ?? setDisabled.error ?? reset2fa.error;
+  const unverified = (error as { data?: { reason?: string } } | null)?.data?.reason === "email_unverified";
 
   const accounts = all.data ?? [];
   const count = (s: Status) => accounts.filter((a) => a.status === s).length;
@@ -142,7 +144,13 @@ export function Volunteers() {
       />
       {all.isPending && <Skeleton lines={3} />}
       {all.isError && <ErrorBox error={all.error} retry={() => void all.refetch()} />}
-      {error && <ErrorBox error={error} />}
+      {error && !unverified && <ErrorBox error={error} />}
+      {unverified && (
+        <p className="notice notice-warn" role="alert">
+          <Icon name="alert" />
+          <span className="notice-body">{t("vol.emailUnverifiedHint")}</span>
+        </p>
+      )}
       {all.isSuccess && items.length === 0 && <Empty art="people">{t(`vol.empty.${filter}` as MessageKey)}</Empty>}
       <ul className="cards">
         {items.map((a) => {
@@ -172,6 +180,12 @@ export function Volunteers() {
                             <Icon name="check" size={18} />
                             {t("vol.perms")}
                           </button>
+                          {a.twoFactorEnabled && (
+                            <button type="button" role="menuitem" onClick={() => { close(); open("reset2fa", a); }}>
+                              <Icon name="refresh" size={18} />
+                              {t("vol.reset2fa")}
+                            </button>
+                          )}
                           <button type="button" role="menuitem" onClick={() => { close(); open("disable", a); }}>
                             <Icon name="x" size={18} />
                             {t("vol.disable")}
@@ -186,6 +200,12 @@ export function Volunteers() {
                     {t(`vol.role.${a.role}` as MessageKey)}
                   </Chip>
                   {a.status === "disabled" && <Chip tone="error">{t("vol.status.disabled")}</Chip>}
+                  {a.status === "pending" && !a.emailVerified && <Chip tone="warn">{t("vol.emailUnverified")}</Chip>}
+                  {a.twoFactorEnabled && (
+                    <Chip tone="ok" icon="shield">
+                      {t("vol.twoFactor")}
+                    </Chip>
+                  )}
                   {self && <Chip tone="ok">{t("vol.you")}</Chip>}
                   {a.overrides.length > 0 && <Chip tone="warn">{t("vol.customPerms", { n: a.overrides.length })}</Chip>}
                 </div>
@@ -277,6 +297,16 @@ export function Volunteers() {
         tone="danger"
         busy={busy}
         onConfirm={() => dialog && reject.mutate({ id: dialog.account.id })}
+        onClose={() => setDialog(null)}
+      />
+      <ConfirmSheet
+        open={dialog?.kind === "reset2fa"}
+        title={t("vol.reset2fa")}
+        body={t("vol.reset2faBody")}
+        confirmLabel={t("vol.reset2fa")}
+        tone="danger"
+        busy={busy}
+        onConfirm={() => dialog && reset2fa.mutate({ id: dialog.account.id })}
         onClose={() => setDialog(null)}
       />
       <ConfirmSheet

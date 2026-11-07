@@ -76,4 +76,7 @@ export const en: Record<WaKey, string> = {
   help_list_empty: "You have no appointment with a volunteer.",
   help_cancel_confirm: "Cancel this appointment?\n{summary}\n1 - Yes, cancel\n2 - No",
   help_cancelled: "The appointment is cancelled. The volunteer has been told.",
+  guard_slow_down: "You are sending a lot of messages. Please wait a few minutes, then write again.",
+  guard_held: "Your messages are on hold for now. A volunteer will check and get back to you.",
+  guard_released: "Thank you for waiting. You can write to us again.",
 };

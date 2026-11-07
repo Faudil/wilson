@@ -77,4 +77,7 @@ export const am: Record<WaKey, string> = {
   help_list_empty: "ከበጎ ፈቃደኛ ጋር ምንም ቀጠሮ የለዎትም።",
   help_cancel_confirm: "ይህ ቀጠሮ ይሰረዝ?\n{summary}\n1 - አዎ፣ ሰርዝ\n2 - አይ",
   help_cancelled: "ቀጠሮው ተሰርዟል። በጎ ፈቃደኛው ተነግሮታል።",
+  guard_slow_down: "ብዙ መልዕክቶችን እየላኩ ነው። እባክዎ ጥቂት ደቂቃዎች ይጠብቁ፣ ከዚያ እንደገና ይጻፉ።",
+  guard_held: "መልዕክቶችዎ ለጊዜው በመጠባበቅ ላይ ናቸው። አንድ በጎ ፈቃደኛ አይቶ ያገኝዎታል።",
+  guard_released: "ስለጠበቁ እናመሰግናለን። እንደገና ሊጽፉልን ይችላሉ።",
 };

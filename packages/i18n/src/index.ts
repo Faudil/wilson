@@ -111,6 +111,9 @@ export type WaKey =
   | "help_list_empty"
   | "help_cancel_confirm" // {summary} 1 yes 2 no
   | "help_cancelled"
+  | "guard_slow_down" // flood guard: too many messages, wait a few minutes
+  | "guard_held" // flood guard: messages on hold until a volunteer checks
+  | "guard_released" // flood guard: a volunteer released the number
   | "footer"; // {name} {contact} — appended to every reply, never optional
 
 export type Params = Record<string, string | number>;

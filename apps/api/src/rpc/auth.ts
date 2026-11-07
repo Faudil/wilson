@@ -3,27 +3,37 @@ import { os, requirePermission } from "./base.js";
 import { getAssociationSearch } from "../associations/search.js";
 import { SignupError } from "../auth/service.js";
 import { getAuth } from "./context.js";
+import { logAccess } from "./logAccess.js";
 
 export const authRouter = {
-  login: os.auth.login.handler(async ({ input, context }) => {
-    const res = await getAuth(context.deps).login(input.email, input.password);
-    if (!res) throw new ORPCError("UNAUTHORIZED");
-    if (res === "pending") throw new ORPCError("FORBIDDEN", { message: "pending_approval" });
+  login: os.auth.login.handler(async ({ input, context, errors }) => {
+    const res = await getAuth(context.deps).login(input.email, input.password, { totp: input.totp, ip: context.ip });
+    switch (res.kind) {
+      case "invalid": throw new ORPCError("UNAUTHORIZED");
+      case "pending": throw new ORPCError("FORBIDDEN", { message: "pending_approval" });
+      case "locked": throw errors.TOO_MANY_REQUESTS({ data: { retryAfterSeconds: res.retryAfterSeconds } });
+      case "two_factor": throw errors.TWO_FACTOR_REQUIRED({ message: res.invalidCode ? "invalid_code" : "code_needed" });
+    }
     context.setSessionCookie(res.token, res.expires);
     return res.volunteer;
   }),
 
-  signup: os.auth.signup.handler(async ({ input, context }) => {
+  signup: os.auth.signup.handler(async ({ input, context, errors }) => {
     if (context.deps.config.VOLUNTEER_SIGNUP !== "on") throw new ORPCError("FORBIDDEN");
     try {
-      await getAuth(context.deps).signup(input);
+      await getAuth(context.deps).signup(input, { ip: context.ip });
     } catch (e) {
+      if (e instanceof SignupError && e.reason === "rate_limited") throw errors.TOO_MANY_REQUESTS({ data: { retryAfterSeconds: e.retryAfterSeconds } });
       if (e instanceof SignupError) throw new ORPCError("CONFLICT", { data: { reason: e.reason } });
       throw e;
     }
     return { ok: true as const };
   }),
 
+  verifyEmail: os.auth.verifyEmail.handler(async ({ input, context }) => {
+    await getAuth(context.deps).verifyEmail(input.token);
+    return { ok: true as const };
+  }),
   searchAssociations: os.auth.searchAssociations.handler(({ input, context }) =>
     context.deps.config.VOLUNTEER_SIGNUP === "on" ? getAssociationSearch(context.deps).search(input.query) : []),
 
@@ -37,4 +47,24 @@ export const authRouter = {
   setUiLanguage: os.auth.setUiLanguage
     .use(requirePermission())
     .handler(({ input, context }) => getAuth(context.deps).setUiLanguage(context.volunteer.id, input.language)),
+
+  twoFactorSetup: os.auth.twoFactorSetup.use(requirePermission()).handler(async ({ context }) => {
+    const r = await getAuth(context.deps).twoFactorSetup(context.volunteer.id);
+    if (!r) throw new ORPCError("CONFLICT", { data: { reason: "already_enabled" } });
+    return r;
+  }),
+
+  twoFactorEnable: os.auth.twoFactorEnable.use(requirePermission()).handler(async ({ input, context }) => {
+    const v = await getAuth(context.deps).twoFactorEnable(context.volunteer.id, input.code);
+    if (!v) throw new ORPCError("CONFLICT", { data: { reason: "invalid_code" } });
+    await logAccess(context, "auth.2fa_enable", context.volunteer.id);
+    return v;
+  }),
+
+  twoFactorDisable: os.auth.twoFactorDisable.use(requirePermission()).handler(async ({ input, context }) => {
+    const v = await getAuth(context.deps).twoFactorDisable(context.volunteer.id, input.code);
+    if (!v) throw new ORPCError("CONFLICT", { data: { reason: "invalid_code" } });
+    await logAccess(context, "auth.2fa_disable", context.volunteer.id);
+    return v;
+  }),
 };

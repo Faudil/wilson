@@ -77,4 +77,7 @@ export const bm: Record<WaKey, string> = {
   help_list_empty: "Ɲɔgɔnye si t'i bolo ni fanyadilabaga ye.",
   help_cancel_confirm: "Nin ɲɔgɔnye dabila?\n{summary}\n1 - Ɔwɔ, a dabila\n2 - Ayi",
   help_cancelled: "Ɲɔgɔnye dabilala. Fanyadilabaga ladonniyara.",
+  guard_slow_down: "I bɛ cikan caman ci. I ka hakɛ to ka miniti dama makɔnɔ, o kɔ i ka sɛbɛn tugun.",
+  guard_held: "I ka cikanw bɛ makɔnɔni na sisan. Baarakɛla dɔ b'u lajɛ ka kuma i fɛ.",
+  guard_released: "I ni ce i ka muɲuli la. I bɛ se ka sɛbɛn an ma tugun.",
 };

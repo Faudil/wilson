@@ -2679,3 +2679,30 @@ fieldset {
 .perm-changed {
   font-size: 0.8rem;
 }
+
+/* Two-factor authentication */
+.tfa-banner {
+  margin-block-end: 16px;
+}
+.tfa-steps {
+  margin-block: 0;
+  padding-inline-start: 1.2rem;
+}
+.qr {
+  inline-size: 200px;
+  block-size: 200px;
+  border-radius: var(--radius-sm);
+}
+.tfa-secret {
+  word-break: break-all;
+}
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

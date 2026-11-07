@@ -77,4 +77,7 @@ export const ff: Record<WaKey, string> = {
   help_list_empty: "A alaa deental e ballotooɗo.",
   help_cancel_confirm: "Haaytu deental ngal?\n{summary}\n1 - Eey, haaytu\n2 - Alaa",
   help_cancelled: "Deental ngal haaytaama. Ballotooɗo oo humpitaama.",
+  guard_slow_down: "Aɗa neldude mesaasaaji keewɗi. Tiiɗno habbo seɗɗa minitiiji, refti winndu kadi.",
+  guard_held: "Mesaasaaji maaɗa ina ndaarii jooni. Ɓeydaaɗo goɗɗo ƴeewto ɗi, jokkondira e maaɗa.",
+  guard_released: "Jarama e muñal maaɗa. A waawi winndude men kadi.",
 };

@@ -77,4 +77,7 @@ export const ro: Record<WaKey, string> = {
   help_list_empty: "Nu aveți nicio programare cu un voluntar.",
   help_cancel_confirm: "Anulați această programare?\n{summary}\n1 - Da, anulează\n2 - Nu",
   help_cancelled: "Programarea este anulată. Voluntarul a fost anunțat.",
+  guard_slow_down: "Trimiteți multe mesaje. Vă rugăm să așteptați câteva minute, apoi scrieți din nou.",
+  guard_held: "Mesajele dumneavoastră sunt în așteptare deocamdată. Un voluntar le va verifica și vă va contacta.",
+  guard_released: "Vă mulțumim pentru răbdare. Ne puteți scrie din nou.",
 };

@@ -77,4 +77,7 @@ export const ht: Record<WaKey, string> = {
   help_list_empty: "Ou pa gen okenn randevou ak yon volontè.",
   help_cancel_confirm: "Anile randevou sa a?\n{summary}\n1 - Wi, anile\n2 - Non",
   help_cancelled: "Randevou a anile. Yo avèti volontè a.",
+  guard_slow_down: "Ou ap voye anpil mesaj. Tanpri tann kèk minit, epi ekri ankò.",
+  guard_held: "Mesaj ou yo an atant pou kounye a. Yon volontè pral verifye epi kontakte w.",
+  guard_released: "Mèsi paske ou te tann. Ou ka ekri nou ankò.",
 };

@@ -133,6 +133,7 @@ export const PERMISSIONS = [
   "appointments.slots", // publish your own form-filling slots that people book on WhatsApp
   "appointments.documents", // open the person's saved documents, only for a session you hold and only if they agreed
   "appointments.manage", // see every appointment and who holds it, cancel any, remove anyone's slot
+  "numbers.moderate", // release a WhatsApp number held by the flood guard, block or unblock a number
 ] as const;
 export type PermissionValue = (typeof PERMISSIONS)[number];
 
@@ -165,6 +166,7 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
   "appointments.accept",
   "appointments.slots",
   "appointments.documents",
+  "numbers.moderate",
 ];
 
 /**

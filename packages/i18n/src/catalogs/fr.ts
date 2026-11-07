@@ -76,4 +76,7 @@ export const fr: Record<WaKey, string> = {
   help_list_empty: "Vous n'avez aucun rendez-vous avec un bénévole.",
   help_cancel_confirm: "Annuler ce rendez-vous ?\n{summary}\n1 - Oui, annuler\n2 - Non",
   help_cancelled: "Le rendez-vous est annulé. Le bénévole est prévenu.",
+  guard_slow_down: "Vous envoyez beaucoup de messages. Merci d'attendre quelques minutes avant d'écrire à nouveau.",
+  guard_held: "Vos messages sont en attente pour le moment. Un bénévole va vérifier et revenir vers vous.",
+  guard_released: "Merci d'avoir patienté. Vous pouvez de nouveau nous écrire.",
 };

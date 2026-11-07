@@ -77,4 +77,7 @@ export const so: Record<WaKey, string> = {
   help_list_empty: "Ma lihid ballan aad la leedahay mutadawac.",
   help_cancel_confirm: "Ma la joojiyaa ballantan?\n{summary}\n1 - Haa, jooji\n2 - Maya",
   help_cancelled: "Ballanta waa la joojiyay. Mutadawaca waa loo sheegay.",
+  guard_slow_down: "Waxaad soo diraysaa farriimo badan. Fadlan sug dhowr daqiiqo, kadibna mar kale qor.",
+  guard_held: "Farriimahaagu hadda way sugayaan. Mutadawac ayaa eegi doona oo kula soo xiriiri doona.",
+  guard_released: "Waad ku mahadsan tahay sugitaanka. Mar kale ayaad noo qori kartaa.",
 };

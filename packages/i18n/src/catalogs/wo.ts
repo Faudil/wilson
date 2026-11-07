@@ -77,4 +77,7 @@ export const wo: Record<WaKey, string> = {
   help_list_empty: "Amoo benn ndaje ak ab jëmbat.",
   help_cancel_confirm: "Neenal ndaje bii?\n{summary}\n1 - Waaw, neenal\n2 - Déedéet",
   help_cancelled: "Ndaje bi neenal nañu ko. Jëmbat bi xamal nañu ko.",
+  guard_slow_down: "Yaa ngi yónnee bataaxal yu bari. Bal nu, xaaral ay simili, ba noppi nga bindaat.",
+  guard_held: "Sa bataaxal yi ngi xaar léegi. Benn volontëër dina leen seetlu te dina la jokkoo.",
+  guard_released: "Jërëjëf ci sa muñ. Mën nga nu bindaat.",
 };

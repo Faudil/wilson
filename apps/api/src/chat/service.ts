@@ -478,6 +478,7 @@ function createChatService(deps: Deps): ChatService {
         messages: msgs,
         footer: footerFor(deps, b.language),
         windowOpen: windowOpen(deps, b.lastInboundAt),
+        guard: b.guardStatus as "none" | "quarantined" | "blocked",
       };
     },
   };
