@@ -13,7 +13,11 @@ export const BeneficiarySummarySchema = z.object({
   lastMessageAt: TimestampSchema.nullable(),
   documentCount: z.number().int(),
   nextExpiry: z.iso.date().nullable(),
+  /** Optional first name or nickname volunteers gave the person (encrypted at rest, removed with their data). */
+  nickname: z.string().nullable().default(null),
 });
+
+export const NicknameSchema = z.string().trim().max(40);
 
 export const BeneficiaryDetailSchema = BeneficiarySummarySchema.extend({
   documents: z.array(DocumentSchema),

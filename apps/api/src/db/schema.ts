@@ -130,6 +130,8 @@ export const beneficiaries = pgTable("beneficiaries", {
   /** Volunteer who took the conversation over (chat_status = with_volunteer). The bot stays silent meanwhile. */
   chatAssigneeId: uuid("chat_assignee_id").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
   /** Flood guard (src/whatsapp/guard.ts): quarantined = held for a volunteer, blocked = every message dropped. */
+  /** Optional first name or nickname volunteers give the person (encrypted under the person's DEK). */
+  nicknameEnc: bytea("nickname_enc"),
   guardStatus: guardStatusEnum("guard_status").notNull().default("none"),
   guardReason: guardReasonEnum("guard_reason"),
   guardAt: ts("guard_at"),
@@ -281,6 +283,22 @@ export const volunteers = pgTable("volunteers", {
   associationId: uuid("association_id").references((): AnyPgColumn => associations.id, { onDelete: "set null" }),
   /** Association admin: gets members.manage, limited by the server to members of associationId. */
   associationAdmin: boolean("association_admin").notNull().default(false),
+  /** SHA-256 of the one-time password reset link an admin created, and its expiry (24 h). */
+  passwordResetTokenHash: text("password_reset_token_hash"),
+  passwordResetExpiresAt: ts("password_reset_expires_at"),
+  /** When the volunteer closed the first-day welcome cards (null = show them at next login). */
+  welcomedAt: ts("welcomed_at"),
+});
+
+/** Saved answers volunteers insert in the composer (French, translated on send). Curated by admins. */
+export const quickReplies = pgTable("quick_replies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  text: text("text").notNull(),
+  position: integer("position").notNull().default(0),
+  createdBy: uuid("created_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
 /** Single-use invite links created by an association admin (or a global admin). Only the token hash is stored. */

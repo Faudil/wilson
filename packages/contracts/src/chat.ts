@@ -58,6 +58,8 @@ export const ConversationSummarySchema = z.object({
   assignee: z.object({ id: IdSchema, name: z.string() }).nullable(),
   /** The beneficiary wrote last and nobody (bot or volunteer) has answered since. */
   awaitingReply: z.boolean(),
+  /** Optional first name or nickname volunteers gave the person. */
+  nickname: z.string().nullable().default(null),
 });
 export type ConversationSummary = z.infer<typeof ConversationSummarySchema>;
 
@@ -69,4 +71,12 @@ export const ConversationDetailSchema = ConversationSummarySchema.extend({
   windowOpen: z.boolean(),
   /** Flood guard state of this number (quarantined / blocked numbers get no automatic answer). */
   guard: z.enum(["none", "quarantined", "blocked"]),
+});
+
+/** Saved answer for the conversation composer: written in French, translated on send like any reply. */
+export const QuickReplySchema = z.object({ id: IdSchema, title: z.string(), text: z.string() });
+export type QuickReply = z.infer<typeof QuickReplySchema>;
+export const QuickReplyInputSchema = z.object({
+  title: z.string().trim().min(1).max(40),
+  text: z.string().trim().min(1).max(1000),
 });

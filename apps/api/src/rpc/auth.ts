@@ -39,6 +39,13 @@ export const authRouter = {
     await getAuth(context.deps).verifyEmail(input.token);
     return { ok: true as const };
   }),
+  resetPassword: os.auth.resetPassword.handler(async ({ input, context }) => {
+    if (!(await getAuth(context.deps).resetPassword(input.token, input.password))) throw new ORPCError("NOT_FOUND");
+    return { ok: true as const };
+  }),
+
+  finishWelcome: os.auth.finishWelcome.use(requirePermission()).handler(({ context }) => getAuth(context.deps).finishWelcome(context.volunteer.id)),
+
   searchAssociations: os.auth.searchAssociations.handler(({ input, context }) =>
     context.deps.config.VOLUNTEER_SIGNUP === "on" || context.volunteer ? getAssociationSearch(context.deps).search(input.query) : []),
 

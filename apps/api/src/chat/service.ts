@@ -64,6 +64,8 @@ export interface ChatService {
   get(beneficiaryId: string): Promise<ConversationDetail | null>;
   /** How many conversations `list({ filter: "attention" })` would return, without building them (navigation badge). */
   attentionCount(): Promise<number>;
+  /** Conversations where a person must act (needs_human, or a volunteer's person writing) and nothing moved since `before`. */
+  waitingCount(before: Date): Promise<number>;
 }
 
 const cache = new WeakMap<object, ChatService>();
@@ -431,18 +433,25 @@ function createChatService(deps: Deps): ChatService {
       const page = filtered.slice(start, start + limit);
       // One query each for the whole page (not three per conversation).
       const ids = page.map((r) => r.id);
-      const [names, previews, awaitingOthers] = await Promise.all([
+      const [names, previews, awaitingOthers, nicknames] = await Promise.all([
         volunteerNames(page.flatMap((r) => (r.assigneeId ? [r.assigneeId] : []))),
         lastPreviews(ids),
         awaitingIds(page.filter((r) => r.status !== "with_volunteer").map((r) => r.id)),
+        Promise.all(page.map((r) => ben.readNickname(r.id, r.nicknameEnc))),
       ]);
-      const items = page.map((r): ConversationSummary => ({
+      const items = page.map((r, i): ConversationSummary => ({
         beneficiaryId: r.id, beneficiaryLabel: maskedLabel(r.last2), language: r.language, status: r.status,
         lastMessageAt: r.last ? r.last.toISOString() : null, lastPreview: previews.get(r.id) ?? null, pendingDrafts: r.drafts,
         assignee: r.assigneeId ? { id: r.assigneeId, name: names.get(r.assigneeId) ?? "?" } : null,
         awaitingReply: (r.status === "with_volunteer" ? waiting : awaitingOthers).has(r.id),
+        nickname: nicknames[i] ?? null,
       }));
       return { items, nextCursor: start + limit < filtered.length ? String(start + limit) : null };
+    },
+
+    async waitingCount(before) {
+      const { rows, rank } = await ranked();
+      return rows.filter((r) => rank(r) === 0 && r.last !== null && new Date(r.last) < before).length;
     },
 
     async attentionCount() {
@@ -475,6 +484,7 @@ function createChatService(deps: Deps): ChatService {
         pendingDrafts: msgs.filter((m) => m.state === "draft").length,
         assignee: b.chatAssigneeId ? { id: b.chatAssigneeId, name: names.get(b.chatAssigneeId) ?? "?" } : null,
         awaitingReply: awaiting(msgs),
+        nickname: await ben.readNickname(beneficiaryId, b.nicknameEnc),
         messages: msgs,
         footer: footerFor(deps, b.language),
         windowOpen: windowOpen(deps, b.lastInboundAt),
@@ -487,7 +497,7 @@ function createChatService(deps: Deps): ChatService {
   async function ranked() {
     const rows = await db.select({
       id: beneficiaries.id, language: beneficiaries.language, status: beneficiaries.chatStatus, assigneeId: beneficiaries.chatAssigneeId,
-      last2: beneficiaries.waIdLast2,
+      last2: beneficiaries.waIdLast2, nicknameEnc: beneficiaries.nicknameEnc,
       last: sql<Date | null>`max(${messages.createdAt})`,
       drafts: sql<number>`count(*) filter (where ${messages.chatState} = 'draft')::int`,
     }).from(beneficiaries).innerJoin(messages, and(eq(messages.beneficiaryId, beneficiaries.id), isNotNull(messages.author)))

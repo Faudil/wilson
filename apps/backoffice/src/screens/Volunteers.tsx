@@ -9,7 +9,7 @@ import { useI18n, type MessageKey } from "../i18n";
 import { orpc } from "../lib/api";
 import { initials } from "../lib/relative";
 import { useSession, type Session } from "../lib/session";
-import { formatDate } from "../lib/wilson-i18n";
+import { formatDate, formatDateTime } from "../lib/wilson-i18n";
 import { Segmented } from "./Queue";
 
 type Status = VolunteerAccount["status"];
@@ -38,7 +38,7 @@ function RolePicker({ value, onChange, roles = ROLES }: { value: VolunteerRole; 
   );
 }
 
-type Dialog = { kind: "approve" | "reject" | "role" | "disable" | "permissions" | "member" | "reset2fa"; account: VolunteerAccount } | null;
+type Dialog = { kind: "approve" | "reject" | "role" | "disable" | "permissions" | "member" | "reset2fa" | "resetPassword"; account: VolunteerAccount } | null;
 
 /** Permissions grouped by area ("letters.review" → "letters"), in PERMISSIONS order. */
 const GROUPS = PERMISSIONS.reduce<{ area: string; perms: Permission[] }[]>((acc, p) => {
@@ -113,6 +113,65 @@ function PermissionsSheet({ account, onClose }: { account: VolunteerAccount; onC
 
 /** Link to the join page for a raw invite token (the token is only ever shown here, once). */
 const joinLink = (token: string) => `${window.location.origin}${window.location.pathname}#/join/${token}`;
+
+const resetLink = (token: string) => `${window.location.origin}${window.location.pathname}#/reset/${token}`;
+
+/** Someone forgot their password: create a one-time link (24 h) and hand it over by hand. No e-mail service needed. */
+function ResetPasswordSheet({ account, onClose }: { account: VolunteerAccount; onClose: () => void }) {
+  const { t, lang } = useI18n();
+  const [copied, setCopied] = useState(false);
+  const create = useMutation(orpc.volunteers.passwordResetLink.mutationOptions());
+  const link = create.data ? resetLink(create.data.token) : null;
+  return (
+    <Sheet open onClose={onClose} title={t("vol.resetPassword")}>
+      <div className="stack">
+        {!link ? (
+          <>
+            <p className="sheet-text">{t("vol.resetPasswordBody", { name: account.name })}</p>
+            {create.error && (
+              <div className="notice notice-error" role="alert">
+                <Icon name="alert" />
+                <span className="notice-body">{t("error.generic")}</span>
+              </div>
+            )}
+            <div className="stack-tight">
+              <button type="button" className="btn btn-block btn-primary" disabled={create.isPending} onClick={() => create.mutate({ id: account.id })}>
+                <Icon name="link" size={18} />
+                {t("vol.resetPasswordCreate")}
+              </button>
+              <button type="button" className="btn btn-block btn-quiet" onClick={onClose}>
+                {t("common.cancel")}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="sheet-text">{t("vol.resetPasswordReady", { name: account.name, until: formatDateTime(create.data!.expiresAt, lang) })}</p>
+            <label className="field">
+              <span className="field-label">{t("vol.resetPasswordLink")}</span>
+              <input readOnly value={link} dir="ltr" onFocus={(e) => e.currentTarget.select()} />
+            </label>
+            <div className="stack-tight">
+              <button
+                type="button"
+                className="btn btn-block btn-primary"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(link).then(() => setCopied(true), () => setCopied(false));
+                }}
+              >
+                <Icon name={copied ? "check" : "link"} size={18} />
+                {copied ? t("inv.copied") : t("inv.copy")}
+              </button>
+              <button type="button" className="btn btn-block btn-quiet" onClick={onClose}>
+                {t("common.close")}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </Sheet>
+  );
+}
 
 /** Create a single-use invite link and hand it over by hand (WhatsApp, SMS, e-mail). */
 function InviteSheet({ onClose }: { onClose: () => void }) {
@@ -438,6 +497,10 @@ export function Volunteers() {
                               {t("vol.memberMenu")}
                             </button>
                           )}
+                          <button type="button" role="menuitem" onClick={() => { close(); open("resetPassword", a); }}>
+                            <Icon name="link" size={18} />
+                            {t("vol.resetPassword")}
+                          </button>
                           {a.twoFactorEnabled && (
                             <button type="button" role="menuitem" onClick={() => { close(); open("reset2fa", a); }}>
                               <Icon name="refresh" size={18} />
@@ -557,6 +620,7 @@ export function Volunteers() {
       {dialog?.kind === "permissions" && <PermissionsSheet account={dialog.account} onClose={() => setDialog(null)} />}
       {dialog?.kind === "member" && <MemberSheet account={dialog.account} onClose={() => setDialog(null)} />}
       {inviting && <InviteSheet onClose={() => setInviting(false)} />}
+      {dialog?.kind === "resetPassword" && <ResetPasswordSheet account={dialog.account} onClose={() => setDialog(null)} />}
       <ConfirmSheet
         open={dialog?.kind === "reject"}
         title={t("vol.rejectTitle")}

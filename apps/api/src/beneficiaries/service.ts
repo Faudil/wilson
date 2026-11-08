@@ -40,6 +40,10 @@ export interface BeneficiariesService {
   touchInbound(id: string, at: Date): Promise<void>;
   /** "Delete all my data": archive beneficiary + documents, purge after ARCHIVE_RETENTION_DAYS (then DEK destroyed). */
   archiveAll(id: string): Promise<void>;
+  /** First name or nickname volunteers gave the person, decrypted from `nickname_enc` (null when none or unreadable). */
+  readNickname(id: string, enc: Buffer | null): Promise<string | null>;
+  /** Empty or null removes it. */
+  setNickname(id: string, nickname: string | null): Promise<string | null>;
   /** "+33 •• •• •• •• 21" */
   label(id: string): Promise<string>;
 }

@@ -14,6 +14,7 @@ const CRONS: { name: (typeof JOBS)[keyof typeof JOBS]; cron: string }[] = [
   { name: JOBS.remindersDispatch, cron: "*/15 * * * *" },
   { name: JOBS.helpDispatch, cron: "*/15 * * * *" },
   { name: JOBS.mediaPurge, cron: "0 * * * *" },
+  { name: JOBS.waitingAlert, cron: "5 * * * *" },
   { name: JOBS.archivePurge, cron: "0 3 * * *" },
   { name: JOBS.knowledgeSync, cron: "0 4 * * 1" }, // weekly, Monday 04:00
   { name: JOBS.buddyDispatch, cron: "*/15 * * * *" },

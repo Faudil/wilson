@@ -152,7 +152,7 @@ export class BeneficiariesServiceImpl implements BeneficiariesService {
     await db.transaction(async (tx) => {
       await tx
         .update(beneficiaries)
-        .set({ archivedAt: now, purgeAt, announcementsOptInAt: null })
+        .set({ archivedAt: now, purgeAt, announcementsOptInAt: null, nicknameEnc: null })
         .where(and(eq(beneficiaries.id, id), isNull(beneficiaries.archivedAt)));
       const docs = await tx
         .update(documents)
@@ -161,6 +161,22 @@ export class BeneficiariesServiceImpl implements BeneficiariesService {
         .returning({ id: documents.id });
       await cancelRemindersFor(tx, docs.map((d) => d.id));
     });
+  }
+
+  async readNickname(id: string, enc: Buffer | null): Promise<string | null> {
+    if (!enc) return null;
+    try {
+      return this.deps.crypto.decrypt(await this.getDek(id), enc).toString("utf8");
+    } catch {
+      return null; // data key destroyed: the nickname went with the rest
+    }
+  }
+
+  async setNickname(id: string, nickname: string | null): Promise<string | null> {
+    const clean = nickname?.trim() || null;
+    const nicknameEnc = clean ? this.deps.crypto.encrypt(await this.getDek(id), clean) : null;
+    await this.deps.db.update(beneficiaries).set({ nicknameEnc }).where(eq(beneficiaries.id, id));
+    return clean;
   }
 
   async label(id: string): Promise<string> {

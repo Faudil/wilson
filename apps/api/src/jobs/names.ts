@@ -10,6 +10,7 @@ export const JOBS = {
   broadcastDispatch: "broadcast.dispatch", // on approval: translate, create recipients, queue one wa.send each
   buddyDispatch: "buddy.dispatch", // cron */15: French practice buddies (next sessions, reminders, stale proposals)
   helpDispatch: "help.dispatch", // cron */15: Rendez-vous reminders, expiries, auto-done
+  waitingAlert: "waiting.alert", // cron hourly: "N people are waiting" to the alert channel (counts only)
 } as const;
 
 export interface JobPayloads {
@@ -31,6 +32,7 @@ export interface JobPayloads {
   [JOBS.archivePurge]: Record<string, never>;
   /** No sourceId = every enabled source. */
   [JOBS.buddyDispatch]: { now?: string };
+  [JOBS.waitingAlert]: { now?: string };
   [JOBS.knowledgeSync]: { sourceId?: "service_public" | "annuaire" | "association" | "watizat" };
 }
 

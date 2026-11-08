@@ -1,7 +1,8 @@
 import { ORPCError } from "@orpc/server";
 import { and, asc, eq, inArray, isNotNull, isNull, type SQL } from "drizzle-orm";
 import { GLOBAL_ONLY_PERMISSIONS, type Permission, type VolunteerAccount, type VolunteerAccountStatus, type VolunteerRole } from "@wilson/contracts";
-import { effectivePermissions } from "../auth/service.js";
+import { randomBytes } from "node:crypto";
+import { effectivePermissions, sha256Hex } from "../auth/service.js";
 import { associations, beneficiaries, sessions, volunteerPermissions, volunteers } from "../db/schema.js";
 import type { Deps } from "../deps.js";
 import { alert } from "../alerts.js";
@@ -13,6 +14,7 @@ import { os, requireMemberAdmin, type RpcContext } from "./base.js";
 type Row = typeof volunteers.$inferSelect;
 /** Global admins (volunteers.manage) or association admins (members.manage); the scope is checked per account. */
 const manage = requireMemberAdmin;
+const PASSWORD_RESET_TTL_MS = 24 * 3600_000;
 
 /** null = every account (global admin); else the only association whose members the caller may manage. */
 export function scopeOf(ctx: RpcContext): string | null {
@@ -169,13 +171,25 @@ export const volunteersRouter = {
 
   resetTwoFactor: os.volunteers.resetTwoFactor.use(manage).handler(async ({ input, context }) => {
     notSelf(context, input.id);
-    const r = await mustRow(context.deps, input.id);
+    const r = await inScope(context, input.id);
     await context.deps.db.update(volunteers).set({ totpEnabledAt: null, totpSecretEnc: null, totpWrappedDek: null, totpLastStep: null }).where(eq(volunteers.id, r.id));
     // Whoever holds the old sessions keeps nothing: they log in again (and enrol again if they are an admin).
     await context.deps.db.delete(sessions).where(eq(sessions.volunteerId, r.id));
     await logAccess(context, "volunteers.reset_2fa", r.id);
     void alert(context.deps, `volunteers.reset_2fa:${r.id}`, `${context.volunteer.name} removed the authenticator app of ${r.name}.`);
     return one(context.deps, r.id);
+  }),
+
+  passwordResetLink: os.volunteers.passwordResetLink.use(manage).handler(async ({ input, context }) => {
+    notSelf(context, input.id);
+    const r = await inScope(context, input.id);
+    if (r.pendingApproval || r.disabledAt) throw new ORPCError("CONFLICT", { data: { reason: r.pendingApproval ? "pending" : "disabled" } });
+    const token = randomBytes(32).toString("base64url");
+    const expiresAt = new Date(context.deps.now().getTime() + PASSWORD_RESET_TTL_MS);
+    await context.deps.db.update(volunteers).set({ passwordResetTokenHash: sha256Hex(token), passwordResetExpiresAt: expiresAt }).where(eq(volunteers.id, r.id));
+    await logAccess(context, "volunteers.password_reset_link", r.id);
+    void alert(context.deps, `volunteers.password_reset:${r.id}`, `${context.volunteer.name} created a password reset link for ${r.name}.`);
+    return { token, expiresAt: expiresAt.toISOString() };
   }),
 
   setPermissions: os.volunteers.setPermissions.use(manage).handler(async ({ input, context }) => {

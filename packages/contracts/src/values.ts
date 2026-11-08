@@ -113,7 +113,8 @@ export const PERMISSIONS = [
   "knowledge.view", // browse sources, test search
   "knowledge.manage", // trigger a sync
   "conversations.view", // read chatbot conversations
-  "conversations.reply", // approve/reject drafts, reply, resolve
+  "conversations.reply", // approve/reject drafts, reply, resolve, use quick replies, give the person a nickname
+  "replies.manage", // write and edit the quick replies everyone uses (so nothing in them reads as legal advice)
   "usage.manage", // see Claude API usage and costs, set the monthly budget
   "places.view", // see the places posted for today (shelter, food, showers…)
   "places.manage", // post, edit and remove places: they reach beneficiaries without review
@@ -194,7 +195,7 @@ export const GLOBAL_ONLY_PERMISSIONS: readonly PermissionValue[] = ["volunteers.
 export const ROLE_PERMISSIONS: Record<(typeof VOLUNTEER_ROLES)[number], readonly PermissionValue[]> = {
   responder: ["conversations.view", "conversations.reply", "knowledge.view", "places.view", "skills.edit_own"],
   volunteer: VOLUNTEER_BUNDLE,
-  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "associations.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"],
+  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "associations.manage", "audit.view", "knowledge.manage", "usage.manage", "replies.manage", "notes.moderate", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"],
 };
 
 /** Kinds of places volunteers post for the day (shown with an emoji in WhatsApp, grouped in this order). */
