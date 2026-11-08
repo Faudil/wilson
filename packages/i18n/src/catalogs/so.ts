@@ -55,7 +55,7 @@ export const so: Record<WaKey, string> = {
   announcements_on: "Waa la qoray: waxaad heli doontaa ogeysiisyada. Si aad u joojiso, qor STOP.",
   announcements_off: "Waa la qoray: mar dambe ogeysiis ma heli doontid. Si aad mar kale u hesho, dooro 6 liiska.",
   broadcast_stop_hint: "Si aad u joojiso ogeysiisyada, qor STOP.",
-  help_menu: "Mutadawac ayaa ku caawin kara:\n1 - Ii raac ballan\n2 - Wada buuxinno foom\n3 - Ballamahayga\n0 - Ku noqo liiska",
+  help_menu: "Mutadawac ayaa ku caawin kara:\n1 - Ii raac ballan\n2 - Wada buuxinno foom\n3 - Ballamahayga\n4 - Aqoon-is-weydaarsi iyo kulamo\n0 - Ku noqo liiska",
   help_place_menu: "Xaggee ballantaadu ka dhacaysaa?\n1 - Préfecture\n2 - OFII\n3 - Isbitaal ama dhakhtar\n4 - OFPRA ama CNDA\n5 - Kale",
   help_form_menu: "Foomkee?\n1 - CAF (gargaar)\n2 - ANEF (sharciga deganaanshaha)\n3 - AME (caafimaad)\n4 - Kale",
   help_ask_datetime: "Qor taariikhda iyo saacadda ballanta, tusaale: 14/03/2027 9:30",

@@ -1,5 +1,5 @@
 {
-  "id": "f0776ba2-1703-4041-a7d8-59326e940b7b",
+  "id": "d2b526dc-17e3-4883-b06e-c0caa9691f18",
   "prevId": "e42f8b5c-5a0f-443f-bdb5-a4bb2d966e81",
   "version": "7",
   "dialect": "postgresql",
@@ -149,276 +149,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.backup_calls": {
-      "name": "backup_calls",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "details": {
-          "name": "details",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "needed_on": {
-          "name": "needed_on",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "starts_at": {
-          "name": "starts_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "place": {
-          "name": "place",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "languages": {
-          "name": "languages",
-          "type": "language[]",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'"
-        },
-        "skills": {
-          "name": "skills",
-          "type": "volunteer_skill[]",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'"
-        },
-        "needed": {
-          "name": "needed",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "open_to_all": {
-          "name": "open_to_all",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "status": {
-          "name": "status",
-          "type": "backup_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'open'"
-        },
-        "association_id": {
-          "name": "association_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "author_id": {
-          "name": "author_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "closed_at": {
-          "name": "closed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "closed_by": {
-          "name": "closed_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "backup_calls_open_idx": {
-          "name": "backup_calls_open_idx",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "needed_on",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "backup_calls_association_id_associations_id_fk": {
-          "name": "backup_calls_association_id_associations_id_fk",
-          "tableFrom": "backup_calls",
-          "tableTo": "associations",
-          "columnsFrom": [
-            "association_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "backup_calls_author_id_volunteers_id_fk": {
-          "name": "backup_calls_author_id_volunteers_id_fk",
-          "tableFrom": "backup_calls",
-          "tableTo": "volunteers",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "backup_calls_closed_by_volunteers_id_fk": {
-          "name": "backup_calls_closed_by_volunteers_id_fk",
-          "tableFrom": "backup_calls",
-          "tableTo": "volunteers",
-          "columnsFrom": [
-            "closed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.backup_offers": {
-      "name": "backup_offers",
-      "schema": "",
-      "columns": {
-        "call_id": {
-          "name": "call_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "volunteer_id": {
-          "name": "volunteer_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "note": {
-          "name": "note",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "backup_offers_volunteer_idx": {
-          "name": "backup_offers_volunteer_idx",
-          "columns": [
-            {
-              "expression": "volunteer_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "backup_offers_call_id_backup_calls_id_fk": {
-          "name": "backup_offers_call_id_backup_calls_id_fk",
-          "tableFrom": "backup_offers",
-          "tableTo": "backup_calls",
-          "columnsFrom": [
-            "call_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "backup_offers_volunteer_id_volunteers_id_fk": {
-          "name": "backup_offers_volunteer_id_volunteers_id_fk",
-          "tableFrom": "backup_offers",
-          "tableTo": "volunteers",
-          "columnsFrom": [
-            "volunteer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "backup_offers_call_id_volunteer_id_pk": {
-          "name": "backup_offers_call_id_volunteer_id_pk",
-          "columns": [
-            "call_id",
-            "volunteer_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.beneficiaries": {
       "name": "beneficiaries",
       "schema": "",
@@ -553,6 +283,48 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "web_handle": {
+          "name": "web_handle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_name_enc": {
+          "name": "web_name_enc",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_words_hash": {
+          "name": "web_words_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_locked_at": {
+          "name": "web_locked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_locked_by": {
+          "name": "web_locked_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_unlock_hash": {
+          "name": "web_unlock_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_unlock_until": {
+          "name": "web_unlock_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -620,6 +392,19 @@
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
+        },
+        "beneficiaries_web_locked_by_volunteers_id_fk": {
+          "name": "beneficiaries_web_locked_by_volunteers_id_fk",
+          "tableFrom": "beneficiaries",
+          "tableTo": "volunteers",
+          "columnsFrom": [
+            "web_locked_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -630,8 +415,97 @@
           "columns": [
             "wa_id_hash"
           ]
+        },
+        "beneficiaries_web_handle_unique": {
+          "name": "beneficiaries_web_handle_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "web_handle"
+          ]
+        },
+        "beneficiaries_web_words_hash_unique": {
+          "name": "beneficiaries_web_words_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "web_words_hash"
+          ]
+        },
+        "beneficiaries_web_unlock_hash_unique": {
+          "name": "beneficiaries_web_unlock_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "web_unlock_hash"
+          ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.beneficiary_sessions": {
+      "name": "beneficiary_sessions",
+      "schema": "",
+      "columns": {
+        "id_hash": {
+          "name": "id_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "beneficiary_id": {
+          "name": "beneficiary_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shared_device": {
+          "name": "shared_device",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "beneficiary_sessions_beneficiary_idx": {
+          "name": "beneficiary_sessions_beneficiary_idx",
+          "columns": [
+            {
+              "expression": "beneficiary_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "beneficiary_sessions_beneficiary_id_beneficiaries_id_fk": {
+          "name": "beneficiary_sessions_beneficiary_id_beneficiaries_id_fk",
+          "tableFrom": "beneficiary_sessions",
+          "tableTo": "beneficiaries",
+          "columnsFrom": [
+            "beneficiary_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -3491,214 +3365,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.news_posts": {
-      "name": "news_posts",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "body": {
-          "name": "body",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pinned": {
-          "name": "pinned",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "association_id": {
-          "name": "association_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "author_id": {
-          "name": "author_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "edited_at": {
-          "name": "edited_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "emailed_at": {
-          "name": "emailed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "removed_at": {
-          "name": "removed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "news_posts_active_idx": {
-          "name": "news_posts_active_idx",
-          "columns": [
-            {
-              "expression": "removed_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "news_posts_association_id_associations_id_fk": {
-          "name": "news_posts_association_id_associations_id_fk",
-          "tableFrom": "news_posts",
-          "tableTo": "associations",
-          "columnsFrom": [
-            "association_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "news_posts_author_id_volunteers_id_fk": {
-          "name": "news_posts_author_id_volunteers_id_fk",
-          "tableFrom": "news_posts",
-          "tableTo": "volunteers",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.news_reads": {
-      "name": "news_reads",
-      "schema": "",
-      "columns": {
-        "post_id": {
-          "name": "post_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "volunteer_id": {
-          "name": "volunteer_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "read_at": {
-          "name": "read_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "news_reads_volunteer_idx": {
-          "name": "news_reads_volunteer_idx",
-          "columns": [
-            {
-              "expression": "volunteer_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "news_reads_post_id_news_posts_id_fk": {
-          "name": "news_reads_post_id_news_posts_id_fk",
-          "tableFrom": "news_reads",
-          "tableTo": "news_posts",
-          "columnsFrom": [
-            "post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "news_reads_volunteer_id_volunteers_id_fk": {
-          "name": "news_reads_volunteer_id_volunteers_id_fk",
-          "tableFrom": "news_reads",
-          "tableTo": "volunteers",
-          "columnsFrom": [
-            "volunteer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "news_reads_post_id_volunteer_id_pk": {
-          "name": "news_reads_post_id_volunteer_id_pk",
-          "columns": [
-            "post_id",
-            "volunteer_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.places": {
       "name": "places",
       "schema": "",
@@ -4315,12 +3981,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "changelog_seen": {
-          "name": "changelog_seen",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -4368,15 +4028,6 @@
     }
   },
   "enums": {
-    "public.backup_status": {
-      "name": "backup_status",
-      "schema": "public",
-      "values": [
-        "open",
-        "covered",
-        "cancelled"
-      ]
-    },
     "public.broadcast_status": {
       "name": "broadcast_status",
       "schema": "public",
@@ -4714,6 +4365,7 @@
         "letters.view_photo",
         "beneficiaries.view",
         "beneficiaries.edit",
+        "beneficiaries.recover",
         "documents.view_metadata",
         "documents.view_file",
         "documents.edit",
@@ -4746,11 +4398,7 @@
         "appointments.slots",
         "appointments.documents",
         "appointments.manage",
-        "numbers.moderate",
-        "news.view",
-        "news.post",
-        "backup.view",
-        "backup.ask"
+        "numbers.moderate"
       ]
     },
     "public.place_kind": {

@@ -7,6 +7,7 @@ import { registerWhatsAppWorkers } from "../whatsapp/workers.js";
 import { getServices } from "../services.js";
 import { getBuddies } from "../buddies/service.js";
 import { getAppointments } from "../appointments/service.js";
+import { getEvents } from "../events/service.js";
 import { JOBS } from "./names.js";
 import type { WorkerQueue } from "./queue.js";
 
@@ -21,6 +22,9 @@ export async function registerWorkers(deps: WaDeps, queue: WorkerQueue): Promise
   });
   await queue.registerWorker(JOBS.helpDispatch, async (p) => {
     await getAppointments(deps).dispatch(p.now ? new Date(p.now) : deps.now());
+  });
+  await queue.registerWorker(JOBS.eventsDispatch, async (p) => {
+    await getEvents(deps).dispatch(p.now ? new Date(p.now) : deps.now());
   });
   await queue.registerWorker(JOBS.archivePurge, async () => {
     await purgeArchived(deps, deps.now());

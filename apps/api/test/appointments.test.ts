@@ -355,7 +355,7 @@ describe("other languages", () => {
     const p = t.phone("33615000013");
     await p.say("مرحبا، أحتاج مساعدة");
     await p.say("8");
-    expect(toInteractive(await p.last())?.choices.map((c) => c.id)).toEqual(["1", "2", "3", "0"]);
+    expect(toInteractive(await p.last())?.choices.map((c) => c.id)).toEqual(["1", "2", "3", "4", "0"]);
     await p.say("1");
     await p.say("١");
     await p.say("٢٠/١١/٢٠٢٦ ٩:٣٠");
@@ -372,7 +372,7 @@ describe("menus in all 28 languages", () => {
     const { LANGUAGE_CODES } = await import("@wilson/contracts");
     const ids = (text: string) => toInteractive(text)?.choices.map((c) => c.id);
     for (const l of LANGUAGE_CODES) {
-      expect([l, ids(waText(l, "help_menu"))]).toEqual([l, ["1", "2", "3", "0"]]);
+      expect([l, ids(waText(l, "help_menu"))]).toEqual([l, ["1", "2", "3", "4", "0"]]);
       expect([l, ids(waText(l, "help_place_menu"))]).toEqual([l, ["1", "2", "3", "4", "5"]]);
       expect([l, ids(waText(l, "help_form_menu"))]).toEqual([l, ["1", "2", "3", "4"]]);
       expect([l, ids(waText(l, "help_consent"))]).toEqual([l, ["1", "2"]]);

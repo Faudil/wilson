@@ -55,7 +55,7 @@ export const ku: Record<WaKey, string> = {
   announcements_on: "Hat tomarkirin: tu yê daxuyaniyan bistînî. Ji bo rawestandinê, STOP binivîse.",
   announcements_off: "Hat tomarkirin: êdî tu daxuyaniyan nastînî. Ji bo dîsa wergirtinê, di menuyê de 6 hilbijêre.",
   broadcast_stop_hint: "Ji bo rawestandina daxuyaniyan, STOP binivîse.",
-  help_menu: "Dilxwazek dikare alîkariya te bike:\n1 - Bi min re were randevûyekê\n2 - Bi hev re formekê tije bikin\n3 - Randevûyên min\n0 - Vegere menûyê",
+  help_menu: "Dilxwazek dikare alîkariya te bike:\n1 - Bi min re were randevûyekê\n2 - Bi hev re formekê tije bikin\n3 - Randevûyên min\n4 - Atolye û civîn\n0 - Vegere menûyê",
   help_place_menu: "Randevûya te li ku ye?\n1 - Prefektûr (Préfecture)\n2 - OFII\n3 - Nexweşxane an bijîşk\n4 - OFPRA an CNDA\n5 - Yên din",
   help_form_menu: "Kîjan form?\n1 - CAF (alîkarî)\n2 - ANEF (destûra rûniştinê)\n3 - AME (tenduristî)\n4 - Yên din",
   help_ask_datetime: "Dîrok û demjimêra randevûyê binivîse, mînak: 14/03/2027 9:30",

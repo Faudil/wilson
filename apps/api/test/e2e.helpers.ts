@@ -11,6 +11,7 @@ import { FakeProvider, resolveSamplesDir } from "../src/llm/fake.js";
 import { adoptServices } from "../src/services.js";
 import { registerWaDeps, type WaDeps } from "../src/whatsapp/context.js";
 import { SandboxTransport } from "../src/whatsapp/sandbox.js";
+import { withWebAccounts } from "../src/whatsapp/web.js";
 import { createVolunteer, makeClient, makeTestDeps, type TestCtx } from "./helpers.js";
 
 export type Client = ContractRouterClient<typeof contract>;
@@ -44,7 +45,8 @@ export async function makeE2E(opts: { now?: string; config?: Record<string, stri
   const ctx = await makeTestDeps({ now: opts.now ?? "2026-11-06T12:00:00Z", config: opts.config });
   const fake = new FakeProvider();
   const ben = ctx.services.beneficiaries;
-  const wa = new SandboxTransport({ db: ctx.deps.db, crypto: ctx.deps.crypto, blobs: ctx.deps.blobs, beneficiaries: ben });
+  const tdeps = { db: ctx.deps.db, crypto: ctx.deps.crypto, blobs: ctx.deps.blobs, beneficiaries: ben };
+  const wa = withWebAccounts(new SandboxTransport(tdeps), tdeps);
   const deps = { ...ctx.deps, llm: fake, wa };
   const letters = createLettersService(deps, ben, opts.knowledge);
   const wdeps: WaDeps = { ...deps, beneficiaries: ben, documents: ctx.services.documents, letters };

@@ -17,6 +17,8 @@ export interface BeneficiaryRow {
   createdAt: Date;
   /** Flood guard: quarantined and blocked numbers are not processed (see whatsapp/guard.ts). */
   guardStatus: "none" | "quarantined" | "blocked";
+  /** A web account ("Mon espace"): no phone number, address "web:<id>", no 24 h window. */
+  web: boolean;
 }
 
 export interface BeneficiariesService {
@@ -40,6 +42,6 @@ export interface BeneficiariesService {
   touchInbound(id: string, at: Date): Promise<void>;
   /** "Delete all my data": archive beneficiary + documents, purge after ARCHIVE_RETENTION_DAYS (then DEK destroyed). */
   archiveAll(id: string): Promise<void>;
-  /** "+33 •• •• •• •• 21" */
+  /** "+33 •• •• •• •• 21", or the account number "W-K7QD3M" of a web account. */
   label(id: string): Promise<string>;
 }

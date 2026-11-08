@@ -1,0 +1,569 @@
+/* "Mon espace", the beneficiaries' web space. Builds on the back-office tokens (app.css); logical properties only.
+   Big tap targets, one question per screen, readable on a small, old phone. */
+
+.moi-boot {
+  min-block-size: 100dvh;
+  background: var(--bg);
+}
+.moi-shell {
+  min-block-size: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  max-inline-size: 560px;
+  margin-inline: auto;
+}
+.moi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-block-size: var(--topbar-h);
+  padding-inline: 16px;
+  position: sticky;
+  inset-block-start: 0;
+  background: var(--bg);
+  z-index: 2;
+}
+.moi-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Montserrat", var(--fallbacks);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--brand-text);
+}
+.moi-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-block-size: var(--tap);
+  padding-inline: 4px;
+  background: none;
+  border: 0;
+  color: var(--brand-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+[dir="rtl"] .moi-back-arrow {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+.moi-step {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.moi-progress {
+  block-size: 4px;
+  margin-inline: 16px;
+  background: var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.moi-progress span {
+  display: block;
+  block-size: 100%;
+  background: var(--brand);
+  transition: inline-size var(--ease);
+}
+.moi-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 16px 32px;
+}
+.moi-title {
+  font-family: "Montserrat", var(--fallbacks);
+  font-size: 1.5rem;
+  line-height: 1.25;
+  margin: 0;
+}
+.moi-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+.moi-lead {
+  font-size: 1.15rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Welcome */
+.moi-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding-block: 24px 8px;
+}
+.moi-hero h1 {
+  font-family: "Montserrat", var(--fallbacks);
+  font-size: 2rem;
+  margin: 0;
+  color: var(--brand-text);
+}
+.moi-assoc {
+  margin: 0;
+  font-weight: 600;
+  color: var(--orange-ink);
+}
+.moi-lang {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  min-block-size: var(--tap);
+  font-size: 1.1rem;
+}
+.moi-lang select {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--ink);
+  min-block-size: 44px;
+}
+.moi-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-block-start: auto;
+}
+
+/* Sign-up */
+.moi-langs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.moi-lang-btn {
+  min-block-size: 56px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+  text-align: center;
+}
+.moi-lang-btn.is-current {
+  border: 2px solid var(--brand);
+  background: var(--brand-soft);
+  font-weight: 700;
+}
+.moi-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.moi-points li {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.moi-points p {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+.moi-point-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+.moi-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.moi-input {
+  inline-size: 100%;
+  min-block-size: var(--tap);
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.05rem;
+}
+.moi-input-lg {
+  font-size: 1.3rem;
+  min-block-size: 58px;
+}
+.moi-code {
+  letter-spacing: 0.15em;
+  text-align: center;
+  font-family: ui-monospace, "Noto Sans Mono", monospace;
+}
+.moi-hp {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.moi-check {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+/* Recovery words */
+.moi-words,
+.moi-slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+/* A word card: number, then the picture, then the word, stacked so long words ("grenouille") never break. */
+.moi-word,
+.moi-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-block-size: 92px;
+  padding: 10px 8px 8px;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+.moi-word {
+  border-color: var(--brand);
+}
+.moi-slot-next {
+  border-color: var(--orange);
+  border-style: dashed;
+}
+.moi-slot-filled {
+  border-color: var(--brand);
+}
+.moi-word-n {
+  position: absolute;
+  inset-block-start: 6px;
+  inset-inline-start: 10px;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.moi-word-pic {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+.moi-word-text {
+  font-weight: 700;
+  font-size: 1.1rem;
+  line-height: 1.2;
+}
+.moi-slots .moi-slot {
+  min-block-size: 76px;
+}
+.moi-slots .moi-word-pic {
+  font-size: 1.7rem;
+}
+.moi-handle {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--orange-soft);
+  color: var(--ink);
+}
+.moi-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.moi-picker-row {
+  display: flex;
+  gap: 8px;
+}
+.moi-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.moi-chip {
+  min-block-size: 44px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--brand);
+  background: var(--brand-soft);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.moi-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+.moi-grid-cell {
+  aspect-ratio: 1;
+  min-block-size: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.moi-grid-cell:hover,
+.moi-grid-cell:focus-visible {
+  background: var(--brand-soft);
+}
+.moi-lost {
+  align-self: center;
+  min-block-size: var(--tap);
+  background: none;
+  border: 0;
+  font: inherit;
+  text-decoration: underline;
+  color: var(--brand-text);
+  cursor: pointer;
+}
+
+/* Home */
+.moi-home {
+  block-size: 100dvh;
+}
+.moi-main-home {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+.moi-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-block-start: 1px solid var(--line);
+  background: var(--surface);
+  padding-block-end: env(safe-area-inset-bottom);
+}
+.moi-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-block-size: var(--tabbar-h);
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.moi-tab span:first-child {
+  font-size: 1.4rem;
+}
+.moi-tab.is-current {
+  color: var(--brand-text);
+  font-weight: 700;
+}
+.moi-chat {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+  background: var(--wa-bg);
+}
+.moi-thread {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 12px;
+}
+.moi-bubble {
+  max-inline-size: 86%;
+  padding: 8px 12px 6px;
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  color: var(--wa-ink);
+}
+.moi-bubble p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+.moi-bubble time {
+  display: block;
+  text-align: end;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-block-start: 2px;
+}
+.moi-bubble-wilson {
+  align-self: flex-start;
+  background: var(--surface);
+  border-start-start-radius: 4px;
+}
+.moi-bubble-me {
+  align-self: flex-end;
+  background: var(--wa-bubble);
+  border-start-end-radius: 4px;
+}
+/* A menu's options: two columns so a 10-option menu still leaves the conversation visible. */
+.moi-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  align-self: stretch;
+}
+.moi-choice {
+  min-block-size: var(--tap);
+  padding: 6px 10px;
+  line-height: 1.25;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--brand-text);
+  font: inherit;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+.moi-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  background: var(--surface);
+  border-block-start: 1px solid var(--line);
+}
+.moi-quick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.moi-quick-btn {
+  min-block-size: var(--tap);
+  font-size: 0.95rem;
+}
+.moi-write {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.moi-write textarea {
+  resize: none;
+  max-block-size: 120px;
+}
+.moi-send {
+  min-inline-size: var(--tap);
+  padding-inline: 0;
+}
+[dir="rtl"] .moi-send-icon {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+.moi-empty {
+  margin: auto;
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+.moi-docs {
+  list-style: none;
+  margin: 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+.moi-doc {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+.moi-doc div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.moi-doc-icon {
+  font-size: 1.6rem;
+}
+.moi-space {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 16px;
+  overflow-y: auto;
+}
+.moi-facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.moi-facts dt {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.moi-facts dd {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.moi-handle-big {
+  font-family: ui-monospace, "Noto Sans Mono", monospace;
+  font-size: 1.5rem !important;
+  letter-spacing: 0.08em;
+}
+.moi-assoc-contact {
+  margin: 0;
+  color: var(--muted);
+}
+.moi-danger-link {
+  color: var(--danger);
+  border-color: transparent;
+  background: transparent;
+}
+.moi-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.moi-confirm p {
+  margin: 0;
+}

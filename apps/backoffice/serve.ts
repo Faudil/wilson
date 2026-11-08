@@ -5,6 +5,7 @@
 import { existsSync } from "node:fs";
 import { join, normalize } from "node:path";
 import index from "./index.html";
+import moi from "./moi.html";
 import { buildBackoffice } from "./build";
 import { fontAssets } from "./fonts";
 
@@ -76,7 +77,8 @@ async function staticFile(req: Request): Promise<Response> {
   if (path.endsWith("/") || !(await file.exists())) {
     // A missing script, style or font (an old chunk after a deploy…) is a 404, never the HTML page under its name.
     if (/\.\w+$/.test(path)) return new Response("Not found", { status: 404, headers: SECURITY_HEADERS });
-    file = Bun.file(join(dist, "index.html"));
+    // /moi and below: the beneficiaries' web space; everything else: the back-office.
+    file = Bun.file(join(dist, /^\/moi(\/|$)/.test(path) ? "moi.html" : "index.html"));
   }
   const immutable = /-[a-z0-9]{8}\.\w+$/i.test(file.name ?? "");
   const headers: Record<string, string> = {
@@ -113,7 +115,11 @@ const server = Bun.serve({
   hostname: process.env.WEB_HOST ?? "0.0.0.0",
   maxRequestBodySize: 12 * 1024 * 1024,
   development: production ? false : { hmr: true, console: true },
-  routes: { "/rpc/*": proxy, "/webhooks/*": proxy, "/fonts/*": production ? staticFile : devFonts(), "/*": production ? staticFile : index },
+  routes: {
+    "/rpc/*": proxy, "/webhooks/*": proxy, "/fonts/*": production ? staticFile : devFonts(),
+    "/moi": production ? staticFile : moi, "/moi/*": production ? staticFile : moi,
+    "/*": production ? staticFile : index,
+  },
   fetch: staticFile,
 });
 

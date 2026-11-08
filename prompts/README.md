@@ -1,6 +1,6 @@
 # Prompts
 
-Versioned LLM prompts for "Mon courrier". File name: `<name>.v<N>.md`. The loader (`apps/api/src/llm/prompts.ts`) exposes the version string `<name>@<N>` (e.g. `letter-analysis@1`), which is stored in each analysis as `promptVersion`.
+Versioned LLM prompts for "Wilson". File name: `<name>.v<N>.md`. The loader (`apps/api/src/llm/prompts.ts`) exposes the version string `<name>@<N>` (e.g. `letter-analysis@1`), which is stored in each analysis as `promptVersion`.
 
 ## Versioning rule
 

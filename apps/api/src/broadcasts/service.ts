@@ -55,7 +55,7 @@ function createBroadcastsService(deps: BDeps): BroadcastsService {
 
   /** Everyone who said yes to announcements, still active, in the chosen languages. */
   async function audience(languages: LanguageCode[] | null) {
-    return db.select({ id: beneficiaries.id, language: beneficiaries.language, lastInboundAt: beneficiaries.lastInboundAt })
+    return db.select({ id: beneficiaries.id, language: beneficiaries.language, lastInboundAt: beneficiaries.lastInboundAt, webHandle: beneficiaries.webHandle })
       .from(beneficiaries)
       .where(and(
         isNotNull(beneficiaries.announcementsOptInAt), isNull(beneficiaries.archivedAt),
@@ -69,7 +69,7 @@ function createBroadcastsService(deps: BDeps): BroadcastsService {
     let inWindow = 0;
     for (const p of people) {
       counts.set(p.language, (counts.get(p.language) ?? 0) + 1);
-      if (windowOpen(deps, p.lastInboundAt)) inWindow++;
+      if (windowOpen(deps, p.lastInboundAt, p.webHandle !== null)) inWindow++;
     }
     const outsideWindow = people.length - inWindow;
     const byLanguage = [...counts].map(([language, count]) => ({ language, count })).sort((a, z) => z.count - a.count);

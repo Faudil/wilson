@@ -9,6 +9,10 @@
       "default": "./src/index.ts"
     },
     "./ui/*": "./src/ui/*",
+    "./web/*": {
+      "types": "./src/web/*.ts",
+      "default": "./src/web/*.ts"
+    },
     "./dates": {
       "types": "./src/dates.ts",
       "default": "./src/dates.ts"

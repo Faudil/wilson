@@ -55,7 +55,7 @@ export const wo: Record<WaKey, string> = {
   announcements_on: "Bind nanu ko: dinga jot yégle yi. Ngir taxawal, bind STOP.",
   announcements_off: "Bind nanu ko: doo jotati yégle. Ngir jotaat leen, tànnal 6 ci menu bi.",
   broadcast_stop_hint: "Ngir bañ a jotati yégle, bind STOP.",
-  help_menu: "Ab jëmbat man na la dimbali:\n1 - Ñu dem ak man ci ab ndaje\n2 - Ñu fees ab formileer ànd\n3 - Samay ndaje\n0 - Dellu ci menu bi",
+  help_menu: "Ab jëmbat man na la dimbali:\n1 - Ñu dem ak man ci ab ndaje\n2 - Ñu fees ab formileer ànd\n3 - Samay ndaje\n4 - Atelie ak ndaje\n0 - Dellu ci menu bi",
   help_place_menu: "Fan la sa ndaje nekk?\n1 - Prefektiir (Préfecture)\n2 - OFII\n3 - Opitaal walla doktoor\n4 - OFPRA walla CNDA\n5 - Leneen",
   help_form_menu: "Ban formileer?\n1 - CAF (ndimbal)\n2 - ANEF (kayitu dëkk)\n3 - AME (wér-gi-yaram)\n4 - Leneen",
   help_ask_datetime: "Bindal bés bi ak waxtu ndaje bi, misaal: 14/03/2027 9:30",

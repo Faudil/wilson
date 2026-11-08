@@ -1,4 +1,4 @@
-# Mon courrier — POC
+# Wilson — POC
 
 Service WhatsApp pour les personnes accompagnées par l'association :
 
@@ -141,6 +141,7 @@ La recherche se fait dans notre propre base, sans service extérieur : aucune do
 - L'admin peut ensuite changer le rôle ou **désactiver** un compte (déconnexion immédiate ; ses discussions repassent « Personne demandée »). Une demande refusée est supprimée.
 - **Association** : la personne indique son association. En tapant le nom, des suggestions viennent du registre officiel (API Recherche d'entreprises de l'État, associations du RNA, gratuite et sans clé). Si l'association n'est pas trouvée, le nom tapé est gardé tel quel. Dans **Bénévoles**, l'admin voit l'association avec son numéro RNA (pastille verte) ou la mention « Saisie libre ». `ASSOCIATION_SEARCH=off` désactive les suggestions.
 - Pour fermer les inscriptions en ligne : `VOLUNTEER_SIGNUP=off`. Au-delà de `VOLUNTEER_SIGNUP_MAX_PENDING` demandes en attente (30 par défaut), les nouvelles sont refusées (anti-spam).
+- **Sans WhatsApp : « Mon espace »** (`/moi`). Une personne crée un compte en 4 étapes guidées : sa langue, ce que c'est, un prénom (ou surnom), puis six mots-images à garder (pas de téléphone, pas d'e-mail). Elle y retrouve tout ce que fait le robot WhatsApp : expliquer un courrier, garder ses documents, écrire aux bénévoles. Mots perdus ou téléphone volé : sur la fiche de la personne, **Espace web** permet de bloquer le compte et de donner un code de déblocage à usage unique (droit `beneficiaries.recover`, application d'authentification obligatoire). `BENEFICIARY_SIGNUP=off` ferme les inscriptions.
 - Les messages vocaux ne sont pas pris en charge (il faudrait un service de transcription tiers) : le robot demande d'écrire.
 - L'historique envoyé à l'IA ne contient que les derniers messages de la discussion (texte), jamais le numéro ni le nom.
 

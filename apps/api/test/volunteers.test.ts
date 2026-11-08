@@ -51,7 +51,7 @@ describe("volunteer self-signup", () => {
 
     const me = await anon.client.auth.login({ email: "amina@example.org", password: "bien-long-mot-de-passe" });
     expect(me.role).toBe("responder");
-    expect(me.permissions.sort()).toEqual(["backup.ask", "backup.view", "conversations.reply", "conversations.view", "knowledge.view", "news.view", "places.view", "skills.edit_own"]);
+    expect(me.permissions.sort()).toEqual(["backup.ask", "backup.view", "conversations.reply", "conversations.view", "events.join", "events.view", "knowledge.view", "news.view", "places.view", "skills.edit_own"]);
     expect(await code(anon.client.conversations.list({ filter: "all", limit: 5 }))).toBe("ok");
     expect(await code(anon.client.letters.list({ limit: 5 }))).toBe("FORBIDDEN");
     expect(await code(anon.client.beneficiaries.list({ limit: 5 }))).toBe("FORBIDDEN");
