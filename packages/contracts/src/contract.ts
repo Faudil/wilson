@@ -1,6 +1,6 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-import { AssociationRefSchema, AssociationSchema, AssociationSearchInputSchema, InvitationPreviewSchema, InvitationSchema, LoginInputSchema, PermissionSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
+import { AssociationRefSchema, AssociationSchema, AssociationSearchInputSchema, ChangelogIdSchema, InvitationPreviewSchema, InvitationSchema, LoginInputSchema, PermissionSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
 import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
@@ -9,6 +9,7 @@ import { KnowledgeHitSchema, KnowledgeSearchInputSchema, KnowledgeSourceIdSchema
 import { LanguageSchema } from "./languages.js";
 import { BroadcastInputSchema, BroadcastEstimateSchema, BroadcastSchema } from "./broadcasts.js";
 import { PlaceInputSchema, PlaceSchema } from "./places.js";
+import { BackupCallSchema, BackupInputSchema, NewsInputSchema, NewsPostSchema, NewsUpdateSchema } from "./team.js";
 import { LetterDetailSchema, LetterEditSchema, LetterStatusSchema, LetterSummarySchema } from "./letters.js";
 import { SandboxMessageSchema, SandboxPhoneSchema, SandboxSendInputSchema } from "./sandbox.js";
 import { CaseFileSchema, CaseNoteSchema, CaseTaskSchema, NoteTextSchema, TaskAddSchema, TaskListInputSchema, TaskUpdateSchema } from "./notes.js";
@@ -64,6 +65,8 @@ const auth = {
   twoFactorEnable: base.input(z.object({ code: TotpCodeSchema })).output(VolunteerSchema),
   /** Needs a current code. Admin rights are withheld again afterwards (ADMIN_2FA=required). */
   twoFactorDisable: base.input(z.object({ code: TotpCodeSchema })).output(VolunteerSchema),
+  /** The "What's new in Wilson" sheet was shown up to this entry (id of the newest entry, e.g. "2026-11-08"). */
+  markChangelogSeen: base.input(z.object({ id: ChangelogIdSchema })).output(VolunteerSchema),
 };
 
 /** Review queue (copilot mode). Nothing reaches a beneficiary without `approve`. */
@@ -357,9 +360,44 @@ const invitations = {
   revoke: base.input(z.object({ id: IdSchema })).output(InvitationSchema),
 };
 
+/**
+ * Team news: what the association tells its volunteers ("office closed Monday", "new CAF procedure"). `news.view`
+ * reads the posts for everyone and for one's own association; `news.post` writes them: global admins
+ * (volunteers.manage) to everyone or any association, others only to their own association (FORBIDDEN without one).
+ * Editing, pinning and removing: the author, or anyone who could have posted it.
+ */
+const news = {
+  /** Pinned first, then newest first. */
+  list: base.input(z.object({ limit: z.number().int().min(1).max(100).default(30) })).output(z.array(NewsPostSchema)),
+  /** Unread posts for the home screen card (newest first, at most 3) and how many there are. */
+  unread: base.output(z.object({ count: z.number().int().nonnegative(), latest: z.array(NewsPostSchema) })),
+  /** Posts the caller has seen (opening the News screen, or "mark as read" on Home). Unknown ids are ignored. */
+  markRead: base.input(z.object({ ids: z.array(IdSchema).min(1).max(100) })).output(z.void()),
+  create: base.input(NewsInputSchema).output(NewsPostSchema),
+  update: base.input(NewsUpdateSchema).output(NewsPostSchema),
+  remove: base.input(z.object({ id: IdSchema })).output(z.void()),
+};
+
+/**
+ * Calls for backup between volunteers ("need an Arabic speaker tomorrow 10:00 at the prefecture"). Visible to one's
+ * association, or to everyone when `openToAll`; global admins see all. `backup.view` lists and offers help,
+ * `backup.ask` posts. Closing (covered / cancelled): the author, or a global admin, or the association's admin.
+ * CONFLICT { reason: "not_open" } on a closed or past call, { reason: "own_call" } when offering on one's own.
+ */
+const backup = {
+  /** open: still needed, today or later (yours included); mine: the ones you posted or offered on; past: closed or over. */
+  list: base.input(z.object({ scope: z.enum(["open", "mine", "past"]).default("open") })).output(z.array(BackupCallSchema)),
+  /** Open calls from others the caller has not answered yet, and how many of them match the caller's profile. */
+  counts: base.output(z.object({ open: z.number().int().nonnegative(), forMe: z.number().int().nonnegative() })),
+  create: base.input(BackupInputSchema).output(BackupCallSchema),
+  offer: base.input(z.object({ id: IdSchema, note: z.string().trim().max(300).optional() })).output(BackupCallSchema),
+  withdraw: base.input(z.object({ id: IdSchema })).output(BackupCallSchema),
+  close: base.input(z.object({ id: IdSchema, status: z.enum(["covered", "cancelled"]) })).output(BackupCallSchema),
+};
+
 const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional(), emailVerification: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, numbers, system };
+export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, news, backup, buddies, appointments, numbers, system };
 export type Contract = typeof contract;

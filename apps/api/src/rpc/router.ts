@@ -17,6 +17,7 @@ import { volunteersRouter } from "./volunteers.js";
 import { associationsRouter, invitationsRouter } from "./associations.js";
 import { placesRouter } from "./places.js";
 import { broadcastsRouter } from "./broadcasts.js";
+import { backupRouter, newsRouter } from "./team.js";
 
 export const router = os.router({
   auth: authRouter,
@@ -36,6 +37,8 @@ export const router = os.router({
   skills: skillsRouter,
   places: placesRouter,
   broadcasts: broadcastsRouter,
+  news: newsRouter,
+  backup: backupRouter,
   buddies: buddiesRouter,
   appointments: appointmentsRouter,
   numbers: numbersRouter,

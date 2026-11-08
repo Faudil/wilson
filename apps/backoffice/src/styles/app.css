@@ -2735,3 +2735,104 @@ fieldset {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* ---------------------------------------------------------------- Team news, calls for backup, what's new */
+.home-news {
+  border-inline-start: 4px solid var(--brand);
+  gap: 12px;
+}
+.home-news-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1.0625rem;
+  color: var(--brand-text);
+}
+.home-news-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.home-news-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  margin-inline: -12px;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-decoration: none;
+}
+.home-news-item:hover {
+  background: var(--surface-2);
+}
+.home-news-excerpt {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--ink);
+}
+.news-card.is-unread {
+  border-inline-start: 4px solid var(--orange);
+  padding-inline-start: 13px;
+}
+.news-body {
+  white-space: pre-line;
+  margin: 0;
+}
+.news-reads {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--brand-text);
+  font-weight: 600;
+}
+.backup-card.is-for-me {
+  border-inline-start: 4px solid var(--ok);
+  padding-inline-start: 13px;
+}
+.backup-offers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--ok-bg);
+  color: var(--ok-ink);
+}
+.backup-offers ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.backup-offers li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.backup-offers li > .icon {
+  flex: none;
+  margin-block-start: 3px;
+}
+.whats-new-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.whats-new-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}

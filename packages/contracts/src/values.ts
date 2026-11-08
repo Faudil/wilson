@@ -136,6 +136,11 @@ export const PERMISSIONS = [
   "appointments.documents", // open the person's saved documents, only for a session you hold and only if they agreed
   "appointments.manage", // see every appointment and who holds it, cancel any, remove anyone's slot
   "numbers.moderate", // release a WhatsApp number held by the flood guard, block or unblock a number
+  // — Team side: news from the association to its volunteers, and volunteers asking each other for backup —
+  "news.view", // read the team news of one's association (and the posts for everyone)
+  "news.post", // post team news: global admins to everyone or one association, association admins to their own
+  "backup.view", // see calls for backup from one's association (and those open to everyone), offer to help
+  "backup.ask", // post a call for backup ("need an Arabic speaker tomorrow at the prefecture"), close one's own
 ] as const;
 export type PermissionValue = (typeof PERMISSIONS)[number];
 
@@ -169,6 +174,9 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
   "appointments.slots",
   "appointments.documents",
   "numbers.moderate",
+  "news.view",
+  "backup.view",
+  "backup.ask",
 ];
 
 /**
@@ -180,21 +188,22 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
  * meeting people in person needs an admin's trust, so it is granted per person.
  * Volunteers can also be someone's French practice buddy.
  * admin: + volunteers, audit, knowledge sync, usage, moderating notes, approving announcements, arranging French
- * buddies and handling their reports, managing appointments.
+ * buddies and handling their reports, managing appointments, posting team news.
+ * Every role reads team news and calls for backup, and can ask the others for backup.
  */
 /**
- * Granted on top of the role to an association admin (set by a global admin), never part of a role bundle:
- * the server limits it to members of that association.
+ * Granted on top of the role to an association admin (set by a global admin): the server limits both to that
+ * association (members.manage: its members; news.post: news for its volunteers). members.manage is in no role bundle.
  */
-export const ASSOCIATION_ADMIN_PERMISSIONS: readonly PermissionValue[] = ["members.manage"];
+export const ASSOCIATION_ADMIN_PERMISSIONS: readonly PermissionValue[] = ["members.manage", "news.post"];
 
 /** What an association admin may never hand out (to keep them inside their association and below global admins). */
 export const GLOBAL_ONLY_PERMISSIONS: readonly PermissionValue[] = ["volunteers.manage", "associations.manage", "members.manage", "usage.manage", "knowledge.manage", "audit.view"];
 
 export const ROLE_PERMISSIONS: Record<(typeof VOLUNTEER_ROLES)[number], readonly PermissionValue[]> = {
-  responder: ["conversations.view", "conversations.reply", "knowledge.view", "places.view", "skills.edit_own"],
+  responder: ["conversations.view", "conversations.reply", "knowledge.view", "places.view", "skills.edit_own", "news.view", "backup.view", "backup.ask"],
   volunteer: VOLUNTEER_BUNDLE,
-  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "associations.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"],
+  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "associations.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage", "news.post"],
 };
 
 /** Kinds of places volunteers post for the day (shown with an emoji in WhatsApp, grouped in this order). */

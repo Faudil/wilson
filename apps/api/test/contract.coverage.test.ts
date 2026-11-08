@@ -33,6 +33,7 @@ const INPUTS: Record<string, unknown> = {
   "auth.twoFactorSetup": undefined,
   "auth.twoFactorEnable": { code: "123456" },
   "auth.twoFactorDisable": { code: "123456" },
+  "auth.markChangelogSeen": { id: "2026-11-08" },
   "letters.list": { limit: 5 },
   "letters.get": { id },
   "letters.photo": { id },
@@ -87,6 +88,18 @@ const INPUTS: Record<string, unknown> = {
   "broadcasts.preview": { id, language: "en" },
   "broadcasts.approve": { id },
   "broadcasts.cancel": { id },
+  "news.list": { limit: 10 },
+  "news.unread": undefined,
+  "news.markRead": { ids: [id] },
+  "news.create": { title: "Permanence fermée", body: "Lundi la permanence est fermée." },
+  "news.update": { id, title: "Permanence fermée", body: "Lundi.", pinned: false },
+  "news.remove": { id },
+  "backup.list": { scope: "open" },
+  "backup.counts": undefined,
+  "backup.create": { title: "Interprète arabe", neededOn: "2026-12-01" },
+  "backup.offer": { id },
+  "backup.withdraw": { id },
+  "backup.close": { id, status: "covered" },
   "usage.summary": undefined,
   "usage.setBudget": { monthlyLimitUsd: 50, hardStop: false },
   "usage.listKeys": undefined,
@@ -144,7 +157,7 @@ const INPUTS: Record<string, unknown> = {
 /** The permission(s) each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
 const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "auth.me": null, "auth.setUiLanguage": null,
-  "auth.twoFactorSetup": null, "auth.twoFactorEnable": null, "auth.twoFactorDisable": null,
+  "auth.twoFactorSetup": null, "auth.twoFactorEnable": null, "auth.twoFactorDisable": null, "auth.markChangelogSeen": null,
   "letters.list": "letters.review", "letters.get": "letters.review", "letters.edit": "letters.review",
   "letters.approve": "letters.review", "letters.reject": "letters.review", "letters.photo": "letters.view_photo",
   "beneficiaries.list": "beneficiaries.view", "beneficiaries.get": "beneficiaries.view", "beneficiaries.setLanguage": "beneficiaries.edit",
@@ -168,6 +181,13 @@ const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "broadcasts.cancel": "broadcasts.view",
   "broadcasts.create": "broadcasts.create", "broadcasts.update": "broadcasts.create",
   "broadcasts.approve": "broadcasts.approve",
+  "news.list": "news.view", "news.unread": "news.view", "news.markRead": "news.view",
+  // news.post: the audience (own association, or anywhere for global admins) is checked in team.test.ts. This
+  // volunteer has no association, so posting also needs volunteers.manage (a post to everyone).
+  "news.create": ["news.post", "volunteers.manage"], "news.update": "news.post", "news.remove": "news.post",
+  "backup.list": "backup.view", "backup.counts": "backup.view", "backup.offer": "backup.view", "backup.withdraw": "backup.view",
+  // close: needs view, then the author or an admin; tested in team.test.ts.
+  "backup.close": "backup.view", "backup.create": "backup.ask",
   "usage.summary": "usage.manage", "usage.setBudget": "usage.manage", "usage.listKeys": "usage.manage",
   "usage.addKey": "usage.manage", "usage.updateKey": "usage.manage", "usage.removeKey": "usage.manage",
   "notes.list": "notes.view", "notes.add": "notes.write", "notes.edit": "notes.write", "notes.remove": "notes.write",
@@ -221,7 +241,7 @@ describe("contract coverage", () => {
       const v = await createVolunteer(t.deps);
       await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: perm, granted: false });
       // knowledge.manage / volunteers.manage are admin-only by role: grant them per-volunteer so every other procedure starts allowed.
-      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "associations.manage", "usage.manage", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"] as const) {
+      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "associations.manage", "usage.manage", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage", "news.post"] as const) {
         if (perm !== adminOnly) await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: adminOnly, granted: true });
       }
       const { client } = makeClient(t.deps);

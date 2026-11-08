@@ -1,9 +1,11 @@
 import { useI18n, type MessageKey } from "../i18n";
 import { Icon, type IconName } from "../components/Icon";
 import { Empty, Skeleton } from "../components/ui";
-import { useAppointmentCounts, useAttentionCount, useDueTasks, useLetterStats, usePendingVolunteers, useWeekDeadlines } from "../lib/counts";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { orpc } from "../lib/api";
+import { useAppointmentCounts, useAttentionCount, useBackupCounts, useDueTasks, useLetterStats, useNewsUnread, usePendingVolunteers, useWeekDeadlines } from "../lib/counts";
 import { BudgetNotice, useUsageBudget } from "../components/BudgetNotice";
-import { firstName, longDate } from "../lib/relative";
+import { firstName, longDate, relativeTime } from "../lib/relative";
 import { href } from "../lib/router";
 import { canManageMembers, useSession } from "../lib/session";
 
@@ -49,6 +51,43 @@ function Tile({
   );
 }
 
+/** Unread team news, newest first: the first lines of each, "read all" and "mark as read". */
+function NewsCard({ count, latest }: { count: number; latest: ReturnType<typeof useNewsUnread>["latest"] }) {
+  const { t, lang } = useI18n();
+  const qc = useQueryClient();
+  const markRead = useMutation({ ...orpc.news.markRead.mutationOptions(), onSuccess: () => void qc.invalidateQueries({ queryKey: orpc.news.key() }) });
+  if (count === 0 || latest.length === 0) return null;
+  return (
+    <section className="card home-news" aria-labelledby="home-news-title">
+      <div className="row between">
+        <h2 id="home-news-title" className="home-news-title">
+          <Icon name="megaphone" size={20} />
+          {t("home.news.title")}
+        </h2>
+        <span className="segmented-count" aria-label={String(count)}>{count}</span>
+      </div>
+      <ul className="home-news-list">
+        {latest.slice(0, 2).map((p) => (
+          <li key={p.id}>
+            <a href={href("news")} className="home-news-item">
+              <strong dir="auto">{p.title}</strong>
+              <span className="home-news-excerpt" dir="auto">{p.body}</span>
+              <span className="muted small">{p.authorName ? t("news.byWhen", { name: p.authorName, when: relativeTime(p.createdAt, lang) }) : relativeTime(p.createdAt, lang)}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      <div className="row wrap">
+        <a className="btn btn-small btn-primary" href={href("news")}>{count > 2 ? t("home.news.readAll", { n: count }) : t("home.news.read")}</a>
+        <button type="button" className="btn btn-small btn-quiet" disabled={markRead.isPending} onClick={() => markRead.mutate({ ids: latest.map((p) => p.id) })}>
+          <Icon name="check" size={16} />
+          {t("home.news.markRead")}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function Home() {
   const { t, lang } = useI18n();
   const session = useSession();
@@ -66,11 +105,14 @@ export function Home() {
   const dueTasks = useDueTasks(canTasks);
   const canAppointments = can("appointments.view");
   const appointments = useAppointmentCounts(canAppointments);
+  const news = useNewsUnread(can("news.view"));
+  const canBackup = can("backup.view");
+  const backup = useBackupCounts(canBackup);
 
   const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/Paris" }).format(new Date())) % 24;
   const greetKey: MessageKey = hour < 12 ? "home.morning" : hour < 18 ? "home.afternoon" : "home.evening";
   const loading = (canLetters && letters.query.isPending) || (canDeadlines && deadlines.query.isPending);
-  const nothing = !loading && (!canLetters || letters.pending === 0) && (!canChats || chats === 0) && (!canDeadlines || deadlines.count === 0) && dueTasks === 0 && (!canAppointments || appointments.open + appointments.mineSoon === 0);
+  const nothing = !loading && (!canLetters || letters.pending === 0) && (!canChats || chats === 0) && (!canDeadlines || deadlines.count === 0) && dueTasks === 0 && (!canAppointments || appointments.open + appointments.mineSoon === 0) && (!canBackup || backup.open === 0) && news.count === 0;
 
   return (
     <section className="stack-lg">
@@ -80,6 +122,8 @@ export function Home() {
       </header>
 
       <BudgetNotice budget={budget} link={href("usage")} />
+
+      <NewsCard count={news.count} latest={news.latest} />
 
       {loading && <Skeleton lines={3} />}
 
@@ -115,6 +159,18 @@ export function Home() {
                 title={t("home.appointments.title")}
                 desc={t("home.appointments.desc")}
                 note={appointments.mineSoon > 0 ? t("home.appointments.mine", { n: appointments.mineSoon }) : undefined}
+              />
+            )}
+            {canBackup && backup.open > 0 && (
+              <Tile
+                to={href("backup")}
+                icon="hand"
+                tone="accent"
+                count={backup.open}
+                loading={false}
+                title={t("home.backup.title")}
+                desc={t("home.backup.desc")}
+                note={backup.forMe > 0 ? t("home.backup.forMe", { n: backup.forMe }) : undefined}
               />
             )}
             {canDeadlines && <Tile to={href("deadlines")} icon="calendar" tone="info" count={deadlines.count} loading={false} title={t("home.deadlines.title")} desc={t("home.deadlines.desc")} />}
