@@ -80,4 +80,12 @@ export const ff: Record<WaKey, string> = {
   guard_slow_down: "Aɗa neldude mesaasaaji keewɗi. Tiiɗno habbo seɗɗa minitiiji, refti winndu kadi.",
   guard_held: "Mesaasaaji maaɗa ina ndaarii jooni. Ɓeydaaɗo goɗɗo ƴeewto ɗi, jokkondira e maaɗa.",
   guard_released: "Jarama e muñal maaɗa. A waawi winndude men kadi.",
+  nearby_hint: "📍 Ngam yiyde nokkuuje ɓadiiɗe ma, lollin nokku maa (📎 caggal ɗuum 📍) walla winndu ñiiɓirde walla innde garaas.",
+  nearby_title: "📍 Ɓadii ma, udditii hannde (ko ustaa {distance}):",
+  nearby_none: "Mi tawaani hay huunde udditiinde ɓadiinde nokku oo hannde.",
+  nearby_not_found: "Mi tawaani ñiiɓirde nde. Winndu nde e innde wuro ngoo, walla lollin nokku maa (📎 caggal ɗuum 📍).",
+  nearby_water: "Ndiyam njaraaɗam",
+  nearby_toilets: "Duuɗe renndo",
+  nearby_shower: "Lootorde renndo",
+  nearby_pharmacy: "Farmasi",
 };

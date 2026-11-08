@@ -80,4 +80,12 @@ export const ti: Record<WaKey, string> = {
   guard_slow_down: "ብዙሕ መልእኽትታት ትሰድድ ኣለኻ። በጃኻ ቁሩብ ደቓይቕ ተጸበ፣ ድሕሪኡ እንደገና ጽሓፍ።",
   guard_held: "መልእኽትታትካ ሕጂ ኣብ ምጽባይ ኣለዉ። ሓደ ወለንታዊ ክርእዮምን ክረኽበካን እዩ።",
   guard_released: "ስለ ዝተጸበኻ የቐንየልና። እንደገና ክትጽሕፈልና ትኽእል ኢኻ።",
+  nearby_hint: "📍 ናብኹም ዝቐረቡ ቦታታት ንምርኣይ፡ ቦታኹም ኣካፍሉ (📎 ድሕሪኡ 📍) ወይ ኣድራሻ ወይ ስም መደበር ጽሓፉ።",
+  nearby_title: "📍 ኣብ ጥቓኹም፡ ሎሚ ክፉት ({distance} ውሽጢ)፦",
+  nearby_none: "ሎሚ ኣብ ጥቓ እዚ ቦታ ክፉት ዝኾነ ነገር ኣይረኸብኩን።",
+  nearby_not_found: "እዚ ኣድራሻ ኣይረኸብክዎን። ምስ ስም ከተማ ጽሓፍዎ፡ ወይ ቦታኹም ኣካፍሉ (📎 ድሕሪኡ 📍)።",
+  nearby_water: "ናይ ምስታይ ማይ",
+  nearby_toilets: "ህዝባዊ ሽቓቕ",
+  nearby_shower: "ህዝባዊ ሻወር",
+  nearby_pharmacy: "ፋርማሲ",
 };

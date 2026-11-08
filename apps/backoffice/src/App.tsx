@@ -12,7 +12,7 @@ import { useAppointmentCounts, useAttentionCount, useDueTasks, useHeldNumbers, u
 import { LazyBoundary, lazyScreens, prefetchScreens } from "./lib/lazy";
 import { initials } from "./lib/relative";
 import { href, useRoute } from "./lib/router";
-import { SessionContext, type Session } from "./lib/session";
+import { canManageMembers, SessionContext, type Session } from "./lib/session";
 import { Home } from "./screens/Home";
 import { Login } from "./screens/Login";
 import markUrl from "./brand/mark.svg";
@@ -30,6 +30,7 @@ const { Sandbox } = lazyScreens(() => import("./screens/Sandbox"), "Sandbox");
 const { Signup, VerifyEmail } = lazyScreens(() => import("./screens/Signup"), "Signup", "VerifyEmail");
 const { TwoFactorPanel } = lazyScreens(() => import("./screens/TwoFactor"), "TwoFactorPanel");
 const { Volunteers } = lazyScreens(() => import("./screens/Volunteers"), "Volunteers");
+const { Associations } = lazyScreens(() => import("./screens/Associations"), "Associations");
 const { BuddyDetail, BuddyList } = lazyScreens(() => import("./screens/Buddies"), "BuddyDetail", "BuddyList");
 const { Usage } = lazyScreens(() => import("./screens/Usage"), "Usage");
 const { Tasks } = lazyScreens(() => import("./screens/Tasks"), "Tasks");
@@ -117,7 +118,8 @@ function AccountSheet({ open, onClose, onLogout, volunteer }: { open: boolean; o
 }
 
 /** permission: null = everyone; an array = any one of them. */
-type NavItem = { key: string; label: MessageKey; icon: IconName; desc?: MessageKey; permission: Permission | Permission[] | null; sandboxOnly?: boolean };
+/** when: replaces the permission check when access depends on more than one right (e.g. an association). */
+type NavItem = { key: string; label: MessageKey; icon: IconName; desc?: MessageKey; permission: Permission | Permission[] | null; when?: (s: Session) => boolean; sandboxOnly?: boolean };
 
 const TABS: NavItem[] = [
   { key: "queue", label: "nav.queue", icon: "mail", permission: "letters.review" },
@@ -133,7 +135,8 @@ const MORE: NavItem[] = [
   { key: "deadlines", label: "nav.deadlines", icon: "calendar", desc: "more.deadlines", permission: "documents.view_metadata" },
   { key: "knowledge", label: "nav.knowledge", icon: "book", desc: "more.knowledge", permission: "knowledge.view" },
   { key: "buddies", label: "nav.buddies", icon: "hand", desc: "more.buddies", permission: ["buddies.be_buddy", "buddies.manage", "buddies.reports"] },
-  { key: "volunteers", label: "nav.volunteers", icon: "users", desc: "more.volunteers", permission: "volunteers.manage" },
+  { key: "volunteers", label: "nav.volunteers", icon: "users", desc: "more.volunteers", permission: "volunteers.manage", when: canManageMembers },
+  { key: "associations", label: "nav.associations", icon: "building", desc: "more.associations", permission: "associations.manage" },
   { key: "numbers", label: "nav.numbers", icon: "shield", desc: "more.numbers", permission: "numbers.moderate" },
   { key: "usage", label: "nav.usage", icon: "chart", desc: "more.usage", permission: "usage.manage" },
   { key: "languages", label: "nav.languages", icon: "globe", desc: "more.languages", permission: null },
@@ -302,7 +305,7 @@ export function App() {
   const attention = useAttentionCount(!!session && session.can("conversations.view"));
   const letterStats = useLetterStats(!!session && session.can("letters.review"));
 
-  const pendingVolunteers = usePendingVolunteers(!!session && session.can("volunteers.manage"));
+  const pendingVolunteers = usePendingVolunteers(!!session && canManageMembers(session));
   const dueTasks = useDueTasks(!!session && session.can("notes.view"));
   const appointments = useAppointmentCounts(!!session && session.can("appointments.view"));
   const heldNumbers = useHeldNumbers(!!session && session.can("numbers.moderate"));
@@ -350,12 +353,12 @@ export function App() {
     );
   }
   if (!session) {
-    return <Shell>{section === "signup" ? <Signup /> : <Login />}</Shell>;
+    return <Shell>{section === "signup" ? <Signup /> : section === "join" && arg ? <Signup invitationToken={arg} /> : <Login />}</Shell>;
   }
 
   const sandboxOn = health.data?.mode === "sandbox";
   const permitted = (p: NavItem["permission"]) => p === null || (Array.isArray(p) ? p.some((x) => session.can(x)) : session.can(p));
-  const allowedItem = (n: NavItem) => permitted(n.permission) && (!n.sandboxOnly || sandboxOn);
+  const allowedItem = (n: NavItem) => (n.when ? n.when(session) : permitted(n.permission)) && (!n.sandboxOnly || sandboxOn);
   const tabs = TABS.filter(allowedItem);
   const moreItems = MORE.filter(allowedItem);
   const allowed = (key: string) => [...tabs, ...moreItems].some((n) => n.key === key);
@@ -372,6 +375,7 @@ export function App() {
   else if (section === "languages") screen = <LanguageTest />;
   else if (section === "sandbox" && allowed("sandbox")) screen = <Sandbox />;
   else if (section === "volunteers" && allowed("volunteers")) screen = <Volunteers />;
+  else if (section === "associations" && allowed("associations")) screen = <Associations />;
   else if (section === "usage" && allowed("usage")) screen = <Usage />;
   else if (section === "tasks" && allowed("tasks")) screen = <Tasks />;
   else if (section === "skills" && allowed("skills")) screen = <Skills />;
@@ -383,7 +387,7 @@ export function App() {
   else if (section === "appointments" && allowed("appointments")) screen = <Appointments />;
   else screen = <Home />;
 
-  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters", "volunteers", "usage", "tasks", "skills", "places", "broadcasts", "buddies", "appointments", "numbers"];
+  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters", "volunteers", "associations", "usage", "tasks", "skills", "places", "broadcasts", "buddies", "appointments", "numbers"];
   const current = section === "letters" ? "queue" : known.includes(section) ? section : "";
   const focus = (section === "letters" || section === "conversations") && !!arg;
 

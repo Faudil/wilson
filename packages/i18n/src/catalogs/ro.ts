@@ -80,4 +80,12 @@ export const ro: Record<WaKey, string> = {
   guard_slow_down: "Trimiteți multe mesaje. Vă rugăm să așteptați câteva minute, apoi scrieți din nou.",
   guard_held: "Mesajele dumneavoastră sunt în așteptare deocamdată. Un voluntar le va verifica și vă va contacta.",
   guard_released: "Vă mulțumim pentru răbdare. Ne puteți scrie din nou.",
+  nearby_hint: "📍 Ca să vedeți locurile cele mai apropiate, trimiteți locația (📎 apoi 📍) sau scrieți o adresă ori numele unei gări sau stații.",
+  nearby_title: "📍 Lângă dumneavoastră, deschis azi (sub {distance}):",
+  nearby_none: "Nu am găsit nimic deschis lângă acest loc azi.",
+  nearby_not_found: "Nu am găsit această adresă. Scrieți-o împreună cu orașul sau trimiteți locația (📎 apoi 📍).",
+  nearby_water: "Apă potabilă",
+  nearby_toilets: "Toalete publice",
+  nearby_shower: "Duș public",
+  nearby_pharmacy: "Farmacie",
 };

@@ -238,7 +238,11 @@ export function Places() {
               <div className="chips">
                 <Chip tone="info">{t(`places.kind.${p.kind}` as MessageKey)}</Chip>
                 {p.openToday ? <Chip tone="ok" icon="check">{t("places.openToday")}</Chip> : <Chip tone="muted">{t("places.notToday")}</Chip>}
+                {p.address && (p.located
+                  ? <Chip tone="muted" icon="pin">{t("places.located")}</Chip>
+                  : <Chip tone="warn" icon="alert">{t("places.notLocated")}</Chip>)}
               </div>
+              {p.address && !p.located && <p className="muted">{t("places.notLocatedHelp")}</p>}
               <dl className="place-facts">
                 {(p.opensAt || p.closesAt) && (
                   <div><dt><Icon name="clock" size={16} /><span className="visually-hidden">{t("places.hours")}</span></dt><dd dir="ltr">{[p.opensAt, p.closesAt].filter(Boolean).join("–")}</dd></div>

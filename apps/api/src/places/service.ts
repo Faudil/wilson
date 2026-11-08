@@ -7,8 +7,9 @@ import type { Deps } from "../deps.js";
 import { withUsageContext } from "../usage/context.js";
 import { localDate } from "../time.js";
 
-type Row = typeof places.$inferSelect;
-type PlaceDeps = Pick<Deps, "db" | "llm" | "config" | "now">;
+export type PlaceRow = typeof places.$inferSelect;
+type Row = PlaceRow;
+type PlaceDeps = Pick<Deps, "db" | "llm" | "config" | "now" | "geo">;
 
 export const PLACE_EMOJI: Record<PlaceKind, string> = { shelter: "🛏️", food: "🍽️", shower: "🚿", clothes: "👕", health: "🩺", other: "📌" };
 
@@ -44,6 +45,8 @@ export interface PlacesService {
    * 115 line. null when nothing is posted for today.
    */
   messageFor(lang: LanguageCode, opts?: { beneficiaryId?: string | null }): Promise<string | null>;
+  /** Name and details of a place in `lang` (translated once, then cached). */
+  localized(r: Row, lang: LanguageCode, beneficiaryId: string | null): Promise<{ name: string; details: string | null }>;
 }
 
 const cache = new WeakMap<object, PlacesService>();
@@ -72,7 +75,7 @@ function createPlacesService(deps: PlaceDeps): PlacesService {
     return rows.map((r) => ({
       id: r.id, kind: r.kind as PlaceKind, name: r.name, address: r.address, phone: r.phone, details: r.details,
       startsOn: r.startsOn, endsOn: r.endsOn, weekdays: r.weekdays, opensAt: r.opensAt, closesAt: r.closesAt,
-      openToday: openOn(r, d), updatedAt: r.updatedAt.toISOString(), updatedByName: r.updatedBy ? (n.get(r.updatedBy) ?? null) : null,
+      openToday: openOn(r, d), located: r.lat !== null && r.lon !== null, updatedAt: r.updatedAt.toISOString(), updatedByName: r.updatedBy ? (n.get(r.updatedBy) ?? null) : null,
     }));
   }
 
@@ -88,6 +91,12 @@ function createPlacesService(deps: PlaceDeps): PlacesService {
     const rows = await db.select().from(places)
       .where(and(isNull(places.removedAt), lte(places.startsOn, date), or(isNull(places.endsOn), gte(places.endsOn, date))));
     return sorted(rows.filter((r) => openOn(r, date)));
+  }
+
+  /** Where the address is, for "near me" (best effort: a place without a point is still in the list of the day). */
+  async function locate(address: string | null): Promise<{ lat: number | null; lon: number | null }> {
+    const p = address ? await deps.geo.geocode(address) : null;
+    return { lat: p?.lat ?? null, lon: p?.lon ?? null };
   }
 
   async function mustRow(id: string): Promise<Row> {
@@ -130,14 +139,15 @@ function createPlacesService(deps: PlaceDeps): PlacesService {
     },
 
     async create(input, volunteerId) {
-      const [r] = await db.insert(places).values({ ...values(input), createdBy: volunteerId, updatedBy: volunteerId }).returning();
+      const [r] = await db.insert(places).values({ ...values(input), ...(await locate(input.address)), createdBy: volunteerId, updatedBy: volunteerId }).returning();
       return (await toPlaces([r!]))[0]!;
     },
 
     async update(id, input, volunteerId) {
-      await mustRow(id);
+      const old = await mustRow(id);
+      const point = old.address === input.address && old.lat !== null ? {} : await locate(input.address);
       // Edited text: the cached translations are stale.
-      const [r] = await db.update(places).set({ ...values(input), translations: {}, updatedBy: volunteerId, updatedAt: deps.now() }).where(eq(places.id, id)).returning();
+      const [r] = await db.update(places).set({ ...values(input), ...point, translations: {}, updatedBy: volunteerId, updatedAt: deps.now() }).where(eq(places.id, id)).returning();
       return (await toPlaces([r!]))[0]!;
     },
 
@@ -147,6 +157,7 @@ function createPlacesService(deps: PlaceDeps): PlacesService {
     },
 
     openOn: forDay,
+    localized,
 
     async messageFor(lang, opts = {}) {
       const d = today();

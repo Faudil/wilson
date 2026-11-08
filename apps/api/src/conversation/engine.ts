@@ -6,12 +6,14 @@ import { letters, messages, type ConversationState } from "../db/schema.js";
 import { JOBS } from "../jobs/names.js";
 import { localDate } from "../time.js";
 import type { WaDeps } from "../whatsapp/context.js";
-import { enqueueText, footerFor, letterOfferText } from "../whatsapp/send.js";
+import { enqueueText, footerFor, letterOfferText, sendTextNow } from "../whatsapp/send.js";
 import { announceDocumentDetection } from "./documentFlow.js";
 import { getChat } from "../chat/service.js";
 import { isLanguageWord, isMenuWord, isStopWord, menuChoice } from "./text.js";
 import { getBroadcasts } from "../broadcasts/service.js";
 import { getPlaces } from "../places/service.js";
+import { looksLikeAddress, nearbyMessage } from "../nearby/service.js";
+import type { LatLon } from "../geo/provider.js";
 import { isAnnouncementStopButton } from "../whatsapp/templates.js";
 import { withUsageContext } from "../usage/context.js";
 import { getBuddies } from "../buddies/service.js";
@@ -28,7 +30,8 @@ type Input =
   | { type: "file"; mediaId: string; mime: string }
   | { type: "voice" } // audio / voice note
   | { type: "media_unsupported" } // video, sticker
-  | { type: "other" } // location, contacts, unsupported
+  | { type: "location"; lat: number; lon: number } // 📎 → Location: nearest places, the point is not kept
+  | { type: "other" } // contacts, unsupported
   | { type: "ignore" } // reactions
   | { type: "button"; text: string }; // quick-reply tap on a template (opt-in to receive a waiting message)
 
@@ -55,6 +58,7 @@ function classify(msg: WaInboundMessage): Input {
     case "video": case "sticker": return { type: "media_unsupported" };
     case "reaction": return { type: "ignore" };
     case "button": return { type: "button", text: msg.button.text };
+    case "location": return { type: "location", lat: msg.location.latitude, lon: msg.location.longitude };
     default: return { type: "other" };
   }
 }
@@ -66,6 +70,7 @@ function inboundText(msg: WaInboundMessage): string | null {
     case "document": return msg.document.caption ?? null;
     case "interactive": return (msg.interactive.button_reply ?? msg.interactive.list_reply)?.title ?? null;
     case "button": return msg.button.text;
+    case "location": return "📍"; // that a location was shared, never where
     default: return null;
   }
 }
@@ -195,6 +200,10 @@ const helpIo = (c: Ctx): FlowIo => ({
 });
 
 async function dispatch(c: Ctx, input: Input): Promise<void> {
+  if (input.type === "location") {
+    if (c.state.step === "choose_language") return showLanguageMenu(c);
+    return sendNearby(c, { lat: input.lat, lon: input.lon });
+  }
   if (isBuddyStep(c.state)) return onBuddyState(buddyCtx(c), c.state, input);
   if (isHelpState(c.state)) {
     if (input.type === "text" && isMenuWord(input.text)) return showMainMenu(c);
@@ -212,6 +221,7 @@ async function dispatch(c: Ctx, input: Input): Promise<void> {
     case "enter_document_date": return onEnterDate(c, input, c.state.documentId);
     case "confirm_delete_all": return onConfirmDelete(c, input);
     case "announcements": return onAnnouncements(c, input);
+    case "nearby": return onNearby(c, input);
   }
 }
 
@@ -414,7 +424,38 @@ async function finishDocument(c: Ctx, documentId: string): Promise<void> {
 /** Menu 5: places posted for today (shelter, food, showers…), else "nothing posted" + 115. No review: volunteers' own text. */
 async function sendPlaces(c: Ctx): Promise<void> {
   const text = (await getPlaces(c.deps).messageFor(c.lang, { beneficiaryId: c.b.id })) ?? `${waText(c.lang, "places_none")}\n\n${waText(c.lang, "places_115")}`;
-  await say(c, `${text}\n\n${footerFor(c.deps, c.lang)}`);
+  if (c.deps.geo.mode === "off") return say(c, `${text}\n\n${footerFor(c.deps, c.lang)}`);
+  // Then: share a location or type an address to get what is nearest (OpenStreetMap, Soliguide).
+  await setState(c, { step: "nearby" });
+  await say(c, `${text}\n\n${waText(c.lang, "nearby_hint")}\n\n${footerFor(c.deps, c.lang)}`);
+}
+
+/**
+ * Places nearest to a point. Sent at once rather than through the queue, and recorded in the conversation as a
+ * placeholder: the list (names and distances) would tell where the person is, and their location is not kept.
+ */
+async function sendNearby(c: Ctx, p: LatLon): Promise<void> {
+  if (c.deps.geo.mode === "off") return sendPlaces(c);
+  if (c.state.step === "nearby") await setState(c, { step: "main_menu" });
+  const text = await nearbyMessage(c.deps, p, c.lang, c.b.id);
+  await sendTextNow(c.deps, c.b.id, `${text}\n\n${footerFor(c.deps, c.lang)}`, NEARBY_RECORD);
+}
+const NEARBY_RECORD = "📍 [Lieux proches envoyés. La position et la liste ne sont pas conservées.]";
+
+/** After menu 5: a typed address or landmark (or a shared location, handled above). Anything else: normal flow. */
+async function onNearby(c: Ctx, input: Input): Promise<void> {
+  if (input.type === "text" && menuChoice(input.text) === null && !isMenuWord(input.text) && looksLikeAddress(input.text)) {
+    const p = await c.deps.geo.geocode(input.text);
+    if (p) {
+      // The address is where the person is: keep only that one was typed.
+      const dek = await c.deps.beneficiaries.getDek(c.b.id);
+      await c.deps.db.update(messages).set({ bodyEnc: c.deps.crypto.encrypt(dek, "📍 [adresse]") }).where(eq(messages.waMessageId, c.msgId));
+      return sendNearby(c, p);
+    }
+    return sayKey(c, "nearby_not_found"); // stay here: they can type it again or share their location
+  }
+  await setState(c, { step: "main_menu" });
+  return onFreeState(c, input);
 }
 
 async function onAnnouncements(c: Ctx, input: Input): Promise<void> {

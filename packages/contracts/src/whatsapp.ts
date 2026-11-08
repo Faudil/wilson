@@ -25,12 +25,17 @@ const InteractiveMsg = z.object({
 });
 /** Tap on a quick-reply button of a template message (e.g. "Recevoir" on explanation_ready). */
 const ButtonMsg = z.object({ type: z.literal("button"), button: z.object({ text: z.string(), payload: z.string().optional() }) });
-const OTHER_TYPES = ["audio", "video", "sticker", "location", "contacts", "reaction", "unsupported"] as const;
+/** A shared location (📎 → Location). Used once to list nearby places, never stored. */
+const LocationMsg = z.object({
+  type: z.literal("location"),
+  location: z.object({ latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180), name: z.string().optional(), address: z.string().optional() }),
+});
+const OTHER_TYPES = ["audio", "video", "sticker", "contacts", "reaction", "unsupported"] as const;
 const OtherMsg = z.object({ type: z.enum(OTHER_TYPES) });
 
 const StrictInbound = z
   .object({ id: z.string(), from: z.string(), timestamp: z.string() })
-  .and(z.discriminatedUnion("type", [TextMsg, ImageMsg, DocumentMsg, InteractiveMsg, ButtonMsg, OtherMsg]));
+  .and(z.discriminatedUnion("type", [TextMsg, ImageMsg, DocumentMsg, InteractiveMsg, ButtonMsg, LocationMsg, OtherMsg]));
 
 /**
  * Meta adds message types over time (order, system, request_welcome…). One unknown or odd message must not make the

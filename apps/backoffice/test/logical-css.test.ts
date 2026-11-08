@@ -49,3 +49,16 @@ describe("logical CSS only", () => {
     }
   });
 });
+
+describe("stylesheets", () => {
+  it("close every block they open (an unclosed rule silently nests everything after it)", () => {
+    for (const file of files(SRC, [".css"])) {
+      let depth = 0;
+      stripCssComments(readFileSync(file, "utf8")).split("\n").forEach((line, i) => {
+        for (const ch of line) depth += ch === "{" ? 1 : ch === "}" ? -1 : 0;
+        expect(depth, `${relative(SRC, file)}:${i + 1}`).toBeGreaterThanOrEqual(0);
+      });
+      expect(depth, relative(SRC, file)).toBe(0);
+    }
+  });
+});

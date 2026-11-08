@@ -48,6 +48,8 @@ export const PlaceSchema = z.object({
   closesAt: z.string().nullable(),
   /** Open on the requested day (today unless a date was given). */
   openToday: z.boolean(),
+  /** The address was found on the map: the place is listed to people who share a location nearby. */
+  located: z.boolean(),
   updatedAt: TimestampSchema,
   updatedByName: z.string().nullable(),
 });

@@ -6,7 +6,7 @@
 import { sql } from "drizzle-orm";
 import type { LanguageCode } from "@wilson/contracts";
 import {
-  type AnyPgColumn, boolean, customType, date, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
+  type AnyPgColumn, boolean, customType, date, doublePrecision, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import {
   BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, GuardReasonSchema, GuardStatusSchema, HelpKindSchema, HelpStatusSchema, HelpTopicSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
@@ -87,6 +87,8 @@ export type ConversationState =
   | { step: "help_consent"; requestId: string; slotId?: string }
   | { step: "help_list"; requestIds: string[] }
   | { step: "help_cancel"; requestId: string }
+  /** Menu 5 was answered: a shared location or a typed address lists the places nearest to it (nothing is stored). */
+  | { step: "nearby" }
   /** Free-form chat ("ask a question"); any non-menu text also goes to the chatbot. */
   | { step: "chat" }
   // — French practice buddies (conversation/buddyFlow.ts) —
@@ -224,6 +226,18 @@ export const reminders = pgTable("reminders", {
   index("reminders_due_idx").on(t.status, t.dueAt),
 ]);
 
+/** Associations working on this instance. Created by a global admin (associations.manage). */
+export const associations = pgTable("associations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  /** From the official register when picked there (API Recherche d'entreprises), else null. */
+  siren: text("siren").unique(),
+  rna: text("rna").unique(),
+  city: text("city"),
+  createdBy: uuid("created_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
 export const volunteers = pgTable("volunteers", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
@@ -255,6 +269,26 @@ export const volunteers = pgTable("volunteers", {
   associationSiren: text("association_siren"),
   associationRna: text("association_rna"),
   associationCity: text("association_city"),
+  /** Association the volunteer belongs to (null = managed by global admins only). */
+  associationId: uuid("association_id").references((): AnyPgColumn => associations.id, { onDelete: "set null" }),
+  /** Association admin: gets members.manage, limited by the server to members of associationId. */
+  associationAdmin: boolean("association_admin").notNull().default(false),
+});
+
+/** Single-use invite links created by an association admin (or a global admin). Only the token hash is stored. */
+export const invitations = pgTable("invitations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tokenHash: text("token_hash").notNull().unique(),
+  associationId: uuid("association_id").references(() => associations.id, { onDelete: "cascade" }),
+  role: roleEnum("role").notNull(), // no DB default: an enum value added in the same migration batch cannot be used before commit
+  /** Free label to recognise the invite in the list ("Fatima, permanence du mardi"). */
+  label: text("label"),
+  createdBy: uuid("created_by").notNull().references(() => volunteers.id, { onDelete: "cascade" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  expiresAt: ts("expires_at").notNull(),
+  usedAt: ts("used_at"),
+  usedBy: uuid("used_by").references(() => volunteers.id, { onDelete: "set null" }),
+  revokedAt: ts("revoked_at"),
 });
 
 /**
@@ -479,6 +513,9 @@ export const places = pgTable("places", {
   weekdays: integer("weekdays").array().notNull().default(sql`'{}'::integer[]`),
   opensAt: text("opens_at"),
   closesAt: text("closes_at"),
+  /** Where `address` is, found with OpenStreetMap when the place is saved (null: no address, or not found). */
+  lat: doublePrecision("lat"),
+  lon: doublePrecision("lon"),
   translations: jsonb("translations").$type<Partial<Record<LanguageCode, { name: string; details: string | null }>>>().notNull().default({}),
   createdBy: uuid("created_by").references(() => volunteers.id, { onDelete: "set null" }),
   updatedBy: uuid("updated_by").references(() => volunteers.id, { onDelete: "set null" }),

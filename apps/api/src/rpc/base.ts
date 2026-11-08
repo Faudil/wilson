@@ -38,6 +38,9 @@ const gate = (allowed: (v: Volunteer) => boolean, countReads: boolean) =>
 /** Use on every procedure but auth.login and system.health: `os.letters.list.use(requirePermission("letters.review"))`. Needs ALL of them. */
 export const requirePermission = (...needed: Permission[]) => gate((v) => needed.every((p) => can(v, p)), true);
 
+/** Global admins (volunteers.manage) or association admins (members.manage, with an association): the scope is checked per account. */
+export const requireMemberAdmin = gate((v) => can(v, "volunteers.manage") || (can(v, "members.manage") && !!v.association), false);
+
 /** At least ONE of the permissions. */
 export const requireAny = (...any: Permission[]) => gate((v) => canAny(v, any), false);
 
