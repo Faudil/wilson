@@ -99,6 +99,13 @@
       "when": 1794083252058,
       "tag": "0013_associations_invitations",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794149674976,
+      "tag": "0014_whatsapp_bsuid",
+      "breakpoints": true
     }
   ]
 }

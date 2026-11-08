@@ -29,7 +29,7 @@ bun run --filter @wilson/api wa:setup send-test 33612345678 # envoyer le message
 | Un **numéro de téléphone** qui n'est utilisé ni sur WhatsApp ni sur WhatsApp Business (ligne fixe ou mobile dédiée, qui peut recevoir un SMS ou un appel) | Le numéro que les personnes accompagnées enregistreront. Un numéro déjà sur WhatsApp doit d'abord être supprimé de l'application |
 | Wilson déployé sur une **URL publique en HTTPS**, hébergée en France / UE | Meta appelle `https://<domaine>/webhooks/whatsapp`. Pour un essai depuis un ordinateur : `cloudflared tunnel --url http://localhost:3000` donne une URL HTTPS temporaire |
 | Une **politique de confidentialité** en ligne (URL) | Exigée par Meta pour passer l'application en mode « Live » |
-| Un moyen de paiement (plus tard) | Les modèles envoyés après 24 h sont facturés quelques centimes chacun ; répondre dans les 24 h est gratuit |
+| Un **moyen de paiement** (avant la mise en production) | Depuis le 1er octobre 2026, Meta facture aussi les réponses dans les 24 h (« messages de service », environ 0,03 $ en France), au-delà de **1 000 gratuits par mois et par numéro**. Sans moyen de paiement enregistré, Meta **n'envoie plus** ces réponses. Les modèles envoyés après 24 h sont facturés à chaque envoi |
 
 ---
 
@@ -59,7 +59,7 @@ Le jeton temporaire expire au bout de 24 h. Pour la production, créez un **util
 
 1. <https://business.facebook.com/settings> → **Utilisateurs → Utilisateurs système** → **Ajouter** → nom « wilson-api », rôle **Admin**.
 2. **Attribuer des éléments** : l'**application** (contrôle total) et le **compte WhatsApp** (contrôle total).
-3. **Générer un jeton** → choisir l'application → expiration **Jamais** → autorisations **`whatsapp_business_messaging`** et **`whatsapp_business_management`**.
+3. **Générer un jeton** → choisir l'application → expiration **Jamais** → autorisations **`whatsapp_business_messaging`**, **`whatsapp_business_management`** et **`business_management`** (les trois que demande le guide Meta).
 4. Copiez-le dans `WHATSAPP_ACCESS_TOKEN` (gestionnaire de secrets de l'hébergeur, jamais dans Git). S'il fuit : régénérez-le au même endroit, l'ancien est révoqué.
 
 ## 3. Configurer `.env`
@@ -137,7 +137,7 @@ Le **français doit être approuvé** : c'est le secours de toutes les langues (
    ```
 
    Le PIN à 6 chiffres est celui de la vérification en deux étapes du numéro (il est créé s'il n'existe pas encore : notez-le). `--region DE` active le **stockage local** de la Cloud API : Meta garde les messages au repos dans l'UE (Allemagne). Vérifiez dans la documentation Meta (*Cloud API local storage*) que l'option est disponible pour votre numéro ; sans elle, les données transitent et sont stockées temporairement par Meta hors UE.
-4. **Moyen de paiement** : WhatsApp Manager → Vue d'ensemble → *Ajouter un moyen de paiement*. Nécessaire pour les modèles (rappels, réponses prêtes après 24 h).
+4. **Moyen de paiement** : WhatsApp Manager → Vue d'ensemble → *Ajouter un moyen de paiement*. **Obligatoire** : sans lui, Meta bloque les modèles (rappels, réponses prêtes après 24 h) et, depuis octobre 2026, au-delà des 1 000 messages gratuits du mois, les réponses ordinaires aussi.
 5. **Passer l'application en mode Live** (en haut de l'app Meta ; demande l'URL de la politique de confidentialité). En mode développement, seuls les numéros de test reçoivent des messages.
 6. Redémarrez l'API, puis `wa:setup check` : `platform=CLOUD_API`, `status=CONNECTED`, webhooks abonnés, modèles approuvés.
 7. Les modèles sont rattachés au **compte WhatsApp** (WABA), pas au numéro : si le vrai numéro est dans le même compte que le numéro de test, rien à refaire.
@@ -152,6 +152,8 @@ Le **français doit être approuvé** : c'est le secours de toutes les langues (
 - **Fenêtre de 24 h** : calculée à partir du dernier message reçu ; si Meta répond quand même « fenêtre fermée » (erreur 131047), Wilson bascule sur le modèle au lieu de réessayer en boucle.
 - **Accusés de lecture** : chaque message reçu est marqué « lu » (deux coches bleues), pour que la personne sache que sa demande est arrivée pendant que la réponse est relue.
 - **Plusieurs numéros sur la même app** : les événements d'un autre numéro que `WHATSAPP_PHONE_NUMBER_ID` sont ignorés.
+- **Personnes sans numéro visible (noms d'utilisateur WhatsApp)** : depuis 2026, WhatsApp peut masquer le numéro d'une personne qui utilise un nom d'utilisateur et n'a pas écrit à l'association depuis 30 jours. Le webhook ne contient alors que son identifiant WhatsApp propre à l'entreprise (*BSUID*, ex. `FR.1349…`). Wilson la reconnaît par cet identifiant, lui répond via le champ `recipient` de la Cloud API, et passe au numéro dès qu'il redevient visible. Le contact d'un binôme (numéro de téléphone) n'est pas disponible tant que le numéro est masqué.
+- **Changement de numéro** : quand WhatsApp signale qu'une personne a changé de numéro (message système `user_changed_number`), Wilson rattache le nouveau numéro au même dossier (courriers, documents, rappels), sans rien lui envoyer. Si le nouveau numéro a déjà un dossier, rien n'est fusionné.
 - **Rien d'autre ne change** : relecture par un·e bénévole avant tout envoi de courrier expliqué, pas de conseil juridique, renvoi vers l'association en pied de message.
 
 ## 8. Dépannage

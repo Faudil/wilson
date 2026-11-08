@@ -1,4 +1,4 @@
-import { isRtl, type LanguageCode } from "@wilson/contracts";
+import { isBsuid, isRtl, type LanguageCode } from "@wilson/contracts";
 import { isolate } from "@wilson/i18n";
 import type { Config } from "../config.js";
 import { META_TEMPLATE_LANGUAGE, templateLanguageFor } from "./templates.js";
@@ -38,6 +38,8 @@ export const META_ERRORS = {
   reEngagement: 131047,
   /** Template not available in this language. */
   templateLanguage: 132001,
+  /** This message type cannot be sent to a business-scoped user id (BSUID). */
+  bsuidUnsupported: 131062,
 } as const;
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
@@ -78,11 +80,17 @@ export class MetaTransport implements WhatsAppTransport {
     throw new MetaApiError(`${what} failed: HTTP ${res.status}${code ? ` code ${code}` : ""} ${msg}`.trim(), res.status, code);
   }
 
-  private async postMessage(payload: Record<string, unknown>): Promise<{ waMessageId: string }> {
+  /**
+   * `to` is a phone number, or a BSUID when WhatsApp hides the number: those go in `recipient` (Cloud API, since
+   * July 2026). Error 131062 means this message type cannot go to a BSUID.
+   */
+  private async postMessage(payload: Record<string, unknown> & { to: string }): Promise<{ waMessageId: string }> {
+    const { to, ...rest } = payload;
+    const address = isBsuid(to) ? { recipient: to } : { to };
     const res = await this.fetchImpl(`${this.base}/${this.config.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
       method: "POST",
       headers: this.headers(),
-      body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", ...payload }),
+      body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", ...address, ...rest }),
     });
     if (!res.ok) return this.fail(res, "send message");
     const j = (await res.json()) as { messages?: { id: string }[] };

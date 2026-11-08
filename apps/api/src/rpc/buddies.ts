@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import { and, asc, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import type { BuddyMatch, BuddyMatchDetail, BuddyMode, BuddyReport, BuddyRequest, BuddySlot, Permission, Volunteer } from "@wilson/contracts";
+import { isBsuid } from "@wilson/contracts";
 import { maskedLabel } from "../beneficiaries/serviceImpl.js";
 import { getBuddies, OPEN_MATCH, type MatchRow } from "../buddies/service.js";
 import { beneficiaries, buddyMatches, buddyMessages, buddyProfiles, buddyReports, buddyRequests, buddySessions, volunteers } from "../db/schema.js";
@@ -200,6 +201,8 @@ export const buddiesRouter = {
     const m = await ownMatch(context, input.matchId);
     if (m.status !== "active" || !m.contactShared) throw new ORPCError("FORBIDDEN");
     const waId = await getServices(context.deps).beneficiaries.getWaId(m.beneficiaryId);
+    // WhatsApp hides this person's number (username, BSUID only): there is no phone number to give.
+    if (isBsuid(waId)) throw new ORPCError("NOT_FOUND", { message: "phone number hidden by WhatsApp" });
     await logAccess(context, "buddies.contact", m.id);
     return { phone: `+${waId.replace(/^\+/, "")}` };
   }),
