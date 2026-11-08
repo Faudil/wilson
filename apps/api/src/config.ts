@@ -48,7 +48,7 @@ const EnvSchema = z.object({
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
   /** smtp(s)://user:pass@host:port. When set, self-signups must click a link in an e-mail before an admin can approve. */
   SMTP_URL: z.string().optional(),
-  MAIL_FROM: z.string().default("Mon courrier <no-reply@localhost>"),
+  MAIL_FROM: z.string().default("Wilson <no-reply@localhost>"),
   /**
    * Unusual access: a volunteer opening more than this many different people's files, letters, conversations or notes
    * in one hour raises an alert. AUDIT_BULK_READ_ACTION=suspend also disables the account at once (an admin re-enables it).

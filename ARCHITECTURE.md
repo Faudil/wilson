@@ -1,4 +1,4 @@
-# Mon courrier — Architecture (POC)
+# Wilson — Architecture (POC)
 
 Status: v0.2. Open questions answered by the association on 2026-11-06 (see §12).
 
