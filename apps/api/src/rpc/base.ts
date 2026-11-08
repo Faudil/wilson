@@ -46,6 +46,8 @@ export const requirePermission = (...needed: Permission[]) => gate((v) => needed
 export const requireMemberAdmin = gate((v) => can(v, "volunteers.manage") || (can(v, "members.manage") && !!v.association), false);
 
 /** At least ONE of the permissions. */
+/** Any logged-in volunteer, whatever their permissions (nothing personal is returned). */
+export const requireLogin = gate(() => true, false);
 export const requireAny = (...any: Permission[]) => gate((v) => canAny(v, any), false);
 
 /** Service errors become oRPC errors the same way everywhere: CONFLICT carries `data.reason`, all carry the message. */

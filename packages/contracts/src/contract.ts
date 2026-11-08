@@ -1,7 +1,7 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 import { AssociationRefSchema, AssociationSchema, AssociationSearchInputSchema, ChangelogIdSchema, InvitationPreviewSchema, InvitationSchema, LoginInputSchema, PermissionSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
-import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
+import { BeneficiaryAvatarInputSchema, BeneficiaryDetailSchema, BeneficiarySummarySchema, TeamWeekSchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
 import { ConversationDetailSchema, ConversationSummarySchema } from "./chat.js";
@@ -101,6 +101,8 @@ const beneficiaries = {
   unlockCode: base.input(z.object({ id: IdSchema })).output(z.object({ code: z.string(), expiresAt: z.iso.datetime() })),
   lock: base.input(z.object({ id: IdSchema })).output(BeneficiaryDetailSchema),
   unlock: base.input(z.object({ id: IdSchema })).output(BeneficiaryDetailSchema),
+  /** Nickname, emoji and colour volunteers see for this person. Back-office only: never sent to the person. */
+  setAvatar: base.input(BeneficiaryAvatarInputSchema).output(BeneficiarySummarySchema),
 };
 
 /**
@@ -126,6 +128,11 @@ const me = {
   documents: base.output(z.array(MeDocumentSchema)),
   /** "Delete all my data": archived now, destroyed after the retention period; signed out. */
   deleteAll: base.output(z.void()),
+};
+
+/** The team's week, for the home page thank-you. Any logged-in volunteer. */
+const team = {
+  week: base.output(TeamWeekSchema),
 };
 
 const documents = {
@@ -458,5 +465,5 @@ const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional(), emailVerification: z.boolean().optional() })),
 };
 
-export const contract = { auth, me, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, news, backup, buddies, appointments, events, numbers, system };
+export const contract = { auth, me, team, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, news, backup, buddies, appointments, events, numbers, system };
 export type Contract = typeof contract;

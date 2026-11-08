@@ -53,14 +53,14 @@ async function toNotes(deps: Deps, me: Volunteer, rows: NoteRow[]): Promise<Case
 async function toTasks(deps: Deps, me: Volunteer, rows: TaskRow[]): Promise<CaseTask[]> {
   if (!rows.length) return [];
   const n = await names(deps, rows.flatMap((r) => [r.assigneeId, r.createdBy, r.doneBy]));
-  const bs = await deps.db.select({ id: beneficiaries.id, language: beneficiaries.language, last2: beneficiaries.waIdLast2, handle: beneficiaries.webHandle })
+  const bs = await deps.db.select({ id: beneficiaries.id, language: beneficiaries.language, last2: beneficiaries.waIdLast2, handle: beneficiaries.webHandle, avatar: beneficiaries.avatar })
     .from(beneficiaries).where(inArray(beneficiaries.id, [...new Set(rows.map((r) => r.beneficiaryId))]));
   const b = new Map(bs.map((x) => [x.id, x]));
   const day = today(deps);
   return Promise.all(rows.map(async (r) => ({
     id: r.id,
     beneficiaryId: r.beneficiaryId,
-    beneficiaryLabel: maskedLabel(b.get(r.beneficiaryId)?.last2 ?? "••", b.get(r.beneficiaryId)?.handle),
+    beneficiaryLabel: maskedLabel(b.get(r.beneficiaryId)?.last2 ?? "••", b.get(r.beneficiaryId)?.handle, b.get(r.beneficiaryId)?.avatar),
     language: (b.get(r.beneficiaryId)?.language ?? "fr") as LanguageCode,
     text: await open(deps, r.beneficiaryId, r.textEnc),
     dueOn: r.dueOn,

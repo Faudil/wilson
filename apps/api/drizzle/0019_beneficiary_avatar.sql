@@ -1,0 +1,1 @@
+ALTER TABLE "beneficiaries" ADD COLUMN "avatar" jsonb;

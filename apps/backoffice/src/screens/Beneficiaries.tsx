@@ -3,6 +3,8 @@ import { LANGUAGES, LANGUAGE_CODES, DOCUMENT_TYPES } from "@wilson/contracts/val
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Chip, Countdown, LangBadge, StatusBadge, UrgencyBadge } from "../components/badges";
+import { Avatar, labelDir } from "../components/Avatar";
+import { AvatarSheet } from "../components/AvatarSheet";
 import { Icon } from "../components/Icon";
 import { DateField } from "../components/DateField";
 import { BackLink, ConfirmSheet, Empty, ErrorBox, OverflowMenu, Sheet, Skeleton, useToast } from "../components/ui";
@@ -49,12 +51,10 @@ export function BeneficiaryList() {
         {items.map((b) => (
           <li key={b.id}>
             <a className="card card-link person-card" href={href("beneficiaries", b.id)}>
-              <span className="avatar avatar-soft" aria-hidden="true">
-                <Icon name="user" size={22} />
-              </span>
+              <Avatar avatar={b.avatar} seed={b.id} size={44} />
               <span className="person-main">
                 <span className="card-top">
-                  <strong className="card-title" dir="ltr">
+                  <strong className="card-title" dir={labelDir(b.label)}>
                     {b.label}
                   </strong>
                   <LangBadge language={b.language} />
@@ -85,6 +85,7 @@ export function BeneficiaryDetail({ id }: { id: string }) {
   const { can } = useSession();
   const qc = useQueryClient();
   const query = useQuery(orpc.beneficiaries.get.queryOptions({ input: { id } }));
+  const [editAvatar, setEditAvatar] = useState(false);
   const setLanguage = useMutation({
     ...orpc.beneficiaries.setLanguage.mutationOptions(),
     onSuccess: () => {
@@ -100,13 +101,25 @@ export function BeneficiaryDetail({ id }: { id: string }) {
       {query.isSuccess && (
         <>
           <header className="chat-head">
-            <span className="avatar avatar-soft" aria-hidden="true">
-              <Icon name="user" size={22} />
-            </span>
+            {can("beneficiaries.edit") ? (
+              <button type="button" className="who-edit" onClick={() => setEditAvatar(true)} aria-label={t("avatar.edit")} title={t("avatar.edit")}>
+                <Avatar avatar={query.data.avatar} seed={query.data.id} size={56} />
+                <span className="who-edit-badge" aria-hidden="true">
+                  <Icon name="edit" size={12} />
+                </span>
+              </button>
+            ) : (
+              <Avatar avatar={query.data.avatar} seed={query.data.id} size={56} />
+            )}
             <div className="chat-head-main">
-              <h1 dir="ltr" className="start">
+              <h1 dir={labelDir(query.data.label)} className="start">
                 {query.data.label}
               </h1>
+              {can("beneficiaries.edit") && !query.data.avatar?.name && (
+                <button type="button" className="link-button small" onClick={() => setEditAvatar(true)}>
+                  {t("avatar.giveName")}
+                </button>
+              )}
               <div className="chips">
                 <LangBadge language={query.data.language} />
                 <span className="muted small">
@@ -120,6 +133,7 @@ export function BeneficiaryDetail({ id }: { id: string }) {
               </a>
             )}
           </header>
+          <AvatarSheet open={editAvatar} onClose={() => setEditAvatar(false)} id={id} avatar={query.data.avatar} />
 
           {query.data.webAccount && <WebAccountCard id={id} account={query.data.webAccount} />}
 

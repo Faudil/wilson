@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { IdSchema, TimestampSchema } from "./common.js";
+import { AvatarSchema, IdSchema, TimestampSchema } from "./common.js";
 import { LetterSourceRefSchema } from "./knowledge.js";
 import { LanguageSchema } from "./languages.js";
 
@@ -48,6 +48,7 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 export const ConversationSummarySchema = z.object({
   beneficiaryId: IdSchema,
   beneficiaryLabel: z.string(),
+  beneficiaryAvatar: AvatarSchema.nullable(),
   language: LanguageSchema,
   status: ConversationStatusSchema,
   lastMessageAt: TimestampSchema.nullable(),

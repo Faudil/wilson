@@ -60,7 +60,7 @@ export const numbersRouter = {
       }
       const since = r.guardAt ?? r.createdAt;
       items.push({
-        beneficiaryId: r.id, label: maskedLabel(r.waIdLast2, r.webHandle), language: r.language,
+        beneficiaryId: r.id, label: maskedLabel(r.waIdLast2, r.webHandle, r.avatar), language: r.language,
         status: r.guardStatus as HeldNumber["status"], reason: (r.guardReason ?? "manual") as HeldNumber["reason"],
         since: since.toISOString(), totalMessages: counts.get(r.id) ?? 0, lastText: text,
         knownBefore: since.getTime() - r.createdAt.getTime() > DAY,

@@ -2,11 +2,13 @@ import type { LetterStatus } from "@wilson/contracts";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Chip, Countdown, LangBadge, StatusBadge, UrgencyBadge } from "../components/badges";
+import { Who } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { Empty, ErrorBox, Skeleton } from "../components/ui";
 import { useI18n, type MessageKey } from "../i18n";
 import { orpc } from "../lib/api";
 import { relativeTime } from "../lib/relative";
+import { takeCelebration } from "../lib/celebrate";
 import { href } from "../lib/router";
 
 type Filter = "pending" | "failed" | "sent";
@@ -41,10 +43,29 @@ export function Queue() {
     }),
   );
   const items = query.data?.pages.flatMap((p) => p.items) ?? [];
+  const [thanks] = useState(takeCelebration);
+  const nextLetter = filter === "pending" ? items[0] : undefined;
 
   return (
     <section className="stack">
       <h1>{t("queue.title")}</h1>
+      {thanks && (
+        <div className="celebrate" role="status">
+          <span className="celebrate-emoji" aria-hidden="true">
+            🙏
+          </span>
+          <span className="celebrate-text">
+            <strong>{thanks.label.startsWith("•") ? t("letter.sentToast") : t("celebrate.sentTo", { name: `\u2068${thanks.label}\u2069` })}</strong>
+            <span>{query.isSuccess && items.length === 0 && filter === "pending" ? t("celebrate.allDone") : t("celebrate.thanks")}</span>
+          </span>
+          {nextLetter && (
+            <a className="btn btn-primary btn-small" href={href("letters", nextLetter.id)}>
+              {t("celebrate.next")}
+              <Icon name="arrowRight" size={16} />
+            </a>
+          )}
+        </div>
+      )}
       <Segmented
         label={t("queue.filter")}
         value={filter}
@@ -74,12 +95,7 @@ export function Queue() {
           <li key={letter.id}>
             <a className={`card card-link${letter.urgency === "high" ? " is-urgent" : letter.urgency === "medium" ? " is-attention" : ""}`} href={href("letters", letter.id)}>
               <div className="card-top">
-                <span className="card-kicker">
-                  <Icon name="mail" size={16} />
-                  <span dir="ltr">{letter.beneficiaryLabel}</span>
-                  <span aria-hidden="true">·</span>
-                  <span>{relativeTime(letter.receivedAt, lang)}</span>
-                </span>
+                <Who label={letter.beneficiaryLabel} avatar={letter.beneficiaryAvatar} seed={letter.beneficiaryId} sub={relativeTime(letter.receivedAt, lang)} />
                 <LangBadge language={letter.language} />
               </div>
               <strong className="card-title">{letter.letterType ? t(`letterType.${letter.letterType}` as MessageKey) : t("queue.typeUnknown")}</strong>

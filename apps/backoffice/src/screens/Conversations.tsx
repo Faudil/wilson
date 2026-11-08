@@ -3,6 +3,7 @@ import { LANGUAGES } from "@wilson/contracts/values";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Chip, LangBadge } from "../components/badges";
+import { Avatar, Who, labelDir } from "../components/Avatar";
 import { Icon, type IconName } from "../components/Icon";
 import { BackLink, ConfirmSheet, Empty, ErrorBox, Sheet, Skeleton, useToast } from "../components/ui";
 import { Segmented } from "./Queue";
@@ -70,19 +71,10 @@ export function ConversationList() {
           <li key={c.beneficiaryId}>
             <a className={`card card-link${c.status === "needs_human" ? " is-urgent" : c.status === "pending_review" || (c.status === "with_volunteer" && c.awaitingReply) ? " is-attention" : ""}`} href={href("conversations", c.beneficiaryId)}>
               <div className="card-top">
-                <span className="card-kicker">
-                  <Icon name="chat" size={16} />
-                  <span dir="ltr">{c.beneficiaryLabel}</span>
-                  {c.lastMessageAt && (
-                    <>
-                      <span aria-hidden="true">·</span>
-                      <span>{relativeTime(c.lastMessageAt, lang)}</span>
-                    </>
-                  )}
-                </span>
+                <Who label={c.beneficiaryLabel} avatar={c.beneficiaryAvatar} seed={c.beneficiaryId} sub={c.lastMessageAt ? relativeTime(c.lastMessageAt, lang) : undefined} />
                 <LangBadge language={c.language} />
               </div>
-              <p className="chat-preview" lang="fr">
+              <p className="chat-preview" lang="fr" dir="auto">
                 {c.lastPreview ?? "…"}
               </p>
               <div className="chips">
@@ -123,8 +115,10 @@ function withoutFooter(text: string, footer: string): { body: string; hasFooter:
   return i > 0 && i + footer.length >= text.trimEnd().length ? { body: text.slice(0, i).trimEnd(), hasFooter: true } : { body: text, hasFooter: false };
 }
 
-function Bubble({ m, language, footer, canAct, busy, onApprove, onReject }: {
+function Bubble({ m, person, language, footer, canAct, busy, onApprove, onReject }: {
   m: ChatMessage;
+  /** The person's nickname, or null when the team gave none. */
+  person: string | null;
   language: keyof typeof LANGUAGES;
   footer: string;
   canAct: boolean;
@@ -140,12 +134,12 @@ function Bubble({ m, language, footer, canAct, busy, onApprove, onReject }: {
   const dir = LANGUAGES[language].dir;
   const { body, hasFooter } = withoutFooter(m.text, footer);
   const frFirst = language !== "fr" && !!m.textFr;
-  const who = mine ? t("conv.author.beneficiary") : m.author === "volunteer" ? (m.volunteerName ?? t("conv.author.volunteer")) : m.author === "bot" ? t("conv.author.bot") : t("conv.author.system");
+  const who = mine ? (person ?? t("conv.author.beneficiary")) : m.author === "volunteer" ? (m.volunteerName ?? t("conv.author.volunteer")) : m.author === "bot" ? t("conv.author.bot") : t("conv.author.system");
   return (
     <li className={`bubble bubble-${m.author}${draft ? " bubble-draft" : ""}${m.state === "rejected" ? " bubble-rejected" : ""}`}>
       <div className="bubble-meta small">
         <Icon name={mine ? "user" : m.author === "bot" ? "bot" : m.author === "volunteer" ? "hand" : "info"} size={14} />
-        <span className="bubble-who">{who}</span>
+        <span className="bubble-who" dir="auto">{who}</span>
         {draft && (
           <Chip tone="warn" icon="edit">
             {t("conv.draft")}
@@ -322,12 +316,10 @@ export function ConversationDetail({ id }: { id: string }) {
       {c && (
         <div className="stack">
           <header className="chat-head">
-            <span className="avatar avatar-soft" aria-hidden="true">
-              <Icon name="user" size={22} />
-            </span>
+            <Avatar avatar={c.beneficiaryAvatar} seed={c.beneficiaryId} size={48} />
             <div className="chat-head-main">
               <h1>
-                <span dir="ltr">{c.beneficiaryLabel}</span>
+                <span dir={labelDir(c.beneficiaryLabel)}>{c.beneficiaryLabel}</span>
               </h1>
               <div className="chips">
                 <LangBadge language={c.language} />
@@ -451,7 +443,7 @@ export function ConversationDetail({ id }: { id: string }) {
           {c.status === "pending_review" && (
             <div className="callout">
               <Icon name="eye" size={20} />
-              <strong>{t("conv.reviewNeeded")}</strong>
+              <strong>{c.beneficiaryLabel.startsWith("•") ? t("conv.reviewNeeded") : t("conv.reviewNeededNamed", { name: `\u2068${c.beneficiaryLabel}\u2069` })}</strong>
             </div>
           )}
 
@@ -468,6 +460,7 @@ export function ConversationDetail({ id }: { id: string }) {
               <Bubble
                 key={m.id}
                 m={m}
+                person={c.beneficiaryLabel.startsWith("•") ? null : c.beneficiaryLabel}
                 language={c.language}
                 footer={c.footer}
                 canAct={canAct}

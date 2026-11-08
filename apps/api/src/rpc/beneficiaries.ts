@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/server";
 import { and, count, desc, eq, inArray, isNull, min, sql } from "drizzle-orm";
 import type { LetterSummary } from "@wilson/contracts";
 import { beneficiaries as bTable, documents as dTable, letters as lTable } from "../db/schema.js";
-import { maskedLabel } from "../beneficiaries/serviceImpl.js";
+import { avatarOf, maskedLabel } from "../beneficiaries/serviceImpl.js";
 import { getServices } from "../services.js";
 import { os, requirePermission } from "./base.js";
 import type { Deps } from "../deps.js";
@@ -23,7 +23,8 @@ async function summaries(deps: Deps, rows: BRow[], withName = false) {
   const web = getWebAccounts(deps);
   return Promise.all(rows.map(async (r) => ({
     id: r.id,
-    label: maskedLabel(r.waIdLast2, r.webHandle),
+    label: maskedLabel(r.waIdLast2, r.webHandle, r.avatar),
+    avatar: avatarOf(r.avatar),
     language: r.language,
     createdAt: r.createdAt.toISOString(),
     lastMessageAt: r.lastInboundAt?.toISOString() ?? null,
@@ -47,11 +48,13 @@ async function detail(deps: Deps, id: string) {
   const [summary] = await summaries(deps, [row], true);
   const docs = await getServices(deps).documents.listAllForBeneficiary(row.id);
   const ls = await deps.db.select().from(lTable).where(eq(lTable.beneficiaryId, row.id)).orderBy(desc(lTable.receivedAt));
-  const label = maskedLabel(row.waIdLast2, row.webHandle);
+  const label = maskedLabel(row.waIdLast2, row.webHandle, row.avatar);
+  const avatar = avatarOf(row.avatar);
   const letters: LetterSummary[] = ls.map((l) => ({
     id: l.id,
     beneficiaryId: l.beneficiaryId,
     beneficiaryLabel: label,
+    beneficiaryAvatar: avatar,
     language: row.language,
     status: l.status as LetterSummary["status"],
     letterType: l.letterType as LetterSummary["letterType"],
@@ -70,8 +73,11 @@ export const beneficiariesRouter = {
     // Only the last 2 digits are stored: search matches on those. A web account is found by its number "W-K7QD3M".
     const handle = /^\s*w-?([a-z0-9]{6})\s*$/i.exec(input.search ?? "");
     const digits = input.search?.replace(/\D/g, "");
+    const words = input.search?.replace(/[\d\s+•.-]/g, "").trim();
     if (handle) conds.push(eq(bTable.webHandle, `W-${handle[1]!.toUpperCase()}`));
     else if (digits) conds.push(eq(bTable.waIdLast2, digits.slice(-2)));
+    // Or the nickname volunteers gave the person (case-insensitive prefix).
+    else if (words) conds.push(sql`lower(${bTable.avatar}->>'name') like ${`${words.toLowerCase().replace(/[%_\\]/g, "")}%`}`);
     const cur = input.cursor ? decodeCursor(input.cursor) : null;
     // Postgres keeps microseconds but a JS Date only milliseconds: compare against the cursor row's exact timestamp,
     // otherwise rows created in the same millisecond can be skipped.
@@ -116,5 +122,14 @@ export const beneficiariesRouter = {
     await getServices(deps).beneficiaries.setLanguage(input.id, input.language, true);
     const [updated] = await deps.db.select().from(bTable).where(eq(bTable.id, input.id));
     return (await summaries(deps, [updated!]))[0]!;
+  }),
+
+  setAvatar: os.beneficiaries.setAvatar.use(requirePermission("beneficiaries.edit")).handler(async ({ input, context }) => {
+    const { deps } = context;
+    const name = input.avatar.name?.trim() || null;
+    const avatar = { name, emoji: input.avatar.emoji, color: input.avatar.color };
+    const [updated] = await deps.db.update(bTable).set({ avatar: avatarOf(avatar) ? avatar : null }).where(eq(bTable.id, input.id)).returning();
+    if (!updated) throw new ORPCError("NOT_FOUND");
+    return (await summaries(deps, [updated]))[0]!;
   }),
 };

@@ -267,3 +267,7 @@ export const RECOVERY_WORD_COUNT = 6;
 export function normaliseRecoveryWord(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z]/g, "");
 }
+
+/** Avatar choices volunteers can give a person in the back-office (see AvatarSchema). */
+export const AVATAR_EMOJIS = ["🌻", "🌿", "🌙", "⭐", "🍊", "🐦", "🌊", "🎈", "🌸", "🍀", "☀️", "🦋", "🐢", "🍎", "🎵", "🏔️"] as const;
+export const AVATAR_COLORS = ["teal", "orange", "plum", "sky", "moss", "rose", "sand", "slate"] as const;

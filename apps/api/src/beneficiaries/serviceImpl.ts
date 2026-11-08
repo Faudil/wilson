@@ -1,5 +1,5 @@
 import { eq, and, isNull, sql } from "drizzle-orm";
-import { isBsuid, type LanguageCode } from "@wilson/contracts";
+import { isBsuid, type Avatar, type LanguageCode } from "@wilson/contracts";
 import type { ChannelId } from "../channels/types.js";
 import type { Deps } from "../deps.js";
 import { beneficiaries, documents, type ConversationState } from "../db/schema.js";
@@ -183,10 +183,22 @@ export class BeneficiariesServiceImpl implements BeneficiariesService {
   }
 
   async label(id: string): Promise<string> {
-    const [r] = await this.deps.db.select({ l: beneficiaries.waIdLast2, h: beneficiaries.webHandle }).from(beneficiaries).where(eq(beneficiaries.id, id));
-    return r ? maskedLabel(r.l, r.h) : `${LABEL_MASK} ••`;
+    return (await this.identity(id)).label;
+  }
+
+  async identity(id: string): Promise<{ label: string; avatar: Avatar | null }> {
+    const [r] = await this.deps.db.select({ l: beneficiaries.waIdLast2, h: beneficiaries.webHandle, a: beneficiaries.avatar }).from(beneficiaries).where(eq(beneficiaries.id, id));
+    return r ? { label: maskedLabel(r.l, r.h, r.a), avatar: avatarOf(r.a) } : { label: `${LABEL_MASK} ••`, avatar: null };
   }
 }
 
-/** What volunteers see instead of a phone number: the last 2 digits, or a web account's number. */
-export const maskedLabel = (last2: string, webHandle: string | null = null): string => webHandle ?? `${LABEL_MASK} ${last2}`;
+/**
+ * What volunteers see instead of a phone number: the nickname the team gave the person, else a web account's
+ * handle, else the last 2 digits ("•• •• •• •• 21").
+ */
+export const maskedLabel = (last2: string, webHandle: string | null = null, avatar?: { name: string | null } | null): string =>
+  avatar?.name?.trim() || webHandle || `${LABEL_MASK} ${last2}`;
+
+/** The stored avatar as the contract shape, or null when nothing was chosen. */
+export const avatarOf = (a: { name: string | null; emoji: string | null; color: string | null } | null | undefined): Avatar | null =>
+  a && (a.name || a.emoji || a.color) ? ({ name: a.name ?? null, emoji: a.emoji ?? null, color: a.color ?? null } as Avatar) : null;

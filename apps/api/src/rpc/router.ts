@@ -19,11 +19,13 @@ import { associationsRouter, invitationsRouter } from "./associations.js";
 import { placesRouter } from "./places.js";
 import { broadcastsRouter } from "./broadcasts.js";
 import { backupRouter, newsRouter } from "./team.js";
+import { teamRouter } from "./week.js";
 import { eventsRouter } from "./events.js";
 
 export const router = os.router({
   auth: authRouter,
   me: meRouter,
+  team: teamRouter,
   beneficiaries: beneficiariesRouter,
   documents: documentsRouter,
   system: systemRouter,

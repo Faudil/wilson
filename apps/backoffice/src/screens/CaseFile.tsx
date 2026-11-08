@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Chip, LangBadge } from "../components/badges";
 import { DateField } from "../components/DateField";
+import { labelDir } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { ConfirmSheet, Empty, ErrorBox, Sheet, Skeleton, useToast } from "../components/ui";
 import { useI18n, type MessageKey } from "../i18n";
@@ -88,7 +89,7 @@ export function TaskCard({ task, showPerson }: { task: CaseTask; showPerson?: bo
           </div>
           {showPerson && (
             <a className="task-person" href={personHref}>
-              <span dir="ltr">{task.beneficiaryLabel}</span>
+              <span dir={labelDir(task.beneficiaryLabel)}>{task.beneficiaryLabel}</span>
               <LangBadge language={task.language} />
               <Icon name="chevron" size={16} />
             </a>
