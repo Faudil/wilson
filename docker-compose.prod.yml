@@ -2,8 +2,10 @@
 #   docker compose -f docker-compose.prod.yml up -d --build
 # Configuration and secrets come from the server's own `.env` (see .env.production.example):
 # they are never in git and never pass through CI.
-# Only the back-office is published, on ${WILSON_PORT:-8080}, for your reverse proxy (it forwards
-# /rpc and /webhooks to the API itself). Put TLS on the reverse proxy.
+# Nothing is published on a host port. The back-office joins your nginx-proxy network
+# (${PROXY_NETWORK:-internal_services_network}) and nginx-proxy + acme-companion serve it on
+# https://${PUBLIC_HOST} with a Let's Encrypt certificate. The back-office forwards /rpc and
+# /webhooks to the API itself; the API, Postgres and S3 stay on the stack's private network.
 # Data lives in the named volumes wilson-prod_pgdata, wilson-prod_s3data, wilson-prod_backups.
 # No deploy step removes them. Never run `docker compose down -v` here: it deletes them.
 # For local development use docker-compose.yml.
@@ -89,7 +91,7 @@ services:
       DATABASE_URL: postgres://wilson:${POSTGRES_PASSWORD}@postgres:5432/wilson
       # Keep the bundled SeaweedFS, or point these at an EU provider (Scaleway fr-par, OVH gra...).
       S3_ENDPOINT: ${S3_ENDPOINT:-http://s3:9000}
-      PUBLIC_BACKOFFICE_ORIGIN: ${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN in .env, e.g. https://courrier.example.org}
+      PUBLIC_BACKOFFICE_ORIGIN: ${PUBLIC_ORIGIN:-https://${PUBLIC_HOST}}
       PROMPTS_DIR: /app/prompts
     depends_on:
       postgres: { condition: service_healthy }
@@ -99,10 +101,23 @@ services:
     build: { context: ., dockerfile: docker/backoffice.Dockerfile }
     restart: unless-stopped
     depends_on: [api]
-    ports:
-      - "${WILSON_BIND:-0.0.0.0}:${WILSON_PORT:-8080}:8080"
+    environment:
+      # Read by nginx-proxy / acme-companion on the shared proxy network.
+      VIRTUAL_HOST: ${PUBLIC_HOST:?set PUBLIC_HOST in .env, e.g. courrier.example.org}
+      VIRTUAL_PORT: "8080"
+      LETSENCRYPT_HOST: ${PUBLIC_HOST}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?set LETSENCRYPT_EMAIL in .env}
+    networks:
+      - default
+      - proxy
 
 volumes:
   pgdata:
   s3data:
   backups:
+
+networks:
+  # Created by your nginx-proxy setup, shared with its other sites.
+  proxy:
+    name: ${PROXY_NETWORK:-internal_services_network}
+    external: true

@@ -6,7 +6,7 @@
 #   2. builds the new images while the old containers keep serving
 #   3. dumps Postgres into the backups volume before migrations run
 #   4. restarts the stack; the api container runs migrations + seed on start
-#   5. waits for the API /health and the back-office to answer
+#   5. waits for the API /health and the back-office to answer (inside their containers)
 # It never removes volumes: the data stays in wilson-prod_pgdata / wilson-prod_s3data.
 set -eu
 
@@ -18,7 +18,7 @@ fail() { echo "deploy: $*" >&2; exit 1; }
 # 1. Server-side configuration
 [ -f .env ] || fail "$(pwd)/.env is missing. Create it from .env.production.example (see docs/deploy.md)."
 chmod 600 .env
-for var in MASTER_KEY LOOKUP_KEY POSTGRES_PASSWORD S3_ACCESS_KEY S3_SECRET_KEY PUBLIC_ORIGIN SEED_ADMIN_EMAIL SEED_ADMIN_PASSWORD; do
+for var in MASTER_KEY LOOKUP_KEY POSTGRES_PASSWORD S3_ACCESS_KEY S3_SECRET_KEY PUBLIC_HOST LETSENCRYPT_EMAIL SEED_ADMIN_EMAIL SEED_ADMIN_PASSWORD; do
   value=$(grep -E "^${var}=" .env | tail -n 1 | cut -d= -f2-)
   [ -n "$value" ] || fail "$var is empty in .env"
   case "$value" in
@@ -34,6 +34,10 @@ if [ -n "$bucket" ]; then
     *) fail "BACKUP_S3_BUCKET is set: BACKUP_AGE_RECIPIENT must be the age public key (age1...), see docs/security.md" ;;
   esac
 fi
+proxy_network=$(grep -E "^PROXY_NETWORK=" .env | tail -n 1 | cut -d= -f2-)
+proxy_network=${proxy_network:-internal_services_network}
+docker network inspect "$proxy_network" >/dev/null 2>&1 \
+  || fail "docker network $proxy_network does not exist: start your nginx-proxy stack first, or set PROXY_NETWORK in .env"
 $COMPOSE config -q
 
 # 2. Build first, so a broken build never takes the site down
@@ -52,11 +56,7 @@ fi
 $COMPOSE up -d --remove-orphans
 
 # 5. Health
-port=$(grep -E '^WILSON_PORT=' .env | tail -n 1 | cut -d= -f2-)
-port=${port:-8080}
-probe_frontend() {
-  if command -v curl >/dev/null 2>&1; then curl -fsS -o /dev/null "http://127.0.0.1:$port/"; else wget -q -O /dev/null "http://127.0.0.1:$port/"; fi
-}
+probe_frontend() { $COMPOSE exec -T backoffice wget -q -O /dev/null http://127.0.0.1:8080/ 2>/dev/null; }
 i=0
 until $COMPOSE exec -T api wget -q -O /dev/null http://127.0.0.1:3000/health 2>/dev/null && probe_frontend; do
   i=$((i + 1))

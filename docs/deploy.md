@@ -38,11 +38,13 @@ scp .env.production.example deploy@<serveur>:/srv/wilson/.env
 ssh deploy@<serveur> 'chmod 600 /srv/wilson/.env && nano /srv/wilson/.env'
 ```
 
-Remplacez toutes les valeurs `CHANGE_ME` (`openssl rand -base64 32` pour `MASTER_KEY` / `LOOKUP_KEY`, `openssl rand -hex 24` pour les mots de passe), et mettez dans `PUBLIC_ORIGIN` l'adresse HTTPS publique. **Gardez une copie de `MASTER_KEY` hors du serveur** (gestionnaire de mots de passe) : sans elle les données sont illisibles, sauvegardes comprises.
+Remplacez toutes les valeurs `CHANGE_ME` (`openssl rand -base64 32` pour `MASTER_KEY` / `LOOKUP_KEY`, `openssl rand -hex 24` pour les mots de passe), mettez dans `PUBLIC_HOST` le domaine public (sans `https://`) et dans `LETSENCRYPT_EMAIL` l'adresse de contact Let's Encrypt. **Gardez une copie de `MASTER_KEY` hors du serveur** (gestionnaire de mots de passe) : sans elle les données sont illisibles, sauvegardes comprises.
 
-### Reverse proxy
+### Reverse proxy (nginx-proxy + Let's Encrypt)
 
-Seul le back-office est publié, sur `WILSON_BIND:WILSON_PORT` (par défaut `0.0.0.0:8080`). Faites pointer votre reverse proxy vers `http://<IP du serveur sur le LAN>:8080` et terminez le TLS sur le proxy. Le back-office relaie lui-même `/rpc` et `/webhooks` (WhatsApp) vers l'API, rien d'autre n'est exposé. Pour n'écouter que sur l'interface LAN, mettez son IP dans `WILSON_BIND`. Le proxy doit accepter des envois de 12 Mo (photos de courriers).
+Aucun port n'est publié sur la machine. Le conteneur `backoffice` rejoint le réseau Docker de votre nginx-proxy (`PROXY_NETWORK`, par défaut `internal_services_network`, qui doit déjà exister) avec `VIRTUAL_HOST` / `LETSENCRYPT_HOST` = `PUBLIC_HOST` : nginx-proxy le sert en HTTPS et acme-companion obtient le certificat (`LETSENCRYPT_EMAIL`). Le back-office relaie lui-même `/rpc` et `/webhooks` (WhatsApp) vers l'API ; l'API, Postgres et S3 restent sur le réseau privé de la pile.
+
+Faites pointer le DNS de `PUBLIC_HOST` vers le proxy avant le premier déploiement. **nginx-proxy limite les envois à 1 Mo par défaut** : les photos de courriers font jusqu'à 12 Mo, ajoutez donc dans le dossier `vhost.d` de nginx-proxy un fichier nommé exactement comme le domaine (ex. `/etc/nginx/vhost.d/courrier.mon-asso.fr`) contenant `client_max_body_size 12m;`.
 
 ## 2. Créer l'environnement et les secrets GitHub
 
