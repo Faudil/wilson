@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Limba ecranului",
   "ui.machineTranslated": "Traducere automată, încă necorectată: poate conține greșeli. Vă rugăm să semnalați coordonatorilor orice formulare ciudată.",
   "common.loading": "Se încarcă…",
@@ -415,7 +415,7 @@
   "nav.usage": "Costuri IA",
   "more.usage": "Utilizarea Claude și bugetul lunii",
   "usage.title": "Costuri IA",
-  "usage.intro": "De fiecare dată când Mon courrier îi cere ceva lui Claude (citirea unei scrisori, răspuns în conversație, traducere), cantitatea de text procesată (tokeni) și prețul estimat sunt notate aici. Niciun mesaj sau nume nu este păstrat.",
+  "usage.intro": "De fiecare dată când Wilson îi cere ceva lui Claude (citirea unei scrisori, răspuns în conversație, traducere), cantitatea de text procesată (tokeni) și prețul estimat sunt notate aici. Niciun mesaj sau nume nu este păstrat.",
   "usage.fakeMode": "Mod demonstrativ: IA este simulată, nu se fac apeluri reale, deci nu se contorizează nimic.",
   "usage.today": "Astăzi",
   "usage.thisMonth": "Luna aceasta",

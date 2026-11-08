@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "የማያ ገጽ ቋንቋ",
   "ui.machineTranslated": "የማሽን ትርጉም፣ ገና አልተረጋገጠም፦ ስህተቶች ሊኖሩት ይችላሉ። እንግዳ የሆነ አገላለጽ ካለ እባክዎ ለአስተባባሪዎች ይንገሩ።",
   "common.loading": "በመጫን ላይ…",
@@ -415,7 +415,7 @@
   "nav.usage": "የAI ወጪዎች",
   "more.usage": "የClaude አጠቃቀም እና የዚህ ወር በጀት",
   "usage.title": "የAI ወጪዎች",
-  "usage.intro": "Mon courrier ለClaude ጥያቄ ባቀረበ ቁጥር (ደብዳቤ ማንበብ፣ በውይይት መመለስ፣ መተርጎም)፣ የተሠራው የጽሑፍ መጠን (tokens) እና የተገመተው ዋጋ እዚህ ይመዘገባል። ምንም መልእክት ወይም ስም አይቀመጥም።",
+  "usage.intro": "Wilson ለClaude ጥያቄ ባቀረበ ቁጥር (ደብዳቤ ማንበብ፣ በውይይት መመለስ፣ መተርጎም)፣ የተሠራው የጽሑፍ መጠን (tokens) እና የተገመተው ዋጋ እዚህ ይመዘገባል። ምንም መልእክት ወይም ስም አይቀመጥም።",
   "usage.fakeMode": "የማሳያ ሁነታ፦ AI ይመሰላል፣ እውነተኛ ጥሪዎች አይደረጉም፣ ስለዚህ ምንም አይቆጠርም።",
   "usage.today": "ዛሬ",
   "usage.thisMonth": "በዚህ ወር",

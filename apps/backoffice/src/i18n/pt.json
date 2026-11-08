@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Idioma do ecrã",
   "ui.machineTranslated": "Tradução automática, ainda não revista: pode conter erros. Avise a coordenação se alguma frase soar estranha.",
   "common.loading": "A carregar…",
@@ -415,7 +415,7 @@
   "nav.usage": "Custos de IA",
   "more.usage": "Utilização do Claude e orçamento do mês",
   "usage.title": "Custos de IA",
-  "usage.intro": "Sempre que o Mon courrier pede algo ao Claude (ler uma carta, responder na conversa, traduzir), a quantidade de texto processada (tokens) e o preço estimado são registados aqui. Nenhuma mensagem ou nome é guardado.",
+  "usage.intro": "Sempre que o Wilson pede algo ao Claude (ler uma carta, responder na conversa, traduzir), a quantidade de texto processada (tokens) e o preço estimado são registados aqui. Nenhuma mensagem ou nome é guardado.",
   "usage.fakeMode": "Modo de demonstração: a IA é simulada, não há chamadas reais, por isso nada é contado.",
   "usage.today": "Hoje",
   "usage.thisMonth": "Este mês",

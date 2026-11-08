@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Ekran dili",
   "ui.machineTranslated": "Makine çevirisi, henüz gözden geçirilmedi: hatalar içerebilir. Lütfen garip ifadeleri koordinatörlere bildirin.",
   "common.loading": "Yükleniyor…",
@@ -415,7 +415,7 @@
   "nav.usage": "YZ maliyetleri",
   "more.usage": "Claude kullanımı ve bu ayın bütçesi",
   "usage.title": "YZ maliyetleri",
-  "usage.intro": "Mon courrier Claude'a her bir şey sorduğunda (mektup okuma, sohbette yanıt, çeviri), işlenen metin miktarı (token) ve tahmini fiyat buraya kaydedilir. Hiçbir mesaj veya isim saklanmaz.",
+  "usage.intro": "Wilson Claude'a her bir şey sorduğunda (mektup okuma, sohbette yanıt, çeviri), işlenen metin miktarı (token) ve tahmini fiyat buraya kaydedilir. Hiçbir mesaj veya isim saklanmaz.",
   "usage.fakeMode": "Demo modu: YZ simüle ediliyor, gerçek çağrı yapılmıyor, bu yüzden hiçbir şey sayılmıyor.",
   "usage.today": "Bugün",
   "usage.thisMonth": "Bu ay",

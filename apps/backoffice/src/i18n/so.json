@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Luqadda shaashadda",
   "ui.machineTranslated": "Tarjumaad mashiin, weli lama hubin: waxaa laga yaabaa inay khaladaad ku jiraan. Fadlan u sheeg isuduwayaasha erey kasta oo aan caadi ahayn.",
   "common.loading": "Waa la soo rarayaa…",
@@ -415,7 +415,7 @@
   "nav.usage": "Kharashka AI",
   "more.usage": "Isticmaalka Claude iyo miisaaniyadda bishan",
   "usage.title": "Kharashka AI",
-  "usage.intro": "Mar kasta oo Mon courrier wax weydiiyo Claude (akhrinta warqad, ka jawaabidda wadahadalka, tarjumaadda), qaddarka qoraalka la farsameeyay (tokens) iyo qiimaha la qiyaasay halkan ayaa lagu qoraa. Fariin ama magac lama kaydiyo.",
+  "usage.intro": "Mar kasta oo Wilson wax weydiiyo Claude (akhrinta warqad, ka jawaabidda wadahadalka, tarjumaadda), qaddarka qoraalka la farsameeyay (tokens) iyo qiimaha la qiyaasay halkan ayaa lagu qoraa. Fariin ama magac lama kaydiyo.",
   "usage.fakeMode": "Habka demo: AI waa la ekaysiiyay, wicitaan dhab ah lama sameeyo, sidaas darteed waxba lama tiriyo.",
   "usage.today": "Maanta",
   "usage.thisMonth": "Bishan",

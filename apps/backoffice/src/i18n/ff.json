@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Ɗemngal ekaran",
   "ui.machineTranslated": "Firo masiŋ, ndeen ɓe ndaarii ɗum: ena waawi heedde juumɗe. Tiiɗno anndinee kordinateer en so konngol ngol wonaa jaajngol.",
   "common.loading": "Ena loowa…",
@@ -415,7 +415,7 @@
   "nav.usage": "Coggu IA",
   "more.usage": "Kuutorgol Claude e budget lewru ndu",
   "usage.title": "Coggu IA",
-  "usage.intro": "Sahaa kala nde Mon courrier naamni Claude huunde (janngude bataake, jaabaade e yeewtere, firde), ɗuuɗal binndol golliraangol (tokens) e coggu sikkaaɗo winndetee ɗoo. Hay mesaas walla innde danndaaka.",
+  "usage.intro": "Sahaa kala nde Wilson naamni Claude huunde (janngude bataake, jaabaade e yeewtere, firde), ɗuuɗal binndol golliraangol (tokens) e coggu sikkaaɗo winndetee ɗoo. Hay mesaas walla innde danndaaka.",
   "usage.fakeMode": "Démo: IA ndee wonaa goonga, alaa noddaango goonga, ɗum waɗi hay huunde limtaaka.",
   "usage.today": "Hannde",
   "usage.thisMonth": "Lewru ndu",

@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Zimanê ekranê",
   "ui.machineTranslated": "Wergera makîneyê, hê nehatiye kontrolkirin: dibe ku şaşî tê de hebin. Ji kerema xwe her gotineke ecêb ji koordînatoran re bêjin.",
   "common.loading": "Tê barkirin…",
@@ -415,7 +415,7 @@
   "nav.usage": "Lêçûnên AI",
   "more.usage": "Bikaranîna Claude û budceya vê mehê",
   "usage.title": "Lêçûnên AI",
-  "usage.intro": "Her carê ku Mon courrier tiştekî ji Claude dipirse (xwendina nameyê, bersivdana di axaftinê de, wergerandin), mîqdara nivîsa hatî pêvajokirin (token) û bihayê texmînkirî li vir tê nivîsandin. Ti peyam an nav nayê hilanîn.",
+  "usage.intro": "Her carê ku Wilson tiştekî ji Claude dipirse (xwendina nameyê, bersivdana di axaftinê de, wergerandin), mîqdara nivîsa hatî pêvajokirin (token) û bihayê texmînkirî li vir tê nivîsandin. Ti peyam an nav nayê hilanîn.",
   "usage.fakeMode": "Moda demo: AI tê simulekirin, ti bangeke rastîn nayê kirin, ji ber vê tiştek nayê hejmartin.",
   "usage.today": "Îro",
   "usage.thisMonth": "Vê mehê",

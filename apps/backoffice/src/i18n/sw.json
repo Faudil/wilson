@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Lugha ya skrini",
   "ui.machineTranslated": "Tafsiri ya mashine, bado haijahakikiwa: inaweza kuwa na makosa. Tafadhali waambie waratibu kuhusu maneno yoyote ya ajabu.",
   "common.loading": "Inapakia…",
@@ -415,7 +415,7 @@
   "nav.usage": "Gharama za AI",
   "more.usage": "Matumizi ya Claude na bajeti ya mwezi huu",
   "usage.title": "Gharama za AI",
-  "usage.intro": "Kila mara Mon courrier inapomwuliza Claude kitu (kusoma barua, kujibu kwenye mazungumzo, kutafsiri), kiasi cha maandishi kilichochakatwa (tokeni) na bei inayokadiriwa vinaandikwa hapa. Hakuna ujumbe wala jina linalohifadhiwa.",
+  "usage.intro": "Kila mara Wilson inapomwuliza Claude kitu (kusoma barua, kujibu kwenye mazungumzo, kutafsiri), kiasi cha maandishi kilichochakatwa (tokeni) na bei inayokadiriwa vinaandikwa hapa. Hakuna ujumbe wala jina linalohifadhiwa.",
   "usage.fakeMode": "Hali ya maonyesho: AI inaigwa, hakuna maombi halisi, kwa hivyo hakuna kinachohesabiwa.",
   "usage.today": "Leo",
   "usage.thisMonth": "Mwezi huu",

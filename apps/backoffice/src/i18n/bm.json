@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Ekaran kan",
   "ui.machineTranslated": "Masin ka bamanankan bayɛlɛmali, mɔgɔ ma a lajɛ fɔlɔ: fili bɛ se ka kɛ a la. Aw ye kumasen o kumasen kabakoma fɔ koordinatɛriw ye.",
   "common.loading": "A bɛ ka don…",
@@ -415,7 +415,7 @@
   "nav.usage": "IA musaka",
   "more.usage": "Claude baarakɛcogo ani nin kalo in ka budget",
   "usage.title": "IA musaka",
-  "usage.intro": "Tuma o tuma Mon courrier bɛ fɛn dɔ ɲini Claude fɛ (bataki kalan, jaabi di baro la, bayɛlɛmali), sɛbɛn hakɛ min baarala (tokens) ani sɔngɔ jatelen bɛ sɛbɛn yan. Cikan walima tɔgɔ si tɛ mara.",
+  "usage.intro": "Tuma o tuma Wilson bɛ fɛn dɔ ɲini Claude fɛ (bataki kalan, jaabi di baro la, bayɛlɛmali), sɛbɛn hakɛ min baarala (tokens) ani sɔngɔ jatelen bɛ sɛbɛn yan. Cikan walima tɔgɔ si tɛ mara.",
   "usage.fakeMode": "Démo: IA tɛ yɛrɛ ye, welekan yɛrɛw tɛ kɛ, o la foyi tɛ jate.",
   "usage.today": "Bi",
   "usage.thisMonth": "Nin kalo in",

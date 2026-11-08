@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Lokota ya ekrá",
   "ui.machineTranslated": "Libongoli ya masini, bato batángi yango naino te: ekoki kozala na mabunga. Tosɛngi bóyebisa ba-coordinateurs soki maloba moko ezali kokamwisa.",
   "common.loading": "Ezali kofungwama…",
@@ -415,7 +415,7 @@
   "nav.usage": "Ntalo ya IA",
   "more.usage": "Bosaleli ya Claude mpe budget ya sanza oyo",
   "usage.title": "Ntalo ya IA",
-  "usage.intro": "Mbala nyonso Mon courrier ezali kotuna Claude eloko (kotánga mokanda, koyanola na lisolo, kobongola), motango ya makomi esalemi (tokens) mpe ntalo ekanisami ekomamaka awa. Nsango to nkombo moko te ebombamaka.",
+  "usage.intro": "Mbala nyonso Wilson ezali kotuna Claude eloko (kotánga mokanda, koyanola na lisolo, kobongola), motango ya makomi esalemi (tokens) mpe ntalo ekanisami ekomamaka awa. Nsango to nkombo moko te ebombamaka.",
   "usage.fakeMode": "Mode démo: IA ezali ya solo te, mabengi ya solo ezali te, yango wana eloko moko te etángamaka.",
   "usage.today": "Lelo",
   "usage.thisMonth": "Sanza oyo",

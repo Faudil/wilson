@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Gjuha e ekranit",
   "ui.machineTranslated": "Përkthim automatik, ende i parishikuar: mund të ketë gabime. Ju lutemi njoftoni koordinatorët për çdo shprehje të çuditshme.",
   "common.loading": "Po ngarkohet…",
@@ -415,7 +415,7 @@
   "nav.usage": "Kostot e IA",
   "more.usage": "Përdorimi i Claude dhe buxheti i këtij muaji",
   "usage.title": "Kostot e IA",
-  "usage.intro": "Sa herë që Mon courrier i kërkon diçka Claude (leximi i një letre, përgjigje në bisedë, përkthim), sasia e tekstit të përpunuar (tokenë) dhe çmimi i vlerësuar shënohen këtu. Asnjë mesazh apo emër nuk ruhet.",
+  "usage.intro": "Sa herë që Wilson i kërkon diçka Claude (leximi i një letre, përgjigje në bisedë, përkthim), sasia e tekstit të përpunuar (tokenë) dhe çmimi i vlerësuar shënohen këtu. Asnjë mesazh apo emër nuk ruhet.",
   "usage.fakeMode": "Modaliteti demo: IA është e simuluar, nuk bëhen thirrje reale, ndaj asgjë nuk numërohet.",
   "usage.today": "Sot",
   "usage.thisMonth": "Këtë muaj",

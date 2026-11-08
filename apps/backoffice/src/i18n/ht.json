@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Lang ekran an",
   "ui.machineTranslated": "Tradiksyon otomatik, poko revize: li ka gen erè. Tanpri di kowòdonatè yo si gen fraz ki sonnen dwòl.",
   "common.loading": "N ap chaje…",
@@ -415,7 +415,7 @@
   "nav.usage": "Depans IA",
   "more.usage": "Itilizasyon Claude ak bidjè mwa sa a",
   "usage.title": "Depans IA",
-  "usage.intro": "Chak fwa Mon courrier mande Claude yon bagay (li yon lèt, reponn nan chat la, tradui), kantite tèks yo trete (token) ak pri yo estime a note isit la. Okenn mesaj ni non pa konsève.",
+  "usage.intro": "Chak fwa Wilson mande Claude yon bagay (li yon lèt, reponn nan chat la, tradui), kantite tèks yo trete (token) ak pri yo estime a note isit la. Okenn mesaj ni non pa konsève.",
   "usage.fakeMode": "Mòd demonstrasyon: IA a simile, pa gen vrè apèl, kidonk anyen pa konte.",
   "usage.today": "Jodi a",
   "usage.thisMonth": "Mwa sa a",

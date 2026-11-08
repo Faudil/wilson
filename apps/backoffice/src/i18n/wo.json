@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Làkku ekraŋ bi",
   "ui.machineTranslated": "Tekki masin la, kenn jàngagu ko: man na am ay njuumte. Bu leen baaxee, wax leen kowordinaatër yi bu am baat bu doy waar.",
   "common.loading": "Mi ngi yeb…",
@@ -415,7 +415,7 @@
   "nav.usage": "Njëgu IA",
   "more.usage": "Jëfandikoo Claude ak budget weer wii",
   "usage.title": "Njëgu IA",
-  "usage.intro": "Saa su Mon courrier laajee Claude dara (jàng bataaxal, tontu ci waxtaan wi, tekki), limu mbind mi ñu liggéey (tokens) ak njëg gi ñu xayma dañu koy bind fii. Benn bataaxal walla benn tur du denc.",
+  "usage.intro": "Saa su Wilson laajee Claude dara (jàng bataaxal, tontu ci waxtaan wi, tekki), limu mbind mi ñu liggéey (tokens) ak njëg gi ñu xayma dañu koy bind fii. Benn bataaxal walla benn tur du denc.",
   "usage.fakeMode": "Mode démo: IA bi du dëgg, amul woote yu dëgg, kon dara du waññiku.",
   "usage.today": "Tey",
   "usage.thisMonth": "Weer wii",
