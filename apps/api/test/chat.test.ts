@@ -227,7 +227,8 @@ describe("chatbot", () => {
   it("voice notes get chat_voice_unsupported", async () => {
     const { processInbound } = await import("../src/conversation/engine.js");
     const { p } = await setup("review", "en", "33620000007");
-    await processInbound(t!.wdeps, { id: "wamid.voice.1", from: "33620000007", timestamp: "1", type: "audio", audio: { id: "a1", mime_type: "audio/ogg", voice: true } } as never);
+    const { fromWhatsApp } = await import("../src/whatsapp/inbound.js");
+    await processInbound(t!.wdeps, fromWhatsApp({ id: "wamid.voice.1", from: "33620000007", timestamp: "1", type: "audio", audio: { id: "a1", mime_type: "audio/ogg", voice: true } } as never));
     await t!.queue.drain();
     expect(await p.last()).toBe(waText("en", "chat_voice_unsupported"));
   });

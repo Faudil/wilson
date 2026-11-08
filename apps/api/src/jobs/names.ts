@@ -10,6 +10,8 @@ export const JOBS = {
   broadcastDispatch: "broadcast.dispatch", // on approval: translate, create recipients, queue one wa.send each
   buddyDispatch: "buddy.dispatch", // cron */15: French practice buddies (next sessions, reminders, stale proposals)
   helpDispatch: "help.dispatch", // cron */15: Rendez-vous reminders, expiries, auto-done
+  newsEmail: "news.email", // on posting team news with "also by e-mail": one e-mail per reader
+  eventsDispatch: "events.dispatch", // cron */15: Agenda day-before reminders to beneficiaries
 } as const;
 
 export interface JobPayloads {
@@ -25,9 +27,11 @@ export interface JobPayloads {
     /** One announcement to one person (row in broadcast_recipients): text in the window, else the template first. */
     | { kind: "broadcast"; broadcastId: string; beneficiaryId: string };
   [JOBS.broadcastDispatch]: { broadcastId: string };
+  [JOBS.newsEmail]: { postId: string };
   [JOBS.remindersDispatch]: { now?: string };
   [JOBS.mediaPurge]: Record<string, never>;
   [JOBS.helpDispatch]: { now?: string };
+  [JOBS.eventsDispatch]: { now?: string };
   [JOBS.archivePurge]: Record<string, never>;
   /** No sourceId = every enabled source. */
   [JOBS.buddyDispatch]: { now?: string };

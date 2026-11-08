@@ -55,7 +55,7 @@ export const es: Record<WaKey, string> = {
   announcements_on: "Hecho: recibirá los anuncios. Para parar, escriba STOP.",
   announcements_off: "Hecho: ya no recibirá anuncios. Para volver a recibirlos, elija 6 en el menú.",
   broadcast_stop_hint: "Para dejar de recibir anuncios, escriba STOP.",
-  help_menu: "Un voluntario puede ayudarle:\n1 - Acompañarme a una cita\n2 - Rellenar un formulario juntos\n3 - Mis citas\n0 - Volver al menú",
+  help_menu: "Un voluntario puede ayudarle:\n1 - Acompañarme a una cita\n2 - Rellenar un formulario juntos\n3 - Mis citas\n4 - Talleres y reuniones\n0 - Volver al menú",
   help_place_menu: "¿Dónde es su cita?\n1 - Prefectura\n2 - OFII\n3 - Hospital o médico\n4 - OFPRA o CNDA\n5 - Otro",
   help_form_menu: "¿Qué formulario?\n1 - CAF (ayudas)\n2 - ANEF (permiso de residencia)\n3 - AME (salud)\n4 - Otro",
   help_ask_datetime: "Escriba la fecha y la hora de la cita, por ejemplo: 14/03/2027 9:30",

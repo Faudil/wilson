@@ -55,7 +55,7 @@ export const ti: Record<WaKey, string> = {
   announcements_on: "ተመዝጊቡ፦ መፍለጢታት ክመጸካ እዩ። ደው ንምባል STOP ጽሓፍ።",
   announcements_off: "ተመዝጊቡ፦ ድሕሪ ሕጂ መፍለጢታት ኣይመጸካን። ደጊምካ ክመጸካ እንተደሊኻ ኣብ ማውጫ 6 ምረጽ።",
   broadcast_stop_hint: "መፍለጢታት ደው ንምባል STOP ጽሓፍ።",
-  help_menu: "ወለንተኛ ክሕግዘካ ይኽእል፦\n1 - ምሳይ ናብ ቆጸራ ይኺድ\n2 - ብሓባር ቅጥዒ ንምላእ\n3 - ቆጸራታተይ\n0 - ናብ ዝርዝር ተመለስ",
+  help_menu: "ወለንተኛ ክሕግዘካ ይኽእል፦\n1 - ምሳይ ናብ ቆጸራ ይኺድ\n2 - ብሓባር ቅጥዒ ንምላእ\n3 - ቆጸራታተይ\n4 - ዎርክሾፓትን ኣኼባታትን\n0 - ናብ ዝርዝር ተመለስ",
   help_place_menu: "ቆጸራኻ ኣበይ እዩ?\n1 - ፕረፌክቱር (Préfecture)\n2 - OFII\n3 - ሆስፒታል ወይ ሓኪም\n4 - OFPRA ወይ CNDA\n5 - ካልእ",
   help_form_menu: "ኣየናይ ቅጥዒ?\n1 - CAF (ሓገዛት)\n2 - ANEF (ፍቓድ መንበሪ)\n3 - AME (ጥዕና)\n4 - ካልእ",
   help_ask_datetime: "ዕለትን ሰዓትን ቆጸራ ጽሓፍ፡ ንኣብነት፦ 14/03/2027 9:30",

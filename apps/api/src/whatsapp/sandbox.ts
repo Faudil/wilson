@@ -28,7 +28,10 @@ export async function putSandboxMedia(deps: SandboxTransportDeps, beneficiaryId:
 
 /** Nothing leaves the server: outbound messages are written to `messages`, inbound media read from the blob store. */
 export class SandboxTransport implements WhatsAppTransport {
+  readonly channel = "whatsapp" as const;
   readonly mode = "sandbox" as const;
+  /** The sandbox ignores the 24 h window: the test phone always gets the text itself. */
+  readonly capabilities = { serviceWindow: false };
   constructor(private readonly deps: SandboxTransportDeps) {}
 
   private async record(to: string, kind: "text" | "template" | "interactive", body: string): Promise<{ waMessageId: string }> {

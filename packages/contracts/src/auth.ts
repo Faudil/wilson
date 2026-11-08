@@ -16,7 +16,7 @@ export { ROLE_PERMISSIONS };
  */
 export const TWO_FACTOR_PERMISSIONS: readonly Permission[] = [
   "volunteers.manage", "audit.view", "usage.manage", "knowledge.manage", "notes.moderate", "broadcasts.approve",
-  "buddies.manage", "buddies.reports", "appointments.manage", "associations.manage", "members.manage",
+  "buddies.manage", "buddies.reports", "appointments.manage", "associations.manage", "members.manage", "beneficiaries.recover",
 ];
 
 export const VolunteerSchema = z.object({
@@ -34,8 +34,13 @@ export const VolunteerSchema = z.object({
   /** Association the volunteer belongs to, and whether they administer its members. */
   association: z.object({ id: IdSchema, name: z.string() }).nullable().default(null),
   associationAdmin: z.boolean().default(false),
+  /** Newest "What's new in Wilson" entry this volunteer has seen (null: never opened). */
+  changelogSeen: z.string().nullable().default(null),
 });
 export type Volunteer = z.infer<typeof VolunteerSchema>;
+
+/** Id of a "What's new" entry: its release date, with a letter when there are several that day (2026-11-08b). */
+export const ChangelogIdSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}[a-z]?$/);
 
 export const TotpCodeSchema = z.string().trim().regex(/^\d{6}$/);
 

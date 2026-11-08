@@ -55,7 +55,7 @@ export const sq: Record<WaKey, string> = {
   announcements_on: "U shënua: do të merrni njoftimet. Për të ndaluar, shkruani STOP.",
   announcements_off: "U shënua: nuk do të merrni më njoftime. Për t'i marrë sërish, zgjidhni 6 në menu.",
   broadcast_stop_hint: "Për të mos marrë më njoftime, shkruani STOP.",
-  help_menu: "Një vullnetar mund t'ju ndihmojë:\n1 - Të vijë me mua në një takim\n2 - Të plotësojmë një formular bashkë\n3 - Takimet e mia\n0 - Kthehu te menyja",
+  help_menu: "Një vullnetar mund t'ju ndihmojë:\n1 - Të vijë me mua në një takim\n2 - Të plotësojmë një formular bashkë\n3 - Takimet e mia\n4 - Punëtori dhe takime\n0 - Kthehu te menyja",
   help_place_menu: "Ku është takimi juaj?\n1 - Prefektura\n2 - OFII\n3 - Spital ose mjek\n4 - OFPRA ose CNDA\n5 - Tjetër",
   help_form_menu: "Cili formular?\n1 - CAF (ndihma)\n2 - ANEF (leje qëndrimi)\n3 - AME (shëndet)\n4 - Tjetër",
   help_ask_datetime: "Shkruani datën dhe orën e takimit, për shembull: 14/03/2027 9:30",

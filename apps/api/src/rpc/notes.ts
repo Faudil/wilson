@@ -27,7 +27,7 @@ async function names(deps: Deps, ids: (string | null)[]): Promise<Map<string, st
 const ref = (m: Map<string, string>, id: string | null) => (id && m.has(id) ? { id, name: m.get(id)! } : null);
 
 async function beneficiaryOr404(deps: Deps, id: string) {
-  const [b] = await deps.db.select({ id: beneficiaries.id, language: beneficiaries.language, last2: beneficiaries.waIdLast2, wrapped: beneficiaries.wrappedDek })
+  const [b] = await deps.db.select({ id: beneficiaries.id, language: beneficiaries.language, last2: beneficiaries.waIdLast2, handle: beneficiaries.webHandle, wrapped: beneficiaries.wrappedDek })
     .from(beneficiaries).where(and(eq(beneficiaries.id, id), isNull(beneficiaries.archivedAt)));
   if (!b || !b.wrapped) throw new ORPCError("NOT_FOUND");
   return b;
@@ -53,14 +53,14 @@ async function toNotes(deps: Deps, me: Volunteer, rows: NoteRow[]): Promise<Case
 async function toTasks(deps: Deps, me: Volunteer, rows: TaskRow[]): Promise<CaseTask[]> {
   if (!rows.length) return [];
   const n = await names(deps, rows.flatMap((r) => [r.assigneeId, r.createdBy, r.doneBy]));
-  const bs = await deps.db.select({ id: beneficiaries.id, language: beneficiaries.language, last2: beneficiaries.waIdLast2, avatar: beneficiaries.avatar })
+  const bs = await deps.db.select({ id: beneficiaries.id, language: beneficiaries.language, last2: beneficiaries.waIdLast2, handle: beneficiaries.webHandle, avatar: beneficiaries.avatar })
     .from(beneficiaries).where(inArray(beneficiaries.id, [...new Set(rows.map((r) => r.beneficiaryId))]));
   const b = new Map(bs.map((x) => [x.id, x]));
   const day = today(deps);
   return Promise.all(rows.map(async (r) => ({
     id: r.id,
     beneficiaryId: r.beneficiaryId,
-    beneficiaryLabel: maskedLabel(b.get(r.beneficiaryId)?.last2 ?? "••", b.get(r.beneficiaryId)?.avatar),
+    beneficiaryLabel: maskedLabel(b.get(r.beneficiaryId)?.last2 ?? "••", b.get(r.beneficiaryId)?.handle, b.get(r.beneficiaryId)?.avatar),
     language: (b.get(r.beneficiaryId)?.language ?? "fr") as LanguageCode,
     text: await open(deps, r.beneficiaryId, r.textEnc),
     dueOn: r.dueOn,

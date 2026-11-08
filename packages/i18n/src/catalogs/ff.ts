@@ -55,7 +55,7 @@ export const ff: Record<WaKey, string> = {
   announcements_on: "Ina winndaa: maa heɓ kabaaruuji ɗii. Ngam daraade, winndu STOP.",
   announcements_off: "Ina winndaa: a heɓataa kabaaruuji kadi. Ngam heɓde ɗi kadi, suɓo 6 e menu.",
   broadcast_stop_hint: "Ngam daraade heɓde kabaaruuji, winndu STOP.",
-  help_menu: "Ballotooɗo ina waawi wallude ma:\n1 - Yahdu e am to deental\n2 - Hebbinen fomiler kawrital\n3 - Deentale am\n0 - Ruttoo to menu",
+  help_menu: "Ballotooɗo ina waawi wallude ma:\n1 - Yahdu e am to deental\n2 - Hebbinen fomiler kawrital\n3 - Deentale am\n4 - Golle jaŋde e kawral\n0 - Ruttoo to menu",
   help_place_menu: "Hol to deental maa woni?\n1 - Prefektiir (Préfecture)\n2 - OFII\n3 - Opitaal walla cafroowo\n4 - OFPRA walla CNDA\n5 - Goɗɗum",
   help_form_menu: "Fomiler hoye?\n1 - CAF (ballalli)\n2 - ANEF (kaayit jooɗorde)\n3 - AME (cellal)\n4 - Goɗɗum",
   help_ask_datetime: "Winndu ñalawma e waktu deental ngal, misal: 14/03/2027 9:30",

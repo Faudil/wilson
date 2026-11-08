@@ -55,7 +55,7 @@ export const ln: Record<WaKey, string> = {
   announcements_on: "Ekomami: okozwa mayebisi. Mpo na kotika, koma STOP.",
   announcements_off: "Ekomami: okozwa lisusu mayebisi te. Mpo na kozwa yango lisusu, pona 6 na menu.",
   broadcast_stop_hint: "Mpo na kotika kozwa mayebisi, koma STOP.",
-  help_menu: "Moto ya bolingo akoki kosalisa yo:\n1 - Kende na ngai na rendez-vous\n2 - Kotondisa formulaire elongo\n3 - Ba rendez-vous na ngai\n0 - Zonga na menu",
+  help_menu: "Moto ya bolingo akoki kosalisa yo:\n1 - Kende na ngai na rendez-vous\n2 - Kotondisa formulaire elongo\n3 - Ba rendez-vous na ngai\n4 - Ba atelier mpe makita\n0 - Zonga na menu",
   help_place_menu: "Rendez-vous na yo ezali wapi?\n1 - Préfecture\n2 - OFII\n3 - Lopitalo to monganga\n4 - OFPRA to CNDA\n5 - Mosusu",
   help_form_menu: "Formulaire nini?\n1 - CAF (lisalisi)\n2 - ANEF (mokanda ya kofanda)\n3 - AME (bokolongono)\n4 - Mosusu",
   help_ask_datetime: "Koma mokolo mpe ngonga ya rendez-vous, ndakisa: 14/03/2027 9:30",

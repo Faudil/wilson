@@ -102,6 +102,7 @@ export const PERMISSIONS = [
   "letters.view_photo",
   "beneficiaries.view",
   "beneficiaries.edit", // change language
+  "beneficiaries.recover", // web accounts: give an unlock code to someone who lost their words, lock or unlock an account
   "documents.view_metadata",
   "documents.view_file",
   "documents.edit", // fix type / expiry, archive
@@ -136,6 +137,16 @@ export const PERMISSIONS = [
   "appointments.documents", // open the person's saved documents, only for a session you hold and only if they agreed
   "appointments.manage", // see every appointment and who holds it, cancel any, remove anyone's slot
   "numbers.moderate", // release a WhatsApp number held by the flood guard, block or unblock a number
+  // — Agenda (maraudes, meetings, trainings, workshops) —
+  "events.view", // see the calendar of your association's events (and everyone's) and who is coming
+  "events.join", // sign yourself up for an event, or take your name off
+  "events.create", // create events; edit or cancel your own, see their full list (incl. how many beneficiaries)
+  "events.manage", // edit or cancel any event of your association (global admins: any event), remove anyone from it
+  // — Team side: news from the association to its volunteers, and volunteers asking each other for backup —
+  "news.view", // read the team news of one's association (and the posts for everyone)
+  "news.post", // post team news: global admins to everyone or one association, association admins to their own
+  "backup.view", // see calls for backup from one's association (and those open to everyone), offer to help
+  "backup.ask", // post a call for backup ("need an Arabic speaker tomorrow at the prefecture"), close one's own
 ] as const;
 export type PermissionValue = (typeof PERMISSIONS)[number];
 
@@ -146,6 +157,7 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
   "letters.view_photo",
   "beneficiaries.view",
   "beneficiaries.edit",
+  "beneficiaries.recover",
   "documents.view_metadata",
   "documents.view_file",
   "documents.edit",
@@ -169,6 +181,11 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
   "appointments.slots",
   "appointments.documents",
   "numbers.moderate",
+  "news.view",
+  "backup.view",
+  "backup.ask",
+  "events.view",
+  "events.join",
 ];
 
 /**
@@ -179,22 +196,25 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
  * drafting announcements, accepting appointments and publishing form-filling slots. Responders get no appointments:
  * meeting people in person needs an admin's trust, so it is granted per person.
  * Volunteers can also be someone's French practice buddy.
+ * Everyone (responders included) sees the Agenda and can sign up for events; creating events is for admins and
+ * association admins (and anyone they grant events.create to).
  * admin: + volunteers, audit, knowledge sync, usage, moderating notes, approving announcements, arranging French
- * buddies and handling their reports, managing appointments.
+ * buddies and handling their reports, managing appointments, posting team news.
+ * Every role reads team news and calls for backup, and can ask the others for backup.
  */
 /**
- * Granted on top of the role to an association admin (set by a global admin), never part of a role bundle:
- * the server limits it to members of that association.
+ * Granted on top of the role to an association admin (set by a global admin): the server limits both to that
+ * association (members.manage: its members; news.post: news for its volunteers). members.manage is in no role bundle.
  */
-export const ASSOCIATION_ADMIN_PERMISSIONS: readonly PermissionValue[] = ["members.manage"];
+export const ASSOCIATION_ADMIN_PERMISSIONS: readonly PermissionValue[] = ["members.manage", "news.post", "events.create", "events.manage"];
 
 /** What an association admin may never hand out (to keep them inside their association and below global admins). */
 export const GLOBAL_ONLY_PERMISSIONS: readonly PermissionValue[] = ["volunteers.manage", "associations.manage", "members.manage", "usage.manage", "knowledge.manage", "audit.view"];
 
 export const ROLE_PERMISSIONS: Record<(typeof VOLUNTEER_ROLES)[number], readonly PermissionValue[]> = {
-  responder: ["conversations.view", "conversations.reply", "knowledge.view", "places.view", "skills.edit_own"],
+  responder: ["conversations.view", "conversations.reply", "knowledge.view", "places.view", "skills.edit_own", "news.view", "backup.view", "backup.ask", "events.view", "events.join"],
   volunteer: VOLUNTEER_BUNDLE,
-  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "associations.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"],
+  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "associations.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage", "news.post", "events.create", "events.manage"],
 };
 
 /** Kinds of places volunteers post for the day (shown with an emoji in WhatsApp, grouped in this order). */
@@ -208,10 +228,45 @@ export const HELP_KINDS = ["accompaniment", "form_session"] as const;
  */
 export const ACCOMPANIMENT_TOPICS = ["prefecture", "ofii", "hospital", "ofpra", "other_place"] as const;
 export const FORM_TOPICS = ["caf", "anef", "ame", "other_form"] as const;
+
+/** Kinds of events in the Agenda (shown with an emoji). */
+export const EVENT_KINDS = ["maraude", "meeting", "training", "workshop", "info_session", "other"] as const;
 export const HELP_TOPICS = [...ACCOMPANIMENT_TOPICS, ...FORM_TOPICS] as const;
 
 /** draft = being typed on WhatsApp (never shown to volunteers). */
 export const HELP_STATUSES = ["draft", "open", "accepted", "done", "cancelled", "expired"] as const;
+
+/**
+ * The recovery word list: one picture each, so a person who does not read French can still recognise and tap them.
+ * Words are lower-case ASCII, unique, and unique on their first 4 letters (typing 4 letters is always enough).
+ * The order is part of the format: never reorder or replace entries, only append (and never past 256).
+ */
+export const RECOVERY_WORDS = [
+  ["chat", "🐱"], ["chien", "🐶"], ["cheval", "🐴"], ["vache", "🐮"], ["cochon", "🐷"], ["mouton", "🐑"], ["lapin", "🐰"], ["souris", "🐭"],
+  ["lion", "🦁"], ["tigre", "🐯"], ["ours", "🐻"], ["panda", "🐼"], ["singe", "🐵"], ["girafe", "🦒"], ["zebre", "🦓"], ["elephant", "🐘"],
+  ["chameau", "🐫"], ["renard", "🦊"], ["loup", "🐺"], ["poule", "🐔"], ["canard", "🦆"], ["hibou", "🦉"], ["aigle", "🦅"], ["pingouin", "🐧"],
+  ["tortue", "🐢"], ["serpent", "🐍"], ["poisson", "🐟"], ["dauphin", "🐬"], ["baleine", "🐳"], ["pieuvre", "🐙"], ["crabe", "🦀"], ["abeille", "🐝"],
+  ["papillon", "🦋"], ["escargot", "🐌"], ["fourmi", "🐜"], ["grenouille", "🐸"], ["pomme", "🍎"], ["poire", "🍐"], ["banane", "🍌"], ["raisin", "🍇"],
+  ["citron", "🍋"], ["orange", "🍊"], ["fraise", "🍓"], ["cerise", "🍒"], ["ananas", "🍍"], ["pasteque", "🍉"], ["carotte", "🥕"], ["tomate", "🍅"],
+  ["epi", "🌽"], ["piment", "🌶️"], ["pain", "🍞"], ["fromage", "🧀"], ["oeuf", "🥚"], ["gateau", "🎂"], ["bonbon", "🍬"], ["cafe", "☕"],
+  ["lait", "🥛"], ["miel", "🍯"], ["riz", "🍚"], ["pizza", "🍕"], ["soleil", "☀️"], ["lune", "🌙"], ["etoile", "⭐"], ["nuage", "☁️"],
+  ["pluie", "🌧️"], ["neige", "❄️"], ["arcenciel", "🌈"], ["eclair", "⚡"], ["feu", "🔥"], ["arbre", "🌳"], ["fleur", "🌸"], ["rose", "🌹"],
+  ["cactus", "🌵"], ["feuille", "🍁"], ["montagne", "⛰️"], ["volcan", "🌋"], ["vague", "🌊"], ["ile", "🏝️"], ["maison", "🏠"], ["cle", "🔑"],
+  ["porte", "🚪"], ["lit", "🛏️"], ["lampe", "💡"], ["bougie", "🕯️"], ["livre", "📖"], ["crayon", "✏️"], ["ciseaux", "✂️"], ["horloge", "⏰"],
+  ["cloche", "🔔"], ["ballon", "⚽"], ["guitare", "🎸"], ["tambour", "🥁"], ["trompette", "🎺"], ["cadeau", "🎁"], ["parapluie", "☂️"], ["chapeau", "🎩"],
+  ["cravate", "👔"], ["basket", "👟"], ["gant", "🧤"], ["echarpe", "🧣"], ["valise", "🧳"], ["marteau", "🔨"], ["aimant", "🧲"], ["pinceau", "🖌️"],
+  ["ancre", "⚓"], ["boussole", "🧭"], ["bateau", "⛵"], ["avion", "✈️"], ["fusee", "🚀"], ["velo", "🚲"], ["voiture", "🚗"], ["bus", "🚌"],
+  ["train", "🚆"], ["tracteur", "🚜"], ["camion", "🚚"], ["coeur", "❤️"], ["diamant", "💎"], ["couronne", "👑"], ["robot", "🤖"], ["fantome", "👻"],
+  ["tente", "⛺"], ["pont", "🌉"], ["drapeau", "🚩"], ["telephone", "📱"], ["appareil", "📷"], ["micro", "🎤"], ["tasse", "🍵"], ["biberon", "🍼"],
+] as const satisfies readonly (readonly [string, string])[];
+
+export type RecoveryWord = (typeof RECOVERY_WORDS)[number][0];
+export const RECOVERY_WORD_COUNT = 6;
+
+/** Lower case, no accents, letters only: "Éléphant " → "elephant". */
+export function normaliseRecoveryWord(s: string): string {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z]/g, "");
+}
 
 /** Avatar choices volunteers can give a person in the back-office (see AvatarSchema). */
 export const AVATAR_EMOJIS = ["🌻", "🌿", "🌙", "⭐", "🍊", "🐦", "🌊", "🎈", "🌸", "🍀", "☀️", "🦋", "🐢", "🍎", "🎵", "🏔️"] as const;

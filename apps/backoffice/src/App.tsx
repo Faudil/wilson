@@ -5,10 +5,11 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { Icon, type IconName } from "./components/Icon";
 import { ErrorBox, Sheet, Skeleton } from "./components/ui";
 import { useI18n, type MessageKey } from "./i18n";
-import { UI_LANGUAGES } from "./i18n/core";
+import { MACHINE_TRANSLATED, UI_LANGUAGES } from "./i18n/core";
 import { orpc } from "./lib/api";
 import { fetchMe, ME_KEY } from "./lib/me";
-import { useAppointmentCounts, useAttentionCount, useDueTasks, useHeldNumbers, useLetterStats, usePendingVolunteers } from "./lib/counts";
+import { useAppointmentCounts, useAttentionCount, useBackupCounts, useDueTasks, useHeldNumbers, useLetterStats, useNewsUnread, usePendingVolunteers } from "./lib/counts";
+import { unseenEntries } from "./lib/changelog";
 import { LazyBoundary, lazyScreens, prefetchScreens } from "./lib/lazy";
 import { initials } from "./lib/relative";
 import { href, useRoute } from "./lib/router";
@@ -37,9 +38,13 @@ const { Usage } = lazyScreens(() => import("./screens/Usage"), "Usage");
 const { Tasks } = lazyScreens(() => import("./screens/Tasks"), "Tasks");
 const { Skills } = lazyScreens(() => import("./screens/Skills"), "Skills");
 const { Places } = lazyScreens(() => import("./screens/Places"), "Places");
+const { Events } = lazyScreens(() => import("./screens/Events"), "Events");
 const { Broadcasts } = lazyScreens(() => import("./screens/Broadcasts"), "Broadcasts");
 const { Appointments } = lazyScreens(() => import("./screens/Appointments"), "Appointments");
 const { Numbers } = lazyScreens(() => import("./screens/Numbers"), "Numbers");
+const { News } = lazyScreens(() => import("./screens/News"), "News");
+const { Backup } = lazyScreens(() => import("./screens/Backup"), "Backup");
+const { WhatsNew, WhatsNewSheet } = lazyScreens(() => import("./screens/WhatsNew"), "WhatsNew", "WhatsNewSheet");
 
 function useLanguageChange() {
   const { lang, setLang } = useI18n();
@@ -96,13 +101,14 @@ function AccountSheet({ open, onClose, onLogout, volunteer }: { open: boolean; o
         </div>
         <div className="stack-tight">
           <span className="field-label">{t("ui.language")}</span>
-          <div className="segmented segmented-lang" role="radiogroup" aria-label={t("ui.language")}>
+          <select className="lang-select" aria-label={t("ui.language")} value={current} onChange={(e) => change(e.target.value as LanguageCode)}>
             {UI_LANGUAGES.map((code) => (
-              <button key={code} type="button" role="radio" aria-checked={code === current} className={code === current ? "is-active" : ""} lang={code} dir={LANGUAGES[code].dir} onClick={() => change(code)}>
+              <option key={code} value={code} lang={code} dir={LANGUAGES[code].dir}>
                 {LANGUAGES[code].nativeName}
-              </button>
+              </option>
             ))}
-          </div>
+          </select>
+          {MACHINE_TRANSLATED.has(current) && <small className="muted">{t("ui.machineTranslated")}</small>}
         </div>
         <LazyBoundary>
           <Suspense fallback={<Skeleton lines={1} card={false} />}>
@@ -141,11 +147,14 @@ const TABS: NavItem[] = [
   { key: "beneficiaries", label: "nav.beneficiaries", icon: "users", permission: "beneficiaries.view" },
 ];
 const MORE: NavItem[] = [
+  { key: "news", label: "nav.news", icon: "megaphone", desc: "more.news", permission: "news.view" },
+  { key: "backup", label: "nav.backup", icon: "hand", desc: "more.backup", permission: "backup.view" },
   { key: "tasks", label: "nav.tasks", icon: "bell", desc: "more.tasks", permission: "notes.view" },
   { key: "skills", label: "nav.skills", icon: "sparkles", desc: "more.skills", permission: ["skills.view", "skills.edit_own"] },
   { key: "places", label: "nav.places", icon: "home", desc: "more.places", permission: "places.view" },
   { key: "broadcasts", label: "nav.broadcasts", icon: "megaphone", desc: "more.broadcasts", permission: "broadcasts.view" },
   { key: "appointments", label: "nav.appointments", icon: "hand", desc: "more.appointments", permission: "appointments.view" },
+  { key: "events", label: "nav.events", icon: "calendar", desc: "more.events", permission: "events.view" },
   { key: "deadlines", label: "nav.deadlines", icon: "calendar", desc: "more.deadlines", permission: "documents.view_metadata" },
   { key: "knowledge", label: "nav.knowledge", icon: "book", desc: "more.knowledge", permission: "knowledge.view" },
   { key: "buddies", label: "nav.buddies", icon: "hand", desc: "more.buddies", permission: ["buddies.be_buddy", "buddies.manage", "buddies.reports"] },
@@ -153,6 +162,7 @@ const MORE: NavItem[] = [
   { key: "associations", label: "nav.associations", icon: "building", desc: "more.associations", permission: "associations.manage" },
   { key: "numbers", label: "nav.numbers", icon: "shield", desc: "more.numbers", permission: "numbers.moderate" },
   { key: "usage", label: "nav.usage", icon: "chart", desc: "more.usage", permission: "usage.manage" },
+  { key: "whatsnew", label: "nav.whatsNew", icon: "sparkles", desc: "more.whatsNew", permission: null },
   { key: "languages", label: "nav.languages", icon: "globe", desc: "more.languages", permission: null },
   { key: "sandbox", label: "nav.sandbox", icon: "flask", desc: "more.sandbox", permission: "sandbox.use", sandboxOnly: true },
 ];
@@ -323,6 +333,11 @@ export function App() {
   const dueTasks = useDueTasks(!!session && session.can("notes.view"));
   const appointments = useAppointmentCounts(!!session && session.can("appointments.view"));
   const heldNumbers = useHeldNumbers(!!session && session.can("numbers.moderate"));
+  const news = useNewsUnread(!!session && session.can("news.view"));
+  const backup = useBackupCounts(!!session && session.can("backup.view"));
+  // "What's new" opens once after an update; closing it stores the newest entry as seen (server side).
+  const [whatsNewClosed, setWhatsNewClosed] = useState(false);
+  const whatsNew = useMemo(() => (session ? unseenEntries(session.volunteer.changelogSeen, session.can) : []), [session]);
   const loggedIn = session !== null;
   useEffect(() => {
     if (loggedIn) prefetchScreens();
@@ -399,9 +414,13 @@ export function App() {
   else if (section === "buddies" && arg && allowed("buddies")) screen = <BuddyDetail id={arg} />;
   else if (section === "buddies" && allowed("buddies")) screen = <BuddyList />;
   else if (section === "appointments" && allowed("appointments")) screen = <Appointments />;
+  else if (section === "events" && allowed("events")) screen = <Events openId={arg} />;
+  else if (section === "news" && allowed("news")) screen = <News />;
+  else if (section === "backup" && allowed("backup")) screen = <Backup />;
+  else if (section === "whatsnew") screen = <WhatsNew />;
   else screen = <Home />;
 
-  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters", "volunteers", "associations", "usage", "tasks", "skills", "places", "broadcasts", "buddies", "appointments", "numbers"];
+  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters", "volunteers", "associations", "usage", "tasks", "skills", "places", "broadcasts", "buddies", "appointments", "events", "numbers", "news", "backup", "whatsnew"];
   const current = section === "letters" ? "queue" : known.includes(section) ? section : "";
   const focus = (section === "letters" || section === "conversations") && !!arg;
 
@@ -418,14 +437,19 @@ export function App() {
               more={moreItems.length > 0}
               current={current}
               badges={{ queue: letterStats.pending, conversations: attention }}
-              moreBadge={pendingVolunteers + dueTasks + appointments.open + heldNumbers}
+              moreBadge={pendingVolunteers + dueTasks + appointments.open + heldNumbers + news.count + backup.forMe}
               onMore={() => setMoreOpen(true)}
             />
-            <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} badges={{ volunteers: pendingVolunteers, tasks: dueTasks, appointments: appointments.open, numbers: heldNumbers }} />
+            <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} badges={{ volunteers: pendingVolunteers, tasks: dueTasks, appointments: appointments.open, numbers: heldNumbers, news: news.count, backup: backup.open }} />
           </>
         }
       >
         {screen}
+        {whatsNew.length > 0 && !whatsNewClosed && section !== "whatsnew" && (
+          <Suspense fallback={null}>
+            <WhatsNewSheet entries={whatsNew} onClose={() => setWhatsNewClosed(true)} />
+          </Suspense>
+        )}
       </Shell>
     </SessionContext.Provider>
   );

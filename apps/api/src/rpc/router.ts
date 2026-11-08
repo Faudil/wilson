@@ -1,6 +1,7 @@
 import { os } from "./base.js";
 import { appointmentsRouter } from "./appointments.js";
 import { authRouter } from "./auth.js";
+import { meRouter } from "./me.js";
 import { buddiesRouter } from "./buddies.js";
 import { beneficiariesRouter } from "./beneficiaries.js";
 import { conversationsRouter } from "./conversations.js";
@@ -17,10 +18,13 @@ import { volunteersRouter } from "./volunteers.js";
 import { associationsRouter, invitationsRouter } from "./associations.js";
 import { placesRouter } from "./places.js";
 import { broadcastsRouter } from "./broadcasts.js";
-import { teamRouter } from "./team.js";
+import { backupRouter, newsRouter } from "./team.js";
+import { teamRouter } from "./week.js";
+import { eventsRouter } from "./events.js";
 
 export const router = os.router({
   auth: authRouter,
+  me: meRouter,
   team: teamRouter,
   beneficiaries: beneficiariesRouter,
   documents: documentsRouter,
@@ -38,8 +42,11 @@ export const router = os.router({
   skills: skillsRouter,
   places: placesRouter,
   broadcasts: broadcastsRouter,
+  news: newsRouter,
+  backup: backupRouter,
   buddies: buddiesRouter,
   appointments: appointmentsRouter,
+  events: eventsRouter,
   numbers: numbersRouter,
 });
 export type AppRouter = typeof router;

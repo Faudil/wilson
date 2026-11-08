@@ -1,10 +1,10 @@
+import { isWebAddress } from "./web.js";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { eq } from "drizzle-orm";
 import { WaWebhookSchema, type WaWebhook } from "@wilson/contracts";
-import { processInbound } from "../conversation/engine.js";
-import { messages } from "../db/schema.js";
+import { applyDeliveryStatus, receiveInbound } from "../channels/receive.js";
 import type { WaDeps } from "./context.js";
+import { fromWhatsApp } from "./inbound.js";
 
 const MAX_BODY = 2 * 1024 * 1024;
 
@@ -36,8 +36,6 @@ function reply(res: ServerResponse, status: number, body = "", type = "text/plai
   res.writeHead(status, { "Content-Type": type });
   res.end(body);
 }
-
-const STATUS_RANK: Record<string, number> = { queued: 0, sent: 1, delivered: 2, read: 3 };
 
 /**
  * Plain Node HTTP handler for `/webhooks/whatsapp` (GET verification + POST events).
@@ -104,26 +102,15 @@ export async function processWebhookPayload(deps: WaDeps, payload: WaWebhook): P
           console.warn(`[whatsapp] message delivery failed: ${codes || "no error code"}`);
         }
         try {
-          await applyStatus(deps, st.id, st.status);
+          await applyDeliveryStatus(deps, st.id, st.status);
         } catch (e) {
           console.error("[whatsapp] status update failed", (e as Error).message);
         }
       }
       for (const msg of change.value.messages ?? []) {
-        try {
-          await processInbound(deps, msg);
-        } catch (e) {
-          console.error(`[whatsapp] processing message ${msg.id} failed`, (e as Error).message);
-        }
-        deps.wa.markRead?.(msg.id).catch((e: Error) => console.warn("[whatsapp] mark read failed", e.message));
+        if (isWebAddress(msg.from)) continue; // web accounts write through their page (rpc/me.ts), never through here
+        await receiveInbound(deps, fromWhatsApp(msg));
       }
     }
   }
-}
-
-async function applyStatus(deps: WaDeps, waMessageId: string, status: "sent" | "delivered" | "read" | "failed"): Promise<void> {
-  const [row] = await deps.db.select({ id: messages.id, status: messages.status }).from(messages).where(eq(messages.waMessageId, waMessageId)).limit(1);
-  if (!row) return;
-  if (status !== "failed" && (STATUS_RANK[status] ?? 0) <= (STATUS_RANK[row.status] ?? 0)) return;
-  await deps.db.update(messages).set({ status }).where(eq(messages.id, row.id));
 }

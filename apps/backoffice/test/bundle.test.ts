@@ -31,3 +31,27 @@ describe("browser bundle", () => {
     expect(Object.keys(entry[1].inputs).some((p) => p.includes("screens/LetterReview"))).toBe(false);
   });
 });
+
+// The beneficiaries' web space: often opened on old phones with little data left.
+const moi = await Bun.build({
+  entrypoints: [join(import.meta.dir, "../src/moi/main.tsx")],
+  minify: true,
+  splitting: true,
+  target: "browser",
+  metafile: true,
+  define: { "process.env.NODE_ENV": JSON.stringify("production") },
+});
+
+describe("web space bundle", () => {
+  it("builds without zod or the WhatsApp catalogs, one chunk per language, first download under 110 KB gzipped", async () => {
+    expect(moi.success).toBe(true);
+    const outs = Object.values(moi.metafile!.outputs);
+    const inputs = outs.flatMap((o) => Object.keys(o.inputs));
+    expect(inputs.filter((p) => /node_modules\/(\.bun\/[^/]+\/node_modules\/)?zod\//.test(p))).toEqual([]);
+    expect(inputs.filter((p) => p.includes("packages/i18n/src/catalogs/"))).toEqual([]);
+    const entryOut = outs.find((o) => o.entryPoint)!;
+    expect(Object.keys(entryOut.inputs).some((p) => p.includes("packages/i18n/src/web/ar"))).toBe(false);
+    const main = moi.outputs.find((o) => o.kind === "entry-point")!;
+    expect(gzipSync(Buffer.from(await main.arrayBuffer())).length).toBeLessThan(110 * 1024);
+  });
+});

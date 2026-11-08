@@ -437,7 +437,7 @@ function createChatService(deps: Deps): ChatService {
         awaitingIds(page.filter((r) => r.status !== "with_volunteer").map((r) => r.id)),
       ]);
       const items = page.map((r): ConversationSummary => ({
-        beneficiaryId: r.id, beneficiaryLabel: maskedLabel(r.last2, r.avatar), beneficiaryAvatar: avatarOf(r.avatar), language: r.language, status: r.status,
+        beneficiaryId: r.id, beneficiaryLabel: maskedLabel(r.last2, r.handle, r.avatar), beneficiaryAvatar: avatarOf(r.avatar), language: r.language, status: r.status,
         lastMessageAt: r.last ? r.last.toISOString() : null, lastPreview: previews.get(r.id) ?? null, pendingDrafts: r.drafts,
         assignee: r.assigneeId ? { id: r.assigneeId, name: names.get(r.assigneeId) ?? "?" } : null,
         awaitingReply: (r.status === "with_volunteer" ? waiting : awaitingOthers).has(r.id),
@@ -469,7 +469,7 @@ function createChatService(deps: Deps): ChatService {
       }));
       const last = [...msgs].reverse().find((m) => m.author === "beneficiary");
       return {
-        beneficiaryId, beneficiaryLabel: maskedLabel(b.waIdLast2, b.avatar), beneficiaryAvatar: avatarOf(b.avatar), language: b.language, status: b.chatStatus,
+        beneficiaryId, beneficiaryLabel: maskedLabel(b.waIdLast2, b.webHandle, b.avatar), beneficiaryAvatar: avatarOf(b.avatar), language: b.language, status: b.chatStatus,
         lastMessageAt: rows.at(-1)?.createdAt.toISOString() ?? null,
         lastPreview: last ? (last.textFr ?? last.text) : null,
         pendingDrafts: msgs.filter((m) => m.state === "draft").length,
@@ -477,7 +477,7 @@ function createChatService(deps: Deps): ChatService {
         awaitingReply: awaiting(msgs),
         messages: msgs,
         footer: footerFor(deps, b.language),
-        windowOpen: windowOpen(deps, b.lastInboundAt),
+        windowOpen: windowOpen(deps, b),
         guard: b.guardStatus as "none" | "quarantined" | "blocked",
       };
     },
@@ -488,6 +488,7 @@ function createChatService(deps: Deps): ChatService {
     const rows = await db.select({
       id: beneficiaries.id, language: beneficiaries.language, status: beneficiaries.chatStatus, assigneeId: beneficiaries.chatAssigneeId,
       last2: beneficiaries.waIdLast2, avatar: beneficiaries.avatar,
+      handle: beneficiaries.webHandle,
       last: sql<Date | null>`max(${messages.createdAt})`,
       drafts: sql<number>`count(*) filter (where ${messages.chatState} = 'draft')::int`,
     }).from(beneficiaries).innerJoin(messages, and(eq(messages.beneficiaryId, beneficiaries.id), isNotNull(messages.author)))

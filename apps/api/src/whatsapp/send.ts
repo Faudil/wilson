@@ -5,6 +5,8 @@ import { broadcastRecipients, broadcasts, messages, reminders } from "../db/sche
 import { getBroadcasts } from "../broadcasts/service.js";
 import type { ConversationState } from "../db/schema.js";
 import type { WaDeps } from "./context.js";
+import type { ChannelId, ChannelTransport } from "../channels/types.js";
+import { sendTemplateVia, windowOpenFor } from "../channels/registry.js";
 import { toInteractive } from "./interactive.js";
 import { META_ERRORS, MetaApiError } from "./meta.js";
 
@@ -25,9 +27,15 @@ export function footerFor(deps: Pick<WaDeps, "config">, lang: Parameters<typeof 
   return waText(lang, "footer", { name: deps.config.ASSOCIATION_NAME, contact: deps.config.ASSOCIATION_CONTACT });
 }
 
-async function storeOutbound(deps: WaDeps, beneficiaryId: string, kind: "text" | "template" | "interactive", body: string, waMessageId: string): Promise<void> {
-  // The sandbox transport records its own rows; only real transports are recorded here.
-  if (deps.wa.mode === "sandbox") return;
+/** Where this person's messages go: their channel's transport and their decrypted address on it. */
+async function route(deps: WaDeps, beneficiaryId: string): Promise<{ t: ChannelTransport; to: string }> {
+  const { channel, address } = await deps.beneficiaries.getAddress(beneficiaryId);
+  return { t: deps.channels.get(channel), to: address };
+}
+
+async function storeOutbound(deps: WaDeps, t: ChannelTransport, beneficiaryId: string, kind: "text" | "template" | "interactive", body: string, waMessageId: string): Promise<void> {
+  // The sandbox and web transports record their own rows; only real transports are recorded here.
+  if (t.mode === "sandbox" || t.mode === "web") return;
   const dek = await deps.beneficiaries.getDek(beneficiaryId);
   await deps.db.insert(messages).values({
     beneficiaryId, direction: "out", kind, waMessageId, bodyEnc: deps.crypto.encrypt(dek, body), status: "sent",
@@ -40,9 +48,9 @@ async function storeOutbound(deps: WaDeps, beneficiaryId: string, kind: "text" |
  */
 export async function sendTextNow(deps: WaDeps, beneficiaryId: string, body: string, recordAs: string): Promise<void> {
   try {
-    const to = await deps.beneficiaries.getWaId(beneficiaryId);
-    const { waMessageId } = await deps.wa.sendText(to, body);
-    await storeOutbound(deps, beneficiaryId, "text", recordAs, waMessageId);
+    const { t, to } = await route(deps, beneficiaryId);
+    const { waMessageId } = await t.sendText(to, body);
+    await storeOutbound(deps, t, beneficiaryId, "text", recordAs, waMessageId);
   } catch (e) {
     console.error("[wa] direct send failed:", e instanceof Error ? e.message : String(e));
   }
@@ -52,7 +60,7 @@ export async function sendTextNow(deps: WaDeps, beneficiaryId: string, body: str
 const OFFER_OK: ConversationState["step"][] = ["main_menu", "await_letter_photo", "await_document_file", "offer_save_letter"];
 
 export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.waSend]): Promise<void> {
-  const { beneficiaries, letters, wa, config } = deps;
+  const { beneficiaries, letters, config } = deps;
 
   if (payload.kind === "letter_reply") {
     const out = await letters.getOutgoing(payload.letterId);
@@ -60,18 +68,18 @@ export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.
     if (!out || out.status !== "approved" || !out.text) return;
     const b = await beneficiaries.get(out.beneficiaryId);
     if (!b) return;
-    const to = await beneficiaries.getWaId(b.id);
+    const { t, to } = await route(deps, b.id);
     const optIn = async () => {
       if (out.awaitingOptIn) return;
-      const { waMessageId } = await wa.sendTemplate(to, config.WHATSAPP_TEMPLATE_EXPLANATION_READY, b.language, []);
-      await storeOutbound(deps, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_EXPLANATION_READY}]`, waMessageId);
+      const { waMessageId } = await sendTemplateVia(t, to, config.WHATSAPP_TEMPLATE_EXPLANATION_READY, b.language, []);
+      await storeOutbound(deps, t, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_EXPLANATION_READY}]`, waMessageId);
       await letters.setAwaitingOptIn(out.letterId, true);
     };
-    if (!windowOpen(deps, b.lastInboundAt)) return optIn();
-    const sent = await sendTextOr(deps, to, out.text, optIn);
+    if (!windowOpen(deps, b)) return optIn();
+    const sent = await sendTextOr(t, to, out.text, optIn);
     if (!sent) return;
     const { waMessageId } = sent;
-    await storeOutbound(deps, b.id, "text", out.text, waMessageId);
+    await storeOutbound(deps, t, b.id, "text", out.text, waMessageId);
     await letters.markSent(out.letterId);
     if (OFFER_OK.includes(b.conversationState.step)) {
       await beneficiaries.setConversationState(b.id, { step: "offer_save_letter", letterId: out.letterId });
@@ -86,7 +94,7 @@ export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.
   const b = await beneficiaries.get(payload.beneficiaryId);
   // Blocked numbers get nothing from us any more, reminders included.
   if (!b || b.guardStatus === "blocked") return;
-  const to = await beneficiaries.getWaId(b.id);
+  const { t, to } = await route(deps, b.id);
   /** Window closed: a template instead, when this text has one. Returns false when it has none (plain menu text…). */
   const viaTemplate = async (): Promise<boolean> => {
     if (payload.reminderId) {
@@ -94,28 +102,28 @@ export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.
       const doc = rem ? await deps.documents.get(rem.documentId) : null;
       if (!doc?.expiresAt) return false;
       const params = [documentTypeName(doc.type, b.language), formatDate(doc.expiresAt, b.language)];
-      const { waMessageId } = await wa.sendTemplate(to, config.WHATSAPP_TEMPLATE_DOCUMENT_REMINDER, b.language, params);
-      await storeOutbound(deps, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_DOCUMENT_REMINDER}] ${params.join(" | ")}`, waMessageId);
+      const { waMessageId } = await sendTemplateVia(t, to, config.WHATSAPP_TEMPLATE_DOCUMENT_REMINDER, b.language, params);
+      await storeOutbound(deps, t, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_DOCUMENT_REMINDER}] ${params.join(" | ")}`, waMessageId);
       return true;
     }
     if (payload.letterId) {
       // e.g. "a volunteer will contact you" after the window closed: ask for an opt-in, released on the next inbound message.
-      const { waMessageId } = await wa.sendTemplate(to, config.WHATSAPP_TEMPLATE_EXPLANATION_READY, b.language, []);
-      await storeOutbound(deps, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_EXPLANATION_READY}]`, waMessageId);
+      const { waMessageId } = await sendTemplateVia(t, to, config.WHATSAPP_TEMPLATE_EXPLANATION_READY, b.language, []);
+      await storeOutbound(deps, t, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_EXPLANATION_READY}]`, waMessageId);
       await letters.setAwaitingOptIn(payload.letterId, true);
       return true;
     }
     return false;
   };
-  if (!windowOpen(deps, b.lastInboundAt) && (await viaTemplate())) return;
-  const menu = payload.interactive && wa.sendInteractive ? toInteractive(payload.body) : null;
-  const send = menu ? () => wa.sendInteractive!(to, menu, payload.body) : () => wa.sendText(to, payload.body);
+  if (!windowOpen(deps, b) && (await viaTemplate())) return;
+  const menu = payload.interactive && t.sendInteractive ? toInteractive(payload.body) : null;
+  const send = menu ? () => t.sendInteractive!(to, menu, payload.body) : () => t.sendText(to, payload.body);
   const sent = await sendOr(send, async () => {
     // Meta says the window is closed although our clock said open: same fallback, or drop a text that has none
     // (a menu or an acknowledgement makes no sense days later, and Meta would refuse it at every retry).
     if (!(await viaTemplate())) console.warn("[whatsapp] dropped a plain text outside the 24 h window (no template for it)");
   });
-  if (sent) await storeOutbound(deps, b.id, menu ? "interactive" : "text", payload.body, sent.waMessageId);
+  if (sent) await storeOutbound(deps, t, b.id, menu ? "interactive" : "text", payload.body, sent.waMessageId);
 }
 
 /**
@@ -123,8 +131,8 @@ export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.
  * clock can disagree by a few seconds, or a message was delayed in the queue), run `onWindowClosed` instead and
  * return null. Other errors propagate, so the job is retried.
  */
-function sendTextOr(deps: WaDeps, to: string, body: string, onWindowClosed: () => Promise<void>): Promise<{ waMessageId: string } | null> {
-  return sendOr(() => deps.wa.sendText(to, body), onWindowClosed);
+function sendTextOr(t: ChannelTransport, to: string, body: string, onWindowClosed: () => Promise<void>): Promise<{ waMessageId: string } | null> {
+  return sendOr(() => t.sendText(to, body), onWindowClosed);
 }
 
 async function sendOr(send: () => Promise<{ waMessageId: string }>, onWindowClosed: () => Promise<void>): Promise<{ waMessageId: string } | null> {
@@ -145,20 +153,20 @@ async function sendOr(send: () => Promise<{ waMessageId: string }>, onWindowClos
  * message stays queued behind an opt-in template and is re-queued on the next inbound message (ChatService.flushQueued).
  */
 async function runChatSend(deps: WaDeps, messageId: string): Promise<void> {
-  const { beneficiaries, wa, config, db, crypto } = deps;
+  const { beneficiaries, config, db, crypto } = deps;
   const [m] = await db.select().from(messages).where(eq(messages.id, messageId)).limit(1);
   // Idempotent: only a queued, released message is sent (drafts and rejected ones never are).
   if (!m || m.status !== "queued" || m.chatState !== "sent" || !m.bodyEnc) return;
   const b = await beneficiaries.get(m.beneficiaryId);
   if (!b) return;
-  const to = await beneficiaries.getWaId(b.id);
+  const { t, to } = await route(deps, b.id);
   const optIn = async () => {
-    const { waMessageId } = await wa.sendTemplate(to, config.WHATSAPP_TEMPLATE_EXPLANATION_READY, b.language, []);
-    await storeOutbound(deps, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_EXPLANATION_READY}]`, waMessageId);
+    const { waMessageId } = await sendTemplateVia(t, to, config.WHATSAPP_TEMPLATE_EXPLANATION_READY, b.language, []);
+    await storeOutbound(deps, t, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_EXPLANATION_READY}]`, waMessageId);
   };
-  if (!windowOpen(deps, b.lastInboundAt)) return optIn();
+  if (!windowOpen(deps, b)) return optIn();
   const dek = await beneficiaries.getDek(b.id);
-  const sent = await sendTextOr(deps, to, crypto.decrypt(dek, m.bodyEnc).toString("utf8"), optIn);
+  const sent = await sendTextOr(t, to, crypto.decrypt(dek, m.bodyEnc).toString("utf8"), optIn);
   if (!sent) return;
   const { waMessageId } = sent;
   await db.delete(messages).where(and(eq(messages.waMessageId, waMessageId), ne(messages.id, m.id)));
@@ -171,7 +179,7 @@ async function runChatSend(deps: WaDeps, messageId: string): Promise<void> {
  * (BroadcastsService.releaseFor re-queues this job). Idempotent on the recipient row.
  */
 async function runBroadcastSend(deps: WaDeps, broadcastId: string, beneficiaryId: string): Promise<void> {
-  const { db, wa, config, beneficiaries } = deps;
+  const { db, config, beneficiaries } = deps;
   const where = and(eq(broadcastRecipients.broadcastId, broadcastId), eq(broadcastRecipients.beneficiaryId, beneficiaryId));
   const [r] = await db.select().from(broadcastRecipients).where(where).limit(1);
   if (!r || (r.status !== "queued" && r.status !== "awaiting_reply")) return;
@@ -182,22 +190,22 @@ async function runBroadcastSend(deps: WaDeps, broadcastId: string, beneficiaryId
     await db.update(broadcastRecipients).set({ status: "skipped" }).where(where);
     return;
   }
-  const to = await beneficiaries.getWaId(b.id);
+  const { t, to } = await route(deps, b.id);
   const viaTemplate = async () => {
     if (r.status === "awaiting_reply") return; // template already sent; wait for their answer
-    const { waMessageId } = await wa.sendTemplate(to, config.WHATSAPP_TEMPLATE_ANNOUNCEMENT, b.language, []);
-    await storeOutbound(deps, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_ANNOUNCEMENT}]`, waMessageId);
+    const { waMessageId } = await sendTemplateVia(t, to, config.WHATSAPP_TEMPLATE_ANNOUNCEMENT, b.language, []);
+    await storeOutbound(deps, t, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_ANNOUNCEMENT}]`, waMessageId);
     await db.update(broadcastRecipients).set({ status: "awaiting_reply", viaTemplate: true }).where(where);
   };
-  if (!windowOpen(deps, b.lastInboundAt)) return viaTemplate();
+  if (!windowOpen(deps, b)) return viaTemplate();
   const text = await getBroadcasts(deps).render(broadcastId, b.language);
-  const sent = await sendTextOr(deps, to, text, viaTemplate);
+  const sent = await sendTextOr(t, to, text, viaTemplate);
   if (!sent) return;
-  await storeOutbound(deps, b.id, "text", text, sent.waMessageId);
+  await storeOutbound(deps, t, b.id, "text", text, sent.waMessageId);
   await db.update(broadcastRecipients).set({ status: "sent", sentAt: deps.now() }).where(where);
 }
 
-export function windowOpen(deps: Pick<WaDeps, "now" | "wa">, lastInboundAt: Date | null): boolean {
-  if (deps.wa.mode === "sandbox") return true;
-  return !!lastInboundAt && deps.now().getTime() - lastInboundAt.getTime() < WINDOW_MS;
+/** Free text allowed now? Always on channels without WhatsApp's 24 h rule (and in the sandbox). */
+export function windowOpen(deps: Pick<WaDeps, "now" | "channels">, b: { channel: ChannelId; lastInboundAt: Date | null }): boolean {
+  return windowOpenFor(deps.channels.get(b.channel), deps.now(), b.lastInboundAt, WINDOW_MS);
 }

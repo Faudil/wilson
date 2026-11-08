@@ -33,6 +33,7 @@ const INPUTS: Record<string, unknown> = {
   "auth.twoFactorSetup": undefined,
   "auth.twoFactorEnable": { code: "123456" },
   "auth.twoFactorDisable": { code: "123456" },
+  "auth.markChangelogSeen": { id: "2026-11-08" },
   "letters.list": { limit: 5 },
   "letters.get": { id },
   "letters.photo": { id },
@@ -44,6 +45,20 @@ const INPUTS: Record<string, unknown> = {
   "beneficiaries.setLanguage": { id, language: "fr" },
   "beneficiaries.setAvatar": { id, avatar: { name: "Fatima", emoji: "🌻", color: "teal" } },
   "team.week": undefined,
+  "beneficiaries.unlockCode": { id },
+  "beneficiaries.lock": { id },
+  "beneficiaries.unlock": { id },
+  "me.info": undefined,
+  "me.signup": { name: "Coverage", language: "fr", accepted: true },
+  "me.login": { words: ["chat", "chien", "cheval", "vache", "cochon", "mouton"] },
+  "me.redeem": { code: "ABCD-EFGH" },
+  "me.get": undefined,
+  "me.logout": undefined,
+  "me.setLanguage": { language: "ar" },
+  "me.thread": undefined,
+  "me.send": { text: "bonjour" },
+  "me.documents": undefined,
+  "me.deleteAll": undefined,
   "documents.deadlines": { withinDays: 30 },
   "documents.file": { id },
   "documents.update": { id, label: "x" },
@@ -89,6 +104,18 @@ const INPUTS: Record<string, unknown> = {
   "broadcasts.preview": { id, language: "en" },
   "broadcasts.approve": { id },
   "broadcasts.cancel": { id },
+  "news.list": { limit: 10 },
+  "news.unread": undefined,
+  "news.markRead": { ids: [id] },
+  "news.create": { title: "Permanence fermée", body: "Lundi la permanence est fermée." },
+  "news.update": { id, title: "Permanence fermée", body: "Lundi.", pinned: false },
+  "news.remove": { id },
+  "backup.list": { scope: "open" },
+  "backup.counts": undefined,
+  "backup.create": { title: "Interprète arabe", neededOn: "2026-12-01" },
+  "backup.offer": { id },
+  "backup.withdraw": { id },
+  "backup.close": { id, status: "covered" },
   "usage.summary": undefined,
   "usage.setBudget": { monthlyLimitUsd: 50, hardStop: false },
   "usage.listKeys": undefined,
@@ -142,15 +169,25 @@ const INPUTS: Record<string, unknown> = {
   "appointments.slots": { scope: "mine" },
   "appointments.addSlot": { startsAt: "2030-01-15T13:00:00.000Z", durationMin: 60, place: "Local de l'association" },
   "appointments.removeSlot": { id },
+  "events.list": { scope: "upcoming" },
+  "events.get": { id },
+  "events.create": { kind: "maraude", title: "Maraude", date: "2030-01-15", startTime: "19:00" },
+  "events.update": { id, event: { kind: "maraude", title: "Maraude", date: "2030-01-15", startTime: "19:00" } },
+  "events.cancel": { id },
+  "events.join": { id },
+  "events.leave": { id },
+  "events.removeAttendee": { id, volunteerId: id },
+  "events.preview": { id, language: "ar" },
 };
 /** The permission(s) each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
 const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "auth.me": null, "auth.setUiLanguage": null,
-  "auth.twoFactorSetup": null, "auth.twoFactorEnable": null, "auth.twoFactorDisable": null,
+  "auth.twoFactorSetup": null, "auth.twoFactorEnable": null, "auth.twoFactorDisable": null, "auth.markChangelogSeen": null,
   "letters.list": "letters.review", "letters.get": "letters.review", "letters.edit": "letters.review",
   "letters.approve": "letters.review", "letters.reject": "letters.review", "letters.photo": "letters.view_photo",
   "beneficiaries.list": "beneficiaries.view", "beneficiaries.get": "beneficiaries.view", "beneficiaries.setLanguage": "beneficiaries.edit",
   "beneficiaries.setAvatar": "beneficiaries.edit", "team.week": null,
+  "beneficiaries.unlockCode": "beneficiaries.recover", "beneficiaries.lock": "beneficiaries.recover", "beneficiaries.unlock": "beneficiaries.recover",
   "documents.deadlines": "documents.view_metadata", "documents.file": "documents.view_file",
   "documents.update": "documents.edit", "documents.archive": "documents.edit",
   "sandbox.send": "sandbox.use", "sandbox.thread": "sandbox.use", "sandbox.runReminders": "sandbox.use", "sandbox.reset": "sandbox.use",
@@ -171,6 +208,13 @@ const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "broadcasts.cancel": "broadcasts.view",
   "broadcasts.create": "broadcasts.create", "broadcasts.update": "broadcasts.create",
   "broadcasts.approve": "broadcasts.approve",
+  "news.list": "news.view", "news.unread": "news.view", "news.markRead": "news.view",
+  // news.post: the audience (own association, or anywhere for global admins) is checked in team.test.ts. This
+  // volunteer has no association, so posting also needs volunteers.manage (a post to everyone).
+  "news.create": ["news.post", "volunteers.manage"], "news.update": "news.post", "news.remove": "news.post",
+  "backup.list": "backup.view", "backup.counts": "backup.view", "backup.offer": "backup.view", "backup.withdraw": "backup.view",
+  // close: needs view, then the author or an admin; tested in team.test.ts.
+  "backup.close": "backup.view", "backup.create": "backup.ask",
   "usage.summary": "usage.manage", "usage.setBudget": "usage.manage", "usage.listKeys": "usage.manage",
   "usage.addKey": "usage.manage", "usage.updateKey": "usage.manage", "usage.removeKey": "usage.manage",
   "notes.list": "notes.view", "notes.add": "notes.write", "notes.edit": "notes.write", "notes.remove": "notes.write",
@@ -189,13 +233,20 @@ const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "appointments.complete": ["appointments.view", "appointments.accept"], "appointments.cancel": ["appointments.view", "appointments.manage"],
   "appointments.documents": "appointments.documents", "appointments.documentFile": "appointments.documents",
   "appointments.slots": "appointments.slots", "appointments.addSlot": "appointments.slots", "appointments.removeSlot": "appointments.slots",
+  "events.list": "events.view", "events.get": "events.view", "events.preview": "events.view",
+  "events.join": ["events.view", "events.join"], "events.leave": ["events.view", "events.join"],
+  "events.create": ["events.view", "events.create"],
+  // update / cancel / removeAttendee: view, then the organiser (events.create) or events.manage; tested in events.test.ts.
+  "events.update": "events.view", "events.cancel": "events.view", "events.removeAttendee": "events.view",
   "numbers.list": "numbers.moderate", "numbers.heldCount": "numbers.moderate", "numbers.release": "numbers.moderate",
   "numbers.releaseAllGlobal": "numbers.moderate", "numbers.block": "numbers.moderate", "numbers.unblock": "numbers.moderate",
 };
 const needs = (req: Permission | Permission[] | null, perm: Permission) => (Array.isArray(req) ? req.includes(perm) : req === perm);
 const PUBLIC = new Set(["auth.login", "auth.signup", "auth.searchAssociations", "auth.verifyEmail", "auth.invitation", "system.health"]);
+/** The person's web space: sign-up and sign-in are public; the rest needs their own session (web.accounts.test.ts). */
+const ME_PUBLIC = new Set(["me.info", "me.signup", "me.login", "me.redeem", "me.logout"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */
-const ANON_OK = new Set([...PUBLIC, "auth.logout"]);
+const ANON_OK = new Set([...PUBLIC, ...ME_PUBLIC, "auth.logout"]);
 const ALL = leaves(contract);
 
 let t: E2E;
@@ -209,7 +260,7 @@ describe("contract coverage", () => {
     expect(Object.keys(INPUTS).sort()).toEqual([...ALL].sort());
   });
 
-  it("every procedure except auth.login / auth.signup / auth.searchAssociations / auth.invitation / system.health / (idempotent) auth.logout rejects an anonymous caller with UNAUTHORIZED", async () => {
+  it("every procedure except auth.login / auth.signup / auth.searchAssociations / auth.invitation / system.health / me sign-up and sign-in / (idempotent) logouts rejects an anonymous caller with UNAUTHORIZED", async () => {
     const { client } = makeClient(t.deps);
     for (const p of ALL.filter((p) => !ANON_OK.has(p))) {
       expect([p, await code(call(client, p, INPUTS[p]))]).toEqual([p, "UNAUTHORIZED"]);
@@ -224,7 +275,7 @@ describe("contract coverage", () => {
       const v = await createVolunteer(t.deps);
       await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: perm, granted: false });
       // knowledge.manage / volunteers.manage are admin-only by role: grant them per-volunteer so every other procedure starts allowed.
-      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "associations.manage", "usage.manage", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"] as const) {
+      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "associations.manage", "usage.manage", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage", "news.post", "events.create", "events.manage"] as const) {
         if (perm !== adminOnly) await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: adminOnly, granted: true });
       }
       const { client } = makeClient(t.deps);

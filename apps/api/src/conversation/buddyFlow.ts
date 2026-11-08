@@ -22,6 +22,8 @@ export interface BuddyFlowCtx {
   beneficiaryId: string;
   lang: LanguageCode;
   state: ConversationState;
+  /** A web account: no phone number to share, so the buddy can only write through Wilson. */
+  web: boolean;
   setState(s: ConversationState): Promise<void>;
   say(text: string, opts?: { menu?: boolean }): Promise<void>;
   showMainMenu(): Promise<void>;
@@ -116,7 +118,7 @@ export async function onBuddyState(f: BuddyFlowCtx, state: BuddyStep, input: Bud
       if (!m) return again();
       if (choice === "1") {
         await svc(f).accept(m.id);
-        if (m.mode === "call") {
+        if (m.mode === "call" && !f.web) {
           await f.setState({ step: "buddy_consent", matchId: m.id, afterAccept: true });
           return f.say(t(f, "buddy_consent", { name: (await svc(f).describe(m, null, f.lang)).name }), { menu: true });
         }
@@ -151,6 +153,7 @@ export async function onBuddyState(f: BuddyFlowCtx, state: BuddyStep, input: Bud
           return toMain(f, t(f, "buddy_skipped", { name, date: formatDate(localDate(s.startsAt, f.deps.config.TIMEZONE), f.lang, { weekday: true }) }));
         }
         case "3":
+          if (f.web) return toMain(f, t(f, "buddy_consent_no", { name }));
           if (m.contactShared) {
             await svc(f).setConsent(m.id, false);
             return toMain(f, t(f, "buddy_number_private", { name }));

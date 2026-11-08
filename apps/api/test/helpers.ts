@@ -19,6 +19,8 @@ import { router } from "../src/rpc/router.js";
 import { getServices, type Services } from "../src/services.js";
 import { MemoryBlobStore } from "../src/storage/memory.js";
 import type { WhatsAppTransport } from "../src/whatsapp/transport.js";
+import { Channels } from "../src/channels/registry.js";
+import { WebTransport } from "../src/whatsapp/web.js";
 
 const ADMIN_URL = process.env.TEST_ADMIN_DATABASE_URL ?? "postgres://wilson:wilson@localhost:5432/postgres";
 const FALLBACK_URL = process.env.TEST_DATABASE_URL ?? "postgres://wilson:wilson@localhost:5432/wilson_test";
@@ -69,6 +71,8 @@ export class StubLlm implements LlmProvider {
 /** Transport stub recording what would have been sent. */
 export class StubTransport implements WhatsAppTransport {
   readonly mode = "sandbox" as const;
+  readonly channel = "whatsapp" as const;
+  readonly capabilities = { serviceWindow: false };
   readonly texts: { to: string; body: string }[] = [];
   readonly templates: { to: string; template: string; params: string[] }[] = [];
   async sendText(to: string, body: string) {
@@ -155,7 +159,9 @@ export async function makeTestDeps(opts: { now?: string; config?: Record<string,
   const llm = new StubLlm();
   const wa = new StubTransport();
   const geo = new FakeGeo();
-  const deps: Deps = { config, db, crypto: createCrypto(config), blobs, llm, geo, wa, jobs: queue, now: clock.now };
+  const deps: Deps = { config, db, crypto: createCrypto(config), blobs, llm, geo, channels: new Channels([wa]), jobs: queue, now: clock.now };
+  // Web accounts have their own channel (like in main.ts); everyone else reaches the WhatsApp stub.
+  deps.channels = new Channels([wa, new WebTransport({ db, crypto: deps.crypto, blobs, beneficiaries: getServices(deps).beneficiaries })]);
   return {
     deps, config, queue, blobs, clock, llm, wa, geo,
     services: getServices(deps),
@@ -183,14 +189,17 @@ export async function createVolunteer(
   return { ...row!, password };
 }
 
-/** In-process oRPC client with a cookie jar: `login` stores the session token like a browser would. */
-export function makeClient(deps: Deps) {
-  const jar: { token: string | null } = { token: null };
+/**
+ * In-process oRPC client with a cookie jar: `login` stores the session token like a browser would (`me` is the
+ * beneficiary web-space cookie). `ip` is the visitor address seen by the rate limits.
+ */
+export function makeClient(deps: Deps, opts: { ip?: string } = {}) {
+  const jar: { token: string | null; me: string | null } = { token: null, me: null };
   const client = createRouterClient(router, {
     context: (): Promise<RpcContext> =>
       createContext(deps, jar.token, (t) => {
         jar.token = t;
-      }),
+      }, opts.ip ?? null, { token: jar.me, set: (t) => void (jar.me = t) }),
   }) as unknown as ContractRouterClient<typeof contract>;
   return { client, jar };
 }

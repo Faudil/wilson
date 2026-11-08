@@ -1,7 +1,7 @@
 import type { LanguageCode } from "@wilson/contracts";
 import { LANGUAGES } from "@wilson/contracts/values";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { DEFAULT_LANGUAGE, translate, type MessageKey, type Params } from "./core";
+import { DEFAULT_LANGUAGE, loadCatalog, translate, type MessageKey, type Params } from "./core";
 
 export type { MessageKey, Params };
 export type TFn = (key: MessageKey, params?: Params) => string;
@@ -43,7 +43,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         } catch {
           /* ignore */
         }
-        setLangState(next);
+        // Switch once the catalog is there, so the screen never flashes English in between.
+        void loadCatalog(next).then(() => setLangState(next));
       },
     }),
     [lang],
