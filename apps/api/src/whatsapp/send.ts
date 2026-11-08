@@ -34,8 +34,8 @@ async function route(deps: WaDeps, beneficiaryId: string): Promise<{ t: ChannelT
 }
 
 async function storeOutbound(deps: WaDeps, t: ChannelTransport, beneficiaryId: string, kind: "text" | "template" | "interactive", body: string, waMessageId: string): Promise<void> {
-  // The sandbox transport records its own rows; only real transports are recorded here.
-  if (t.mode === "sandbox") return;
+  // The sandbox and web transports record their own rows; only real transports are recorded here.
+  if (t.mode === "sandbox" || t.mode === "web") return;
   const dek = await deps.beneficiaries.getDek(beneficiaryId);
   await deps.db.insert(messages).values({
     beneficiaryId, direction: "out", kind, waMessageId, bodyEnc: deps.crypto.encrypt(dek, body), status: "sent",

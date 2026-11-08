@@ -30,8 +30,10 @@ describe("UI catalogs", () => {
     const walk = (dir: string) => {
       for (const e of readdirSync(dir, { withFileTypes: true })) {
         const p = join(dir, e.name);
-        if (e.isDirectory()) walk(p);
-        else if (p.endsWith(".tsx")) {
+        // src/moi (beneficiaries' web space) uses its own 28-language catalogs, typed by WebKey (packages/i18n/src/web).
+        if (e.isDirectory()) {
+          if (e.name !== "moi") walk(p);
+        } else if (p.endsWith(".tsx")) {
           for (const m of readFileSync(p, "utf8").matchAll(/\bt\(\s*"([\w.]+)"/g)) used.add(m[1]!);
         }
       }

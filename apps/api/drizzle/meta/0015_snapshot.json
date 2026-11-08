@@ -1,5 +1,5 @@
 {
-  "id": "574f0530-b8f3-4c5f-bdf8-f4b699e87504",
+  "id": "d2b526dc-17e3-4883-b06e-c0caa9691f18",
   "prevId": "e42f8b5c-5a0f-443f-bdb5-a4bb2d966e81",
   "version": "7",
   "dialect": "postgresql",
@@ -160,13 +160,6 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "channel": {
-          "name": "channel",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'whatsapp'"
-        },
         "wa_id_hash": {
           "name": "wa_id_hash",
           "type": "text",
@@ -290,6 +283,48 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "web_handle": {
+          "name": "web_handle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_name_enc": {
+          "name": "web_name_enc",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_words_hash": {
+          "name": "web_words_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_locked_at": {
+          "name": "web_locked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_locked_by": {
+          "name": "web_locked_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_unlock_hash": {
+          "name": "web_unlock_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_unlock_until": {
+          "name": "web_unlock_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -357,6 +392,19 @@
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
+        },
+        "beneficiaries_web_locked_by_volunteers_id_fk": {
+          "name": "beneficiaries_web_locked_by_volunteers_id_fk",
+          "tableFrom": "beneficiaries",
+          "tableTo": "volunteers",
+          "columnsFrom": [
+            "web_locked_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -367,8 +415,97 @@
           "columns": [
             "wa_id_hash"
           ]
+        },
+        "beneficiaries_web_handle_unique": {
+          "name": "beneficiaries_web_handle_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "web_handle"
+          ]
+        },
+        "beneficiaries_web_words_hash_unique": {
+          "name": "beneficiaries_web_words_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "web_words_hash"
+          ]
+        },
+        "beneficiaries_web_unlock_hash_unique": {
+          "name": "beneficiaries_web_unlock_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "web_unlock_hash"
+          ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.beneficiary_sessions": {
+      "name": "beneficiary_sessions",
+      "schema": "",
+      "columns": {
+        "id_hash": {
+          "name": "id_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "beneficiary_id": {
+          "name": "beneficiary_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shared_device": {
+          "name": "shared_device",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "beneficiary_sessions_beneficiary_idx": {
+          "name": "beneficiary_sessions_beneficiary_idx",
+          "columns": [
+            {
+              "expression": "beneficiary_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "beneficiary_sessions_beneficiary_id_beneficiaries_id_fk": {
+          "name": "beneficiary_sessions_beneficiary_id_beneficiaries_id_fk",
+          "tableFrom": "beneficiary_sessions",
+          "tableTo": "beneficiaries",
+          "columnsFrom": [
+            "beneficiary_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -4228,6 +4365,7 @@
         "letters.view_photo",
         "beneficiaries.view",
         "beneficiaries.edit",
+        "beneficiaries.recover",
         "documents.view_metadata",
         "documents.view_file",
         "documents.edit",

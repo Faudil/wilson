@@ -2,10 +2,12 @@ import type { WaDeps } from "../whatsapp/context.js";
 import { dispatchDueReminders } from "../documents/reminders.js";
 import { purgeArchived } from "../documents/purge.js";
 import { handleDocumentAnalyze } from "../documents/worker.js";
+import { getNews } from "../team/news.js";
 import { registerWhatsAppWorkers } from "../whatsapp/workers.js";
 import { getServices } from "../services.js";
 import { getBuddies } from "../buddies/service.js";
 import { getAppointments } from "../appointments/service.js";
+import { getEvents } from "../events/service.js";
 import { JOBS } from "./names.js";
 import type { WorkerQueue } from "./queue.js";
 
@@ -20,6 +22,9 @@ export async function registerWorkers(deps: WaDeps, queue: WorkerQueue): Promise
   });
   await queue.registerWorker(JOBS.helpDispatch, async (p) => {
     await getAppointments(deps).dispatch(p.now ? new Date(p.now) : deps.now());
+  });
+  await queue.registerWorker(JOBS.eventsDispatch, async (p) => {
+    await getEvents(deps).dispatch(p.now ? new Date(p.now) : deps.now());
   });
   await queue.registerWorker(JOBS.archivePurge, async () => {
     await purgeArchived(deps, deps.now());
@@ -41,6 +46,9 @@ export async function registerWorkers(deps: WaDeps, queue: WorkerQueue): Promise
   });
   await queue.registerWorker(JOBS.buddyDispatch, async (p) => {
     await getBuddies(deps).dispatch(p.now ? new Date(p.now) : deps.now());
+  });
+  await queue.registerWorker(JOBS.newsEmail, async (p) => {
+    await getNews(deps).sendEmails(p.postId);
   });
   await registerWhatsAppWorkers(deps, queue);
 }

@@ -1,4 +1,4 @@
-# Mon courrier — Architecture (POC)
+# Wilson — Architecture (POC)
 
 Status: v0.2. Open questions answered by the association on 2026-11-06 (see §12).
 
@@ -97,7 +97,7 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 
 | Table | Key columns |
 |---|---|
-| `beneficiaries` | id, `wa_id_hash` (HMAC-SHA256, lookup), `wa_id_enc`, language, `language_confirmed`, `conversation_state` jsonb (menu step), `wrapped_dek` (DEK encrypted by master key), created_at, last_message_at, deleted_at, chat_status, chat_assignee_id (volunteer holding the conversation) |
+| `beneficiaries` | id, `wa_id_hash` (HMAC-SHA256, lookup), `wa_id_enc`, language, `language_confirmed`, `conversation_state` jsonb (menu step), `wrapped_dek` (DEK encrypted by master key), created_at, last_message_at, deleted_at, chat_status, chat_assignee_id (volunteer holding the conversation); web space: `web_handle` (W-XXXXXX), `web_name_enc`, `web_words_hash` (HMAC of the recovery words), `web_locked_at/by`, `web_unlock_hash`, `web_unlock_until` |
 | `messages` | id, beneficiary_id, direction (in/out), wa_message_id, kind (text/image/document/template), `body_enc`, status (queued/sent/delivered/read/failed), created_at |
 | `letters` | id, beneficiary_id, status, `photo_key` (nullable, nulled on purge), `analysis_enc` (LetterAnalysis JSON), `target_stale`, letter_type, urgency, deadline (plain, for sorting), low_confidence, received_at, reviewed_by, reviewed_at, sent_at |
 | `letter_events` | id, letter_id, volunteer_id, action, note, at — review audit trail |
@@ -106,6 +106,7 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 | `volunteers` | id, email, password_hash (argon2id), name, role (responder/volunteer/admin), ui_language, disabled_at, pending_approval, signup_note, approved_at, approved_by |
 | `volunteer_permissions` | volunteer_id, permission, granted (bool) — per-volunteer overrides on top of the role bundle (empty in the POC) |
 | `sessions` | id (random, httpOnly cookie), volunteer_id, expires_at |
+| `beneficiary_sessions` | id_hash (SHA-256 of the `wilson_me` cookie), beneficiary_id, shared_device, expires_at — web space sessions, separate from volunteers' |
 | `case_notes` | id, beneficiary_id, author_id, `body_enc`, created_at, edited_at — case notes on a person |
 | `case_tasks` | id, beneficiary_id, created_by, assignee_id (null = anyone), `text_enc`, due_on (reminder day, Europe/Paris), status (open/done/cancelled), done_at, done_by |
 | `volunteer_skills` | volunteer_id (PK), languages language[], skills volunteer_skill[], note, updated_at — about volunteers, clear text |
@@ -116,6 +117,10 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 | `help_requests` | Rendez-vous: beneficiary_id, kind (accompaniment/form_session), topic, status (draft/open/accepted/done/cancelled/expired), starts_at, duration_min, `city_enc`, `meeting_point_enc`, volunteer_id, slot_id, documents_consent, created/accepted/closed_at |
 | `help_slots` | form-filling slots a volunteer publishes: volunteer_id, starts_at, duration_min, place (venue, not personal), request_id (claimed atomically when booked) |
 | `help_reminders` | WhatsApp reminders to the person: request_id, kind (d1/h2), due_at, status — unique scheduled (request_id, kind) |
+| `news_posts` | Team news from the association to its volunteers: title, body, pinned, association_id (null = every volunteer), author_id, created/edited/emailed/removed_at. About the organisation only, in clear |
+| `news_reads` | post_id, volunteer_id, read_at: unread card on Home, "seen by 12 of 20" for the people who can edit the post |
+| `backup_calls` | Volunteers asking each other for backup: title, details, needed_on, starts_at, place (public), languages[], skills[], needed, open_to_all, status (open/covered/cancelled), association_id (author's), author_id, closed_at/by |
+| `backup_offers` | call_id, volunteer_id, note: "I can help" (withdrawing deletes the row) |
 
 Type, dates, urgency and status stay in clear so the queue can sort and filter; they are low-sensitivity and never include names. Names, phone numbers, letter content and document labels are encrypted.
 
@@ -204,6 +209,23 @@ Goal: the "who to turn to" lines cite real, local, up-to-date offices and proced
 - Messages to the person (accepted, released, cancelled, expired, reminders) are fixed i18n texts with a `{summary}` (topic from the menu label, date + time written out, place), stored as chat rows so they show in Conversations and wait behind the opt-in template outside the 24 h window.
 - `help.dispatch` cron (every 15 min): reminders D-1 and H-2 (claimed `scheduled → sent`, exactly once), open requests whose time passed → `expired` (person told), accepted ones 24 h after their end → `done`, stale drafts deleted. Volunteers get their reminder from the `.ics` file (alarms D-1 and H-2) and the home tile.
 - Permissions: `appointments.view` (open requests without identity), `.accept` (accept/release/done), `.slots`, `.documents`, `.manage`. The masked label and beneficiary id are only in the DTO for the holder or a manager. `appointments.documents` / `documentFile` additionally require: holder, form session, consent, accepted, and now ≤ end + 24 h; the file must be one of that person's current documents. Every action is in `access_log`.
+
+## 8g. Web space for people without WhatsApp ("Mon espace", `/moi`)
+
+- **Who:** people who cannot or will not use WhatsApp. No phone number and no e-mail: a first name or nickname (encrypted under their DEK), a language, and six **recovery words** drawn from `RECOVERY_WORDS` (128 French words, each with a picture, so they can be picked by emoji without reading French). Only `HMAC(LOOKUP_KEY, words)` is stored; the words are shown once, at sign-up.
+- **Same engine:** a web account is a `beneficiaries` row whose address is `web:<id>` (`wa_id_hash` = lookup hash of that, `wa_id_last2` empty, `web_handle` shown instead of the masked number). `withWebAccounts` (`src/whatsapp/web.ts`) wraps the transport: sends to `web:` addresses become `messages` rows (ids `web.out.*`, skipped by `storeOutbound`), uploads are blobs `web/<id>/<uuid>` read back by `downloadMedia`. `me.send` turns a typed message or file into a `WaInboundMessage` for `processInbound`, so letters, documents, chat with volunteers, places, rendez-vous and "delete my data" all work unchanged. The 24 h window is always open for them; the webhook ignores any `from` starting with `web:`; buddy pairing never asks to share a number (call mode is refused).
+- **Guided steps** (`apps/backoffice/src/moi/`, separate entry `moi.html`, one lazy chunk per language, no zod): 1 language (all 28, flags and native names) → 2 what this is and what is kept → 3 name + "this phone is shared" + confidentiality → 4 the six words to copy, with a check before going on. Then tabs Messages (thread with tap-to-answer menus, 📷 letter / 📄 document buttons), Documents, My space (language, sign out, delete everything).
+- **Sessions:** `wilson_me` cookie (httpOnly, SameSite=Strict), 90 days (`WEB_SESSION_DAYS`) or 1 hour on a shared phone. Never mixed with volunteers' sessions: `me.*` only looks at `wilson_me`.
+- **Anti-spam:** honeypot, `WEB_SIGNUP_PER_IP_PER_HOUR`, `WEB_SIGNUP_PER_DAY`; wrong words counted per IP (`WEB_LOGIN_FAILURES_PER_IP`, 15 min) and overall (`WEB_LOGIN_FAILURES_PER_HOUR`, alert). `BENEFICIARY_SIGNUP=off` closes sign-up, existing accounts keep working.
+- **Recovery by a volunteer** (`beneficiaries.recover`, needs 2FA; person page → "Espace web"): `beneficiaries.unlockCode` gives a one-time code (XXXX-XXXX, 24 h, HMAC stored) after checking the person face to face; issuing it erases the old words and signs out every device. The person types it on "I lost my words" (`me.redeem`) and gets six new words. `beneficiaries.lock` signs out everywhere and refuses the words (stolen phone, someone else knows them) until `unlock` or a new code. Every action is in `access_log`.
+## 8h. Agenda (events and sign-ups)
+
+- `events` + `event_registrations` (`src/events/service.ts`, contracts `events.ts`). Kinds: maraude, meeting, training, workshop, info_session, other. Date + times are typed in Paris wall clock and stored as `starts_at` / `ends_at`. French title, description and place, like places (public data in clear).
+- **Scope**: `association_id` = only that association's members see it; null = every association. Global admins (`associations.manage`) see everything and pick the audience; everyone else creates in their own association. Out of scope = NOT_FOUND.
+- **Places and waiting list**: separate limits for volunteers (`volunteer_spots`) and beneficiaries (`public_spots`), null = no limit. Joining locks the event row (`select … for update`): going while there is room, else `waitlist`. When a "going" row is deleted or the limit is raised, the oldest waiting rows of that side move up.
+- **Public events** (`public = true`) are offered on WhatsApp in menu 8 → 4 (`src/events/flow.ts`, states `event_list` / `event_detail`): up to 9 within 60 days, title and description translated once per language (cached in `events.translations`, cleared when the text changes), place isolated, never translated. Texts in `packages/i18n/src/events.ts` (28 languages, machine-drafted except fr/en). The person gets chat rows (shown in Conversations, held behind the opt-in template outside 24 h): registered, waiting list (position), moved up, day-before reminder (`events.dispatch` cron */15, claimed once by `reminded_at`; reset when the time changes), changed (date, time or place), cancelled. "Delete my data" removes their registrations. Volunteers only see counts, and per-language counts for those who may edit.
+- **Permissions**: `events.view` (calendar, who is coming), `events.join` (sign yourself up), `events.create` (create; edit/cancel/remove people on your own events), `events.manage` (any event of your association, all for global admins; association admins cannot edit events for everyone). Responders and volunteers get view + join; admins all; association admins get create + manage through `ASSOCIATION_ADMIN_PERMISSIONS`. Every change is in `access_log`.
+- Back-office: Plus > Agenda (month grid + list grouped by day, "Mes inscriptions", "Passés", detail sheet with who is coming, WhatsApp preview, .ics with alarms D-1 and H-2) and a "Prochains événements" card on Home (next 14 days).
 
 ## 8e. Performance (low-end phones, slow connections)
 

@@ -1,6 +1,6 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-import { AssociationRefSchema, AssociationSchema, AssociationSearchInputSchema, InvitationPreviewSchema, InvitationSchema, LoginInputSchema, PermissionSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
+import { AssociationRefSchema, AssociationSchema, AssociationSearchInputSchema, ChangelogIdSchema, InvitationPreviewSchema, InvitationSchema, LoginInputSchema, PermissionSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
 import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
@@ -9,7 +9,10 @@ import { KnowledgeHitSchema, KnowledgeSearchInputSchema, KnowledgeSourceIdSchema
 import { LanguageSchema } from "./languages.js";
 import { BroadcastInputSchema, BroadcastEstimateSchema, BroadcastSchema } from "./broadcasts.js";
 import { PlaceInputSchema, PlaceSchema } from "./places.js";
+import { BackupCallSchema, BackupInputSchema, NewsInputSchema, NewsPostSchema, NewsUpdateSchema } from "./team.js";
+import { EventInputSchema, EventListInputSchema, EventSchema } from "./events.js";
 import { LetterDetailSchema, LetterEditSchema, LetterStatusSchema, LetterSummarySchema } from "./letters.js";
+import { MeDocumentSchema, MeLoginInputSchema, MeMessageSchema, MeRedeemInputSchema, MeSchema, MeSendInputSchema, MeSignupInputSchema, MeWordsSchema } from "./me.js";
 import { SandboxMessageSchema, SandboxPhoneSchema, SandboxSendInputSchema } from "./sandbox.js";
 import { CaseFileSchema, CaseNoteSchema, CaseTaskSchema, NoteTextSchema, TaskAddSchema, TaskListInputSchema, TaskUpdateSchema } from "./notes.js";
 import { DirectoryEntrySchema, SkillsInputSchema, SuggestionSchema, VolunteerSkillSchema, VolunteerSkillsSchema } from "./skills.js";
@@ -64,6 +67,8 @@ const auth = {
   twoFactorEnable: base.input(z.object({ code: TotpCodeSchema })).output(VolunteerSchema),
   /** Needs a current code. Admin rights are withheld again afterwards (ADMIN_2FA=required). */
   twoFactorDisable: base.input(z.object({ code: TotpCodeSchema })).output(VolunteerSchema),
+  /** The "What's new in Wilson" sheet was shown up to this entry (id of the newest entry, e.g. "2026-11-08"). */
+  markChangelogSeen: base.input(z.object({ id: ChangelogIdSchema })).output(VolunteerSchema),
 };
 
 /** Review queue (copilot mode). Nothing reaches a beneficiary without `approve`. */
@@ -87,6 +92,40 @@ const beneficiaries = {
     .output(pageOf(BeneficiarySummarySchema)),
   get: base.input(z.object({ id: IdSchema })).output(BeneficiaryDetailSchema),
   setLanguage: base.input(z.object({ id: IdSchema, language: LanguageSchema })).output(BeneficiarySummarySchema),
+  /**
+   * Web accounts ("Mon espace", no phone number), `beneficiaries.recover`. After checking in person who they are:
+   * `unlockCode` gives a one-time code (valid 24 h, shown once) with which the person chooses new words; the old words
+   * and every open session stop working at once. `lock` signs the account out everywhere and refuses its words (lost
+   * or stolen phone, someone else knows the words); only an unlock code opens it again. `unlock` lifts a lock set by mistake.
+   */
+  unlockCode: base.input(z.object({ id: IdSchema })).output(z.object({ code: z.string(), expiresAt: z.iso.datetime() })),
+  lock: base.input(z.object({ id: IdSchema })).output(BeneficiaryDetailSchema),
+  unlock: base.input(z.object({ id: IdSchema })).output(BeneficiaryDetailSchema),
+};
+
+/**
+ * "Mon espace": the person's own web space (no phone, no WhatsApp). Public: signup, login, redeem. The rest needs the
+ * person's own session cookie (separate from volunteer sessions) and only ever reads or writes that person's data.
+ * signup/login/redeem: TOO_MANY_REQUESTS when an IP (or everyone) tries too often; FORBIDDEN when BENEFICIARY_SIGNUP=off
+ * (signup only) or the account is locked (login only); UNAUTHORIZED for unknown words or code.
+ */
+const me = {
+  /** Public: who runs the service (shown before signing in, e.g. "I lost my words") and whether sign-up is open. */
+  info: base.output(z.object({ associationName: z.string(), associationContact: z.string(), signupOpen: z.boolean() })),
+  signup: base.input(MeSignupInputSchema).output(MeWordsSchema),
+  login: base.input(MeLoginInputSchema).output(MeSchema),
+  /** A volunteer's unlock code: new words, account unlocked, signed in. */
+  redeem: base.input(MeRedeemInputSchema).output(MeWordsSchema),
+  get: base.output(MeSchema),
+  logout: base.output(z.void()),
+  setLanguage: base.input(z.object({ language: LanguageSchema })).output(MeSchema),
+  /** Everything Wilson said and they wrote, oldest first (same conversation as on WhatsApp). */
+  thread: base.output(z.array(MeMessageSchema)),
+  /** Text (a question, a menu number) and/or a photo or PDF, handled exactly like a WhatsApp message. */
+  send: base.input(MeSendInputSchema).output(z.void()),
+  documents: base.output(z.array(MeDocumentSchema)),
+  /** "Delete all my data": archived now, destroyed after the retention period; signed out. */
+  deleteAll: base.output(z.void()),
 };
 
 const documents = {
@@ -315,6 +354,29 @@ const appointments = {
 };
 
 /**
+ * Agenda (see events.ts). `events.view` to read, `events.join` to sign yourself up, `events.create` for your own events,
+ * `events.manage` for every event in your association (global admins: all). Scope: members see their association's
+ * events and those for everyone; anything else is NOT_FOUND.
+ */
+const events = {
+  list: base.input(EventListInputSchema).output(z.array(EventSchema)),
+  get: base.input(z.object({ id: IdSchema })).output(EventSchema),
+  create: base.input(EventInputSchema).output(EventSchema),
+  /** Registered beneficiaries are told on WhatsApp when the date, time or place changes. */
+  update: base.input(z.object({ id: IdSchema, event: EventInputSchema })).output(EventSchema),
+  /** Cancel for good: registered beneficiaries are told on WhatsApp. */
+  cancel: base.input(z.object({ id: IdSchema })).output(EventSchema),
+  /** Sign up: going, or on the waiting list when full. CONFLICT { reason: "cancelled" | "past" }. */
+  join: base.input(z.object({ id: IdSchema })).output(EventSchema),
+  /** Take your name off; the first on the waiting list moves up. */
+  leave: base.input(z.object({ id: IdSchema })).output(EventSchema),
+  /** Organiser or events.manage: take someone off the list. */
+  removeAttendee: base.input(z.object({ id: IdSchema, volunteerId: IdSchema })).output(EventSchema),
+  /** The WhatsApp text a beneficiary gets for this event, in a chosen language (public events). */
+  preview: base.input(z.object({ id: IdSchema, language: LanguageSchema })).output(z.object({ text: z.string() })),
+};
+
+/**
  * WhatsApp numbers held by the flood guard, and blocked numbers (`numbers.moderate`). Every call is logged.
  * Releasing tells the person (fixed text) that they can write again; blocking is silent.
  */
@@ -357,9 +419,44 @@ const invitations = {
   revoke: base.input(z.object({ id: IdSchema })).output(InvitationSchema),
 };
 
+/**
+ * Team news: what the association tells its volunteers ("office closed Monday", "new CAF procedure"). `news.view`
+ * reads the posts for everyone and for one's own association; `news.post` writes them: global admins
+ * (volunteers.manage) to everyone or any association, others only to their own association (FORBIDDEN without one).
+ * Editing, pinning and removing: the author, or anyone who could have posted it.
+ */
+const news = {
+  /** Pinned first, then newest first. */
+  list: base.input(z.object({ limit: z.number().int().min(1).max(100).default(30) })).output(z.array(NewsPostSchema)),
+  /** Unread posts for the home screen card (newest first, at most 3) and how many there are. */
+  unread: base.output(z.object({ count: z.number().int().nonnegative(), latest: z.array(NewsPostSchema) })),
+  /** Posts the caller has seen (opening the News screen, or "mark as read" on Home). Unknown ids are ignored. */
+  markRead: base.input(z.object({ ids: z.array(IdSchema).min(1).max(100) })).output(z.void()),
+  create: base.input(NewsInputSchema).output(NewsPostSchema),
+  update: base.input(NewsUpdateSchema).output(NewsPostSchema),
+  remove: base.input(z.object({ id: IdSchema })).output(z.void()),
+};
+
+/**
+ * Calls for backup between volunteers ("need an Arabic speaker tomorrow 10:00 at the prefecture"). Visible to one's
+ * association, or to everyone when `openToAll`; global admins see all. `backup.view` lists and offers help,
+ * `backup.ask` posts. Closing (covered / cancelled): the author, or a global admin, or the association's admin.
+ * CONFLICT { reason: "not_open" } on a closed or past call, { reason: "own_call" } when offering on one's own.
+ */
+const backup = {
+  /** open: still needed, today or later (yours included); mine: the ones you posted or offered on; past: closed or over. */
+  list: base.input(z.object({ scope: z.enum(["open", "mine", "past"]).default("open") })).output(z.array(BackupCallSchema)),
+  /** Open calls from others the caller has not answered yet, and how many of them match the caller's profile. */
+  counts: base.output(z.object({ open: z.number().int().nonnegative(), forMe: z.number().int().nonnegative() })),
+  create: base.input(BackupInputSchema).output(BackupCallSchema),
+  offer: base.input(z.object({ id: IdSchema, note: z.string().trim().max(300).optional() })).output(BackupCallSchema),
+  withdraw: base.input(z.object({ id: IdSchema })).output(BackupCallSchema),
+  close: base.input(z.object({ id: IdSchema, status: z.enum(["covered", "cancelled"]) })).output(BackupCallSchema),
+};
+
 const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional(), emailVerification: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, numbers, system };
+export const contract = { auth, me, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, news, backup, buddies, appointments, events, numbers, system };
 export type Contract = typeof contract;

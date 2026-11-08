@@ -2,11 +2,12 @@ import type { LanguageCode } from "@wilson/contracts";
 import type { Interactive } from "../whatsapp/interactive.js";
 
 /**
- * Messaging channels a person can reach Wilson on. Only WhatsApp is implemented today; Telegram and SMS are
+ * Messaging channels a person can reach Wilson on. WhatsApp and "web" (the beneficiaries' web space, `/moi`, see
+ * whatsapp/web.ts) are implemented today; Telegram and SMS are
  * reserved so a new adapter only has to implement `ChannelTransport` and turn its webhook into `InboundMessage`s
  * (see docs/channels.md). Stored in `beneficiaries.channel` as text, so adding one needs no migration.
  */
-export const CHANNEL_IDS = ["whatsapp", "telegram", "sms"] as const;
+export const CHANNEL_IDS = ["whatsapp", "web", "telegram", "sms"] as const;
 export type ChannelId = (typeof CHANNEL_IDS)[number];
 
 /** What sets a channel apart, read by the senders instead of `if (channel === …)`. */

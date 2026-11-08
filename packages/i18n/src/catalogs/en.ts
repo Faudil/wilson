@@ -54,7 +54,7 @@ export const en: Record<WaKey, string> = {
   announcements_on: "Done: you will receive announcements. To stop, write STOP.",
   announcements_off: "Done: you will not receive announcements any more. To receive them again, choose 6 in the menu.",
   broadcast_stop_hint: "To stop receiving announcements, write STOP.",
-  help_menu: "A volunteer can help you:\n1 - Come with me to an appointment\n2 - Fill in a form together\n3 - My appointments\n0 - Back to the menu",
+  help_menu: "A volunteer can help you:\n1 - Come with me to an appointment\n2 - Fill in a form together\n3 - My appointments\n4 - Workshops and meetings\n0 - Back to the menu",
   help_place_menu: "Where is your appointment?\n1 - Préfecture\n2 - OFII\n3 - Hospital or doctor\n4 - OFPRA or CNDA\n5 - Other",
   help_form_menu: "Which form?\n1 - CAF (benefits)\n2 - ANEF (residence permit)\n3 - AME (health)\n4 - Other",
   help_ask_datetime: "Write the date and time of the appointment, for example: 14/03/2027 9:30",

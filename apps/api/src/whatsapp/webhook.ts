@@ -1,3 +1,4 @@
+import { isWebAddress } from "./web.js";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { WaWebhookSchema, type WaWebhook } from "@wilson/contracts";
@@ -106,7 +107,10 @@ export async function processWebhookPayload(deps: WaDeps, payload: WaWebhook): P
           console.error("[whatsapp] status update failed", (e as Error).message);
         }
       }
-      for (const msg of change.value.messages ?? []) await receiveInbound(deps, fromWhatsApp(msg));
+      for (const msg of change.value.messages ?? []) {
+        if (isWebAddress(msg.from)) continue; // web accounts write through their page (rpc/me.ts), never through here
+        await receiveInbound(deps, fromWhatsApp(msg));
+      }
     }
   }
 }

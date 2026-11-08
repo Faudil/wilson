@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 import { writeFonts } from "./fonts";
 
+const PAGES = ["index.html", "moi.html"];
 const COMPRESSIBLE = /\.(js|css|html|svg|json|webmanifest|txt)$/;
 
 /** Write <file>.br and <file>.gz next to every compressible file of dir (recursively). Returns how many files. */
@@ -25,7 +26,8 @@ export function precompress(dir: string): number {
 export async function buildBackoffice(outdir = join(import.meta.dir, "dist")): Promise<void> {
   rmSync(outdir, { recursive: true, force: true });
   const result = await Bun.build({
-    entrypoints: [join(import.meta.dir, "index.html")],
+    // index.html: volunteers' back-office. moi.html: beneficiaries' web space ("Mon espace", served at /moi).
+    entrypoints: [join(import.meta.dir, "index.html"), join(import.meta.dir, "moi.html")],
     outdir,
     minify: true,
     splitting: true, // one chunk per lazily loaded screen (see src/lib/lazy.tsx)
@@ -41,9 +43,10 @@ export async function buildBackoffice(outdir = join(import.meta.dir, "dist")): P
   }
   const fonts = writeFonts(outdir);
   // The fonts stylesheet goes in <head> so it downloads alongside the script instead of after it has run.
-  const indexPath = join(outdir, "index.html");
-  const html = readFileSync(indexPath, "utf8");
-  writeFileSync(indexPath, html.replace("</head>", `<link rel="stylesheet" href="${fonts.href}"></head>`));
+  for (const page of PAGES) {
+    const path = join(outdir, page);
+    writeFileSync(path, readFileSync(path, "utf8").replace("</head>", `<link rel="stylesheet" href="${fonts.href}"></head>`));
+  }
   writeBrand(outdir);
   const compressed = precompress(outdir); // last, so it covers everything written above
   console.log(`back-office built: ${result.outputs.length} files + ${fonts.count} fonts (${compressed} pre-compressed) in ${outdir}`);
@@ -55,7 +58,7 @@ function writeBrand(outdir: string): void {
   const dir = join(outdir, "brand");
   mkdirSync(dir, { recursive: true });
   for (const name of ["manifest.webmanifest", "mark.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png"]) copyFileSync(join(src, name), join(dir, name));
-  const html = join(outdir, "index.html");
+  const html = join(outdir, "index.html"); // the installable app is the back-office; the web space is a plain page
   writeFileSync(html, readFileSync(html, "utf8").replace("</head>", '<link rel="manifest" href="/brand/manifest.webmanifest"></head>'));
 }
 

@@ -15,16 +15,19 @@ the letters, documents, reminders, announcements or the back-office.
 
 | File | What it holds |
 |---|---|
-| `types.ts` | `ChannelId` (`whatsapp`, `telegram`, `sms`), `ChannelTransport` (outbound), `InboundMessage` / `InboundContent` (inbound, channel-neutral) |
+| `types.ts` | `ChannelId` (`whatsapp`, `web`, `telegram`, `sms`), `ChannelTransport` (outbound), `InboundMessage` / `InboundContent` (inbound, channel-neutral) |
 | `registry.ts` | `Channels`: one transport per channel, `deps.channels.get(id)`; `windowOpenFor`, `sendTemplateVia` |
 | `receive.ts` | `receiveInbound` (conversation + read receipt, never throws) and `applyDeliveryStatus` (delivery receipts) |
 
 WhatsApp is the reference adapter: `whatsapp/meta.ts` and `whatsapp/sandbox.ts` implement the transport,
 `whatsapp/inbound.ts` turns a webhook message into an `InboundMessage`, `whatsapp/webhook.ts` checks the signature.
+The beneficiaries' web space (`/moi`) is the `web` channel: `whatsapp/web.ts` (`WebTransport`) writes replies to
+`messages` for their page, and `rpc/me.ts` hands what they type or upload to `processInbound` as an `InboundMessage`.
 
 Each person has one channel (`beneficiaries.channel`, text, default `whatsapp`) and one address on it
 (`wa_id_*` columns: phone number, WhatsApp BSUID, Telegram chat id…). Replies, reminders and announcements go back on
-that channel. The lookup hash is the bare address on WhatsApp (existing rows) and `<channel>:<address>` on the others,
+that channel. The lookup hash is the bare address on WhatsApp (existing rows) and on the web (`web:<id>` already carries its
+prefix), and `<channel>:<address>` on the others,
 so the same digits on two channels are two different people.
 
 ## Rules every adapter follows

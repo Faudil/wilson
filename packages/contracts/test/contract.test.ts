@@ -37,6 +37,24 @@ describe("contracts", () => {
     expect(WaWebhookSchema.parse(payload).entry[0]?.changes[0]?.value.messages?.[0]?.type).toBe("image");
   });
   it("exposes the expected procedure groups", () => {
-    expect(Object.keys(contract).sort()).toEqual(["appointments", "associations", "auth", "beneficiaries", "broadcasts", "buddies", "conversations", "documents", "invitations", "knowledge", "letters", "notes", "numbers", "places", "sandbox", "skills", "system", "tasks", "usage", "volunteers"]);
+    expect(Object.keys(contract).sort()).toEqual(["appointments", "associations", "auth", "backup", "beneficiaries", "broadcasts", "buddies", "conversations", "documents", "events", "invitations", "knowledge", "letters", "me", "news", "notes", "numbers", "places", "sandbox", "skills", "system", "tasks", "usage", "volunteers"]);
+  });
+});
+
+describe("recovery words (web space)", async () => {
+  const { RECOVERY_WORDS, RecoveryWordsSchema, UnlockCodeSchema } = await import("../src/index.js");
+  it("128 unique lower-case ASCII words with unique pictures, unique on their first 4 letters", () => {
+    const words = RECOVERY_WORDS.map(([w]) => w);
+    expect(words).toHaveLength(128);
+    expect(new Set(words).size).toBe(128);
+    expect(new Set(RECOVERY_WORDS.map(([, p]) => p)).size).toBe(128);
+    expect(new Set(words.map((w) => w.slice(0, 4))).size).toBe(128);
+    for (const w of words) expect(w).toMatch(/^[a-z]+$/);
+  });
+  it("accepts any case and accents, refuses unknown words and wrong counts; codes ignore case and separators", () => {
+    expect(RecoveryWordsSchema.parse(["Éléphant", "CHAT", " chien ", "lune", "pain", "riz"])).toEqual(["elephant", "chat", "chien", "lune", "pain", "riz"]);
+    expect(RecoveryWordsSchema.safeParse(["chat", "chien", "lune", "pain", "riz", "voiturette"]).success).toBe(false);
+    expect(RecoveryWordsSchema.safeParse(["chat"]).success).toBe(false);
+    expect(UnlockCodeSchema.parse("abcd efgh")).toBe("ABCDEFGH");
   });
 });

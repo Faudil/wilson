@@ -1,6 +1,6 @@
 # Notes de l'association
 
-Les fichiers `.md` de ce dossier alimentent la base de connaissances de « Mon courrier » : quand une lettre est analysée, ces notes sont proposées au bénévole (et à l'IA) pour dire **vers qui orienter** la personne.
+Les fichiers `.md` de ce dossier alimentent la base de connaissances de « Wilson » : quand une lettre est analysée, ces notes sont proposées au bénévole (et à l'IA) pour dire **vers qui orienter** la personne.
 
 ## Comment ajouter une note
 
