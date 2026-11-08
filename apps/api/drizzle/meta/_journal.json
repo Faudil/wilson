@@ -120,6 +120,13 @@
       "when": 1794153298728,
       "tag": "0016_events_agenda",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794153519162,
+      "tag": "0017_team_news_backup",
+      "breakpoints": true
     }
   ]
 }

@@ -9,7 +9,7 @@ import {
   type AnyPgColumn, boolean, customType, date, doublePrecision, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import {
-  BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, GuardReasonSchema, GuardStatusSchema, HelpKindSchema, HelpStatusSchema, HelpTopicSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
+  BackupStatusSchema, BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, GuardReasonSchema, GuardStatusSchema, HelpKindSchema, HelpStatusSchema, HelpTopicSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
   type BuddySlot, type BuddyWindow, BuddyMatchStatusSchema, BuddyModePreferenceSchema, BuddyModeSchema, BuddyWindowSchema,
   TaskStatusSchema, UrgencySchema, VOLUNTEER_SKILLS, VolunteerRoleSchema, EVENT_KINDS,
 } from "@wilson/contracts";
@@ -61,6 +61,7 @@ export const helpKindEnum = pgEnum("help_kind", HelpKindSchema.options as [strin
 export const helpTopicEnum = pgEnum("help_topic", HelpTopicSchema.options as [string, ...string[]]);
 export const helpStatusEnum = pgEnum("help_status", HelpStatusSchema.options as [string, ...string[]]);
 export const helpReminderKindEnum = pgEnum("help_reminder_kind", ["d1", "h2"]);
+export const backupStatusEnum = pgEnum("backup_status", tuple(BackupStatusSchema.options));
 export const eventKindEnum = pgEnum("event_kind", tuple(EVENT_KINDS));
 export const eventRegistrationStatusEnum = pgEnum("event_registration_status", ["going", "waitlist"]);
 
@@ -300,6 +301,8 @@ export const volunteers = pgTable("volunteers", {
   associationId: uuid("association_id").references((): AnyPgColumn => associations.id, { onDelete: "set null" }),
   /** Association admin: gets members.manage, limited by the server to members of associationId. */
   associationAdmin: boolean("association_admin").notNull().default(false),
+  /** Newest "What's new in Wilson" entry this volunteer has seen (back-office changelog id, e.g. "2026-11-08"). */
+  changelogSeen: text("changelog_seen"),
 });
 
 /** Single-use invite links created by an association admin (or a global admin). Only the token hash is stored. */
@@ -682,6 +685,64 @@ export const buddyReports = pgTable("buddy_reports", {
   handledBy: uuid("handled_by").references(() => volunteers.id, { onDelete: "set null" }),
   handledAt: ts("handled_at"),
 }, (t) => [index("buddy_reports_status_idx").on(t.status, t.createdAt)]);
+
+// ---------------------------------------------------------------- Team side (about volunteers, in clear)
+
+/**
+ * Team news from the association to its volunteers. `associationId` null = every volunteer of the instance.
+ * About the association's organisation, never about a beneficiary: stored in clear.
+ */
+export const newsPosts = pgTable("news_posts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  pinned: boolean("pinned").notNull().default(false),
+  associationId: uuid("association_id").references(() => associations.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id").references(() => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  editedAt: ts("edited_at"),
+  /** The e-mail copy was queued (once, at creation). */
+  emailedAt: ts("emailed_at"),
+  removedAt: ts("removed_at"),
+}, (t) => [index("news_posts_active_idx").on(t.removedAt, t.createdAt)]);
+
+/** Who opened which post: unread card on Home, and "seen by 12 of 20" for the author. */
+export const newsReads = pgTable("news_reads", {
+  postId: uuid("post_id").notNull().references(() => newsPosts.id, { onDelete: "cascade" }),
+  volunteerId: uuid("volunteer_id").notNull().references(() => volunteers.id, { onDelete: "cascade" }),
+  readAt: ts("read_at").notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.postId, t.volunteerId] }), index("news_reads_volunteer_idx").on(t.volunteerId)]);
+
+/**
+ * A volunteer asking the others for backup ("need an Arabic speaker tomorrow at the prefecture"). `associationId` is
+ * the author's association when posted (null = none); `openToAll` shows it to every association.
+ */
+export const backupCalls = pgTable("backup_calls", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  details: text("details"),
+  neededOn: date("needed_on", { mode: "string" }).notNull(),
+  startsAt: text("starts_at"),
+  place: text("place"),
+  languages: languageEnum("languages").array().notNull().default(sql`'{}'`),
+  skills: volunteerSkillEnum("skills").array().notNull().default(sql`'{}'`),
+  needed: integer("needed").notNull().default(1),
+  openToAll: boolean("open_to_all").notNull().default(false),
+  status: backupStatusEnum("status").notNull().default("open"),
+  associationId: uuid("association_id").references(() => associations.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id").references(() => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  closedAt: ts("closed_at"),
+  closedBy: uuid("closed_by").references(() => volunteers.id, { onDelete: "set null" }),
+}, (t) => [index("backup_calls_open_idx").on(t.status, t.neededOn)]);
+
+/** "I can help" on a call. Withdrawing deletes the row. */
+export const backupOffers = pgTable("backup_offers", {
+  callId: uuid("call_id").notNull().references(() => backupCalls.id, { onDelete: "cascade" }),
+  volunteerId: uuid("volunteer_id").notNull().references(() => volunteers.id, { onDelete: "cascade" }),
+  note: text("note"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.callId, t.volunteerId] }), index("backup_offers_volunteer_idx").on(t.volunteerId)]);
 
 // ---------------------------------------------------------------- Agenda (events and sign-ups)
 

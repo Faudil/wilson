@@ -62,6 +62,10 @@ export const authRouter = {
     .use(requirePermission())
     .handler(({ input, context }) => getAuth(context.deps).setUiLanguage(context.volunteer.id, input.language)),
 
+  markChangelogSeen: os.auth.markChangelogSeen
+    .use(requirePermission())
+    .handler(({ input, context }) => getAuth(context.deps).markChangelogSeen(context.volunteer.id, input.id)),
+
   twoFactorSetup: os.auth.twoFactorSetup.use(requirePermission()).handler(async ({ context }) => {
     const r = await getAuth(context.deps).twoFactorSetup(context.volunteer.id);
     if (!r) throw new ORPCError("CONFLICT", { data: { reason: "already_enabled" } });

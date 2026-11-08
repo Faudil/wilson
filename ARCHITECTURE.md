@@ -116,6 +116,10 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 | `help_requests` | Rendez-vous: beneficiary_id, kind (accompaniment/form_session), topic, status (draft/open/accepted/done/cancelled/expired), starts_at, duration_min, `city_enc`, `meeting_point_enc`, volunteer_id, slot_id, documents_consent, created/accepted/closed_at |
 | `help_slots` | form-filling slots a volunteer publishes: volunteer_id, starts_at, duration_min, place (venue, not personal), request_id (claimed atomically when booked) |
 | `help_reminders` | WhatsApp reminders to the person: request_id, kind (d1/h2), due_at, status — unique scheduled (request_id, kind) |
+| `news_posts` | Team news from the association to its volunteers: title, body, pinned, association_id (null = every volunteer), author_id, created/edited/emailed/removed_at. About the organisation only, in clear |
+| `news_reads` | post_id, volunteer_id, read_at: unread card on Home, "seen by 12 of 20" for the people who can edit the post |
+| `backup_calls` | Volunteers asking each other for backup: title, details, needed_on, starts_at, place (public), languages[], skills[], needed, open_to_all, status (open/covered/cancelled), association_id (author's), author_id, closed_at/by |
+| `backup_offers` | call_id, volunteer_id, note: "I can help" (withdrawing deletes the row) |
 
 Type, dates, urgency and status stay in clear so the queue can sort and filter; they are low-sensitivity and never include names. Names, phone numbers, letter content and document labels are encrypted.
 

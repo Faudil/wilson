@@ -58,3 +58,15 @@ export function useHeldNumbers(enabled: boolean): number {
   const q = useQuery({ ...orpc.numbers.heldCount.queryOptions(), enabled, refetchInterval: 60_000, retry: false });
   return q.data?.count ?? 0;
 }
+
+/** Team news the volunteer has not opened yet (Home card and the More badge). */
+export function useNewsUnread(enabled: boolean) {
+  const q = useQuery({ ...orpc.news.unread.queryOptions(), enabled, refetchInterval: 5 * 60_000, retry: false });
+  return { query: q, count: q.data?.count ?? 0, latest: q.data?.latest ?? [] };
+}
+
+/** Calls for backup from others not answered yet, and how many match my languages or skills. */
+export function useBackupCounts(enabled: boolean): { open: number; forMe: number } {
+  const q = useQuery({ ...orpc.backup.counts.queryOptions(), enabled, refetchInterval: 5 * 60_000, retry: false });
+  return q.data ?? { open: 0, forMe: 0 };
+}
