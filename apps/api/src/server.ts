@@ -9,6 +9,8 @@ import { router } from "./rpc/router.js";
 import type { RpcContext } from "./rpc/base.js";
 
 export const SESSION_COOKIE = "wilson_session";
+/** The web space session of a beneficiary ("Mon espace"): another cookie, never a volunteer session. */
+export const ME_COOKIE = "wilson_me";
 const MAX_BODY_BYTES = 12 * 1024 * 1024;
 
 export function readCookie(header: string | undefined, name: string): string | null {
@@ -26,12 +28,12 @@ export function readCookie(header: string | undefined, name: string): string | n
   return null;
 }
 
-export function sessionCookie(token: string | null, expires: Date | undefined, secure: boolean): string {
+export function sessionCookie(token: string | null, expires: Date | undefined, secure: boolean, name = SESSION_COOKIE): string {
   const attrs = ["Path=/", "HttpOnly", "SameSite=Strict"];
   if (secure) attrs.push("Secure");
-  if (token === null) return [`${SESSION_COOKIE}=`, ...attrs, "Max-Age=0", "Expires=Thu, 01 Jan 1970 00:00:00 GMT"].join("; ");
+  if (token === null) return [`${name}=`, ...attrs, "Max-Age=0", "Expires=Thu, 01 Jan 1970 00:00:00 GMT"].join("; ");
   if (expires) attrs.push(`Expires=${expires.toUTCString()}`);
-  return [`${SESSION_COOKIE}=${encodeURIComponent(token)}`, ...attrs].join("; ");
+  return [`${name}=${encodeURIComponent(token)}`, ...attrs].join("; ");
 }
 
 /**
@@ -70,9 +72,17 @@ export function createHttpServer(deps: WaDeps): Server {
 
     if (path.startsWith("/rpc/") || path === "/rpc") {
       const token = readCookie(req.headers.cookie, SESSION_COOKIE);
+      const cookies: string[] = [];
       const context = await createContext(deps, token, (t, expires) => {
-        res.setHeader("Set-Cookie", sessionCookie(t, expires, secure));
-      }, clientIp(req, deps.config.TRUST_PROXY_HOPS));
+        cookies.push(sessionCookie(t, expires, secure));
+        res.setHeader("Set-Cookie", cookies);
+      }, clientIp(req, deps.config.TRUST_PROXY_HOPS), {
+        token: readCookie(req.headers.cookie, ME_COOKIE),
+        set: (t, expires) => {
+          cookies.push(sessionCookie(t, expires, secure, ME_COOKIE));
+          res.setHeader("Set-Cookie", cookies);
+        },
+      });
       const result = await rpc.handle(req, res, { prefix: "/rpc", context });
       if (result.matched) return;
     }

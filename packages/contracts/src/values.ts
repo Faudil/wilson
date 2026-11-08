@@ -73,7 +73,7 @@ export const DOCUMENT_TYPES = [
   "health_insurance", // attestation AME / PUMa / carte vitale
   "caf_attestation",
   "convocation",
-  "letter", // a letter saved from "Mon courrier"
+  "letter", // a letter the person sent in, kept in their documents
   "other",
 ] as const;
 
@@ -102,6 +102,7 @@ export const PERMISSIONS = [
   "letters.view_photo",
   "beneficiaries.view",
   "beneficiaries.edit", // change language
+  "beneficiaries.recover", // web accounts: give an unlock code to someone who lost their words, lock or unlock an account
   "documents.view_metadata",
   "documents.view_file",
   "documents.edit", // fix type / expiry, archive
@@ -151,6 +152,7 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
   "letters.view_photo",
   "beneficiaries.view",
   "beneficiaries.edit",
+  "beneficiaries.recover",
   "documents.view_metadata",
   "documents.view_file",
   "documents.edit",
@@ -224,3 +226,35 @@ export const HELP_TOPICS = [...ACCOMPANIMENT_TOPICS, ...FORM_TOPICS] as const;
 
 /** draft = being typed on WhatsApp (never shown to volunteers). */
 export const HELP_STATUSES = ["draft", "open", "accepted", "done", "cancelled", "expired"] as const;
+
+/**
+ * The recovery word list: one picture each, so a person who does not read French can still recognise and tap them.
+ * Words are lower-case ASCII, unique, and unique on their first 4 letters (typing 4 letters is always enough).
+ * The order is part of the format: never reorder or replace entries, only append (and never past 256).
+ */
+export const RECOVERY_WORDS = [
+  ["chat", "🐱"], ["chien", "🐶"], ["cheval", "🐴"], ["vache", "🐮"], ["cochon", "🐷"], ["mouton", "🐑"], ["lapin", "🐰"], ["souris", "🐭"],
+  ["lion", "🦁"], ["tigre", "🐯"], ["ours", "🐻"], ["panda", "🐼"], ["singe", "🐵"], ["girafe", "🦒"], ["zebre", "🦓"], ["elephant", "🐘"],
+  ["chameau", "🐫"], ["renard", "🦊"], ["loup", "🐺"], ["poule", "🐔"], ["canard", "🦆"], ["hibou", "🦉"], ["aigle", "🦅"], ["pingouin", "🐧"],
+  ["tortue", "🐢"], ["serpent", "🐍"], ["poisson", "🐟"], ["dauphin", "🐬"], ["baleine", "🐳"], ["pieuvre", "🐙"], ["crabe", "🦀"], ["abeille", "🐝"],
+  ["papillon", "🦋"], ["escargot", "🐌"], ["fourmi", "🐜"], ["grenouille", "🐸"], ["pomme", "🍎"], ["poire", "🍐"], ["banane", "🍌"], ["raisin", "🍇"],
+  ["citron", "🍋"], ["orange", "🍊"], ["fraise", "🍓"], ["cerise", "🍒"], ["ananas", "🍍"], ["pasteque", "🍉"], ["carotte", "🥕"], ["tomate", "🍅"],
+  ["epi", "🌽"], ["piment", "🌶️"], ["pain", "🍞"], ["fromage", "🧀"], ["oeuf", "🥚"], ["gateau", "🎂"], ["bonbon", "🍬"], ["cafe", "☕"],
+  ["lait", "🥛"], ["miel", "🍯"], ["riz", "🍚"], ["pizza", "🍕"], ["soleil", "☀️"], ["lune", "🌙"], ["etoile", "⭐"], ["nuage", "☁️"],
+  ["pluie", "🌧️"], ["neige", "❄️"], ["arcenciel", "🌈"], ["eclair", "⚡"], ["feu", "🔥"], ["arbre", "🌳"], ["fleur", "🌸"], ["rose", "🌹"],
+  ["cactus", "🌵"], ["feuille", "🍁"], ["montagne", "⛰️"], ["volcan", "🌋"], ["vague", "🌊"], ["ile", "🏝️"], ["maison", "🏠"], ["cle", "🔑"],
+  ["porte", "🚪"], ["lit", "🛏️"], ["lampe", "💡"], ["bougie", "🕯️"], ["livre", "📖"], ["crayon", "✏️"], ["ciseaux", "✂️"], ["horloge", "⏰"],
+  ["cloche", "🔔"], ["ballon", "⚽"], ["guitare", "🎸"], ["tambour", "🥁"], ["trompette", "🎺"], ["cadeau", "🎁"], ["parapluie", "☂️"], ["chapeau", "🎩"],
+  ["cravate", "👔"], ["basket", "👟"], ["gant", "🧤"], ["echarpe", "🧣"], ["valise", "🧳"], ["marteau", "🔨"], ["aimant", "🧲"], ["pinceau", "🖌️"],
+  ["ancre", "⚓"], ["boussole", "🧭"], ["bateau", "⛵"], ["avion", "✈️"], ["fusee", "🚀"], ["velo", "🚲"], ["voiture", "🚗"], ["bus", "🚌"],
+  ["train", "🚆"], ["tracteur", "🚜"], ["camion", "🚚"], ["coeur", "❤️"], ["diamant", "💎"], ["couronne", "👑"], ["robot", "🤖"], ["fantome", "👻"],
+  ["tente", "⛺"], ["pont", "🌉"], ["drapeau", "🚩"], ["telephone", "📱"], ["appareil", "📷"], ["micro", "🎤"], ["tasse", "🍵"], ["biberon", "🍼"],
+] as const satisfies readonly (readonly [string, string])[];
+
+export type RecoveryWord = (typeof RECOVERY_WORDS)[number][0];
+export const RECOVERY_WORD_COUNT = 6;
+
+/** Lower case, no accents, letters only: "Éléphant " → "elephant". */
+export function normaliseRecoveryWord(s: string): string {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z]/g, "");
+}

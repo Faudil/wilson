@@ -1,3 +1,4 @@
+import { isWebAddress } from "../whatsapp/web.js";
 import { ORPCError } from "@orpc/server";
 import { and, asc, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import type { BuddyMatch, BuddyMatchDetail, BuddyMode, BuddyReport, BuddyRequest, BuddySlot, Permission, Volunteer } from "@wilson/contracts";
@@ -41,7 +42,7 @@ async function toMatches(deps: Deps, rows: MatchRow[]): Promise<BuddyMatch[]> {
   const ids = rows.map((r) => r.id);
   const vols = new Map((await deps.db.select({ id: volunteers.id, name: volunteers.name }).from(volunteers)
     .where(inArray(volunteers.id, [...new Set(rows.map((r) => r.volunteerId))]))).map((v) => [v.id, v.name]));
-  const bens = new Map((await deps.db.select({ id: beneficiaries.id, last2: beneficiaries.waIdLast2, language: beneficiaries.language }).from(beneficiaries)
+  const bens = new Map((await deps.db.select({ id: beneficiaries.id, last2: beneficiaries.waIdLast2, handle: beneficiaries.webHandle, language: beneficiaries.language }).from(beneficiaries)
     .where(inArray(beneficiaries.id, [...new Set(rows.map((r) => r.beneficiaryId))]))).map((b) => [b.id, b]));
   const next = new Map<string, typeof buddySessions.$inferSelect>();
   for (const s of await deps.db.selectDistinctOn([buddySessions.matchId]).from(buddySessions)
@@ -55,7 +56,7 @@ async function toMatches(deps: Deps, rows: MatchRow[]): Promise<BuddyMatch[]> {
     return {
       id: r.id, requestId: r.requestId, status: r.status,
       volunteer: { id: r.volunteerId, name: vols.get(r.volunteerId) ?? "" },
-      beneficiaryLabel: maskedLabel(b?.last2 ?? "••"), beneficiaryLanguage: b?.language ?? "fr",
+      beneficiaryLabel: maskedLabel(b?.last2 ?? "••", b?.handle), beneficiaryLanguage: b?.language ?? "fr",
       weekday: r.weekday, time: r.time, mode: r.mode as BuddyMode, place: r.place, contactShared: r.contactShared,
       createdAt: r.createdAt.toISOString(), acceptedAt: r.acceptedAt?.toISOString() ?? null, endedAt: r.endedAt?.toISOString() ?? null,
       endedBy: r.endedBy, openReports: reports.get(r.id) ?? 0,
@@ -122,13 +123,13 @@ export const buddiesRouter = {
 
   requests: os.buddies.requests.use(requireAny(BE, MANAGE)).handler(async ({ context }) => {
     const { db } = context.deps;
-    const rows = await db.select({ r: buddyRequests, last2: beneficiaries.waIdLast2, language: beneficiaries.language }).from(buddyRequests)
+    const rows = await db.select({ r: buddyRequests, last2: beneficiaries.waIdLast2, handle: beneficiaries.webHandle, language: beneficiaries.language }).from(buddyRequests)
       .innerJoin(beneficiaries, eq(beneficiaries.id, buddyRequests.beneficiaryId))
       .where(eq(buddyRequests.status, "waiting")).orderBy(asc(buddyRequests.createdAt));
     const proposed = new Set(rows.length ? (await db.select({ id: buddyMatches.requestId }).from(buddyMatches)
       .where(and(inArray(buddyMatches.requestId, rows.map((x) => x.r.id)), inArray(buddyMatches.status, OPEN_MATCH)))).map((x) => x.id) : []);
-    return rows.map(({ r, last2, language }): BuddyRequest => ({
-      id: r.id, beneficiaryLabel: maskedLabel(last2), language, windows: r.windows as BuddyRequest["windows"], mode: r.mode as BuddyRequest["mode"],
+    return rows.map(({ r, last2, handle, language }): BuddyRequest => ({
+      id: r.id, beneficiaryLabel: maskedLabel(last2, handle), language, windows: r.windows as BuddyRequest["windows"], mode: r.mode as BuddyRequest["mode"],
       status: r.status, createdAt: r.createdAt.toISOString(), proposed: proposed.has(r.id),
     }));
   }),
@@ -201,6 +202,7 @@ export const buddiesRouter = {
     const m = await ownMatch(context, input.matchId);
     if (m.status !== "active" || !m.contactShared) throw new ORPCError("FORBIDDEN");
     const waId = await getServices(context.deps).beneficiaries.getWaId(m.beneficiaryId);
+    if (isWebAddress(waId)) throw new ORPCError("FORBIDDEN"); // a web account has no phone number
     // WhatsApp hides this person's number (username, BSUID only): there is no phone number to give.
     if (isBsuid(waId)) throw new ORPCError("NOT_FOUND", { message: "phone number hidden by WhatsApp" });
     await logAccess(context, "buddies.contact", m.id);

@@ -1,5 +1,5 @@
 {
-  "id": "6a571fb0-ce88-4821-b426-5c34825cef23",
+  "id": "d2b526dc-17e3-4883-b06e-c0caa9691f18",
   "prevId": "e42f8b5c-5a0f-443f-bdb5-a4bb2d966e81",
   "version": "7",
   "dialect": "postgresql",
@@ -283,6 +283,48 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "web_handle": {
+          "name": "web_handle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_name_enc": {
+          "name": "web_name_enc",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_words_hash": {
+          "name": "web_words_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_locked_at": {
+          "name": "web_locked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_locked_by": {
+          "name": "web_locked_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_unlock_hash": {
+          "name": "web_unlock_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_unlock_until": {
+          "name": "web_unlock_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -350,6 +392,19 @@
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
+        },
+        "beneficiaries_web_locked_by_volunteers_id_fk": {
+          "name": "beneficiaries_web_locked_by_volunteers_id_fk",
+          "tableFrom": "beneficiaries",
+          "tableTo": "volunteers",
+          "columnsFrom": [
+            "web_locked_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -360,8 +415,97 @@
           "columns": [
             "wa_id_hash"
           ]
+        },
+        "beneficiaries_web_handle_unique": {
+          "name": "beneficiaries_web_handle_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "web_handle"
+          ]
+        },
+        "beneficiaries_web_words_hash_unique": {
+          "name": "beneficiaries_web_words_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "web_words_hash"
+          ]
+        },
+        "beneficiaries_web_unlock_hash_unique": {
+          "name": "beneficiaries_web_unlock_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "web_unlock_hash"
+          ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.beneficiary_sessions": {
+      "name": "beneficiary_sessions",
+      "schema": "",
+      "columns": {
+        "id_hash": {
+          "name": "id_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "beneficiary_id": {
+          "name": "beneficiary_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shared_device": {
+          "name": "shared_device",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "beneficiary_sessions_beneficiary_idx": {
+          "name": "beneficiary_sessions_beneficiary_idx",
+          "columns": [
+            {
+              "expression": "beneficiary_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "beneficiary_sessions_beneficiary_id_beneficiaries_id_fk": {
+          "name": "beneficiary_sessions_beneficiary_id_beneficiaries_id_fk",
+          "tableFrom": "beneficiary_sessions",
+          "tableTo": "beneficiaries",
+          "columnsFrom": [
+            "beneficiary_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -1753,420 +1897,6 @@
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.event_registrations": {
-      "name": "event_registrations",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "event_id": {
-          "name": "event_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "volunteer_id": {
-          "name": "volunteer_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "beneficiary_id": {
-          "name": "beneficiary_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "event_registration_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "reminded_at": {
-          "name": "reminded_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "event_registrations_volunteer_idx": {
-          "name": "event_registrations_volunteer_idx",
-          "columns": [
-            {
-              "expression": "event_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "volunteer_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "volunteer_id is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "event_registrations_beneficiary_idx": {
-          "name": "event_registrations_beneficiary_idx",
-          "columns": [
-            {
-              "expression": "event_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "beneficiary_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "beneficiary_id is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "event_registrations_event_idx": {
-          "name": "event_registrations_event_idx",
-          "columns": [
-            {
-              "expression": "event_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "event_registrations_volunteer_list_idx": {
-          "name": "event_registrations_volunteer_list_idx",
-          "columns": [
-            {
-              "expression": "volunteer_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "event_registrations_beneficiary_list_idx": {
-          "name": "event_registrations_beneficiary_list_idx",
-          "columns": [
-            {
-              "expression": "beneficiary_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "event_registrations_event_id_events_id_fk": {
-          "name": "event_registrations_event_id_events_id_fk",
-          "tableFrom": "event_registrations",
-          "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "event_registrations_volunteer_id_volunteers_id_fk": {
-          "name": "event_registrations_volunteer_id_volunteers_id_fk",
-          "tableFrom": "event_registrations",
-          "tableTo": "volunteers",
-          "columnsFrom": [
-            "volunteer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "event_registrations_beneficiary_id_beneficiaries_id_fk": {
-          "name": "event_registrations_beneficiary_id_beneficiaries_id_fk",
-          "tableFrom": "event_registrations",
-          "tableTo": "beneficiaries",
-          "columnsFrom": [
-            "beneficiary_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.events": {
-      "name": "events",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "association_id": {
-          "name": "association_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "kind": {
-          "name": "kind",
-          "type": "event_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "place": {
-          "name": "place",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "starts_at": {
-          "name": "starts_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ends_at": {
-          "name": "ends_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "volunteer_spots": {
-          "name": "volunteer_spots",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "public": {
-          "name": "public",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "public_spots": {
-          "name": "public_spots",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "languages": {
-          "name": "languages",
-          "type": "language[]",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'"
-        },
-        "skills": {
-          "name": "skills",
-          "type": "volunteer_skill[]",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'"
-        },
-        "translations": {
-          "name": "translations",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "cancelled_at": {
-          "name": "cancelled_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "events_starts_idx": {
-          "name": "events_starts_idx",
-          "columns": [
-            {
-              "expression": "starts_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "events_public_idx": {
-          "name": "events_public_idx",
-          "columns": [
-            {
-              "expression": "public",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "starts_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "events_association_id_associations_id_fk": {
-          "name": "events_association_id_associations_id_fk",
-          "tableFrom": "events",
-          "tableTo": "associations",
-          "columnsFrom": [
-            "association_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "events_created_by_volunteers_id_fk": {
-          "name": "events_created_by_volunteers_id_fk",
-          "tableFrom": "events",
-          "tableTo": "volunteers",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "events_updated_by_volunteers_id_fk": {
-          "name": "events_updated_by_volunteers_id_fk",
-          "tableFrom": "events",
-          "tableTo": "volunteers",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -4435,26 +4165,6 @@
         "other"
       ]
     },
-    "public.event_kind": {
-      "name": "event_kind",
-      "schema": "public",
-      "values": [
-        "maraude",
-        "meeting",
-        "training",
-        "workshop",
-        "info_session",
-        "other"
-      ]
-    },
-    "public.event_registration_status": {
-      "name": "event_registration_status",
-      "schema": "public",
-      "values": [
-        "going",
-        "waitlist"
-      ]
-    },
     "public.expiry_source": {
       "name": "expiry_source",
       "schema": "public",
@@ -4655,6 +4365,7 @@
         "letters.view_photo",
         "beneficiaries.view",
         "beneficiaries.edit",
+        "beneficiaries.recover",
         "documents.view_metadata",
         "documents.view_file",
         "documents.edit",
@@ -4687,11 +4398,7 @@
         "appointments.slots",
         "appointments.documents",
         "appointments.manage",
-        "numbers.moderate",
-        "events.view",
-        "events.join",
-        "events.create",
-        "events.manage"
+        "numbers.moderate"
       ]
     },
     "public.place_kind": {

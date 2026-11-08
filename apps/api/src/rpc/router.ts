@@ -1,6 +1,7 @@
 import { os } from "./base.js";
 import { appointmentsRouter } from "./appointments.js";
 import { authRouter } from "./auth.js";
+import { meRouter } from "./me.js";
 import { buddiesRouter } from "./buddies.js";
 import { beneficiariesRouter } from "./beneficiaries.js";
 import { conversationsRouter } from "./conversations.js";
@@ -21,6 +22,7 @@ import { eventsRouter } from "./events.js";
 
 export const router = os.router({
   auth: authRouter,
+  me: meRouter,
   beneficiaries: beneficiariesRouter,
   documents: documentsRouter,
   system: systemRouter,

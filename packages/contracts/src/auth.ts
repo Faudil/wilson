@@ -16,7 +16,7 @@ export { ROLE_PERMISSIONS };
  */
 export const TWO_FACTOR_PERMISSIONS: readonly Permission[] = [
   "volunteers.manage", "audit.view", "usage.manage", "knowledge.manage", "notes.moderate", "broadcasts.approve",
-  "buddies.manage", "buddies.reports", "appointments.manage", "associations.manage", "members.manage",
+  "buddies.manage", "buddies.reports", "appointments.manage", "associations.manage", "members.manage", "beneficiaries.recover",
 ];
 
 export const VolunteerSchema = z.object({

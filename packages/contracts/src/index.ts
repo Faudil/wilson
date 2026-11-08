@@ -19,3 +19,4 @@ export * from "./contract.js";
 export * from "./places.js";
 export * from "./broadcasts.js";
 export * from "./events.js";
+export * from "./me.js";
