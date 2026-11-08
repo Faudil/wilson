@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { ToastProvider } from "./components/ui";
 import { applyDocumentLanguage, I18nProvider, readStoredLanguage } from "./i18n";
+import { loadCatalog } from "./i18n/core";
 import { errorCode } from "./lib/api";
 import { ME_KEY } from "./lib/me";
 import "./styles/app.css";
@@ -14,7 +15,8 @@ if (!document.querySelector('link[href^="/fonts/"]')) {
   document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href: "/fonts/fonts.css" }));
 }
 
-applyDocumentLanguage(readStoredLanguage());
+const initialLanguage = readStoredLanguage();
+applyDocumentLanguage(initialLanguage);
 
 const queryClient: QueryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -25,6 +27,9 @@ const queryClient: QueryClient = new QueryClient({
   }),
   defaultOptions: { queries: { staleTime: 10_000, refetchOnWindowFocus: true, retry: 1 } },
 });
+
+// Fetch the saved language's catalog before the first paint (fr and en are already in the bundle).
+await loadCatalog(initialLanguage);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
