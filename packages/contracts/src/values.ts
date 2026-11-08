@@ -73,7 +73,7 @@ export const DOCUMENT_TYPES = [
   "health_insurance", // attestation AME / PUMa / carte vitale
   "caf_attestation",
   "convocation",
-  "letter", // a letter saved from "Mon courrier"
+  "letter", // a letter the person sent in, kept in their documents
   "other",
 ] as const;
 

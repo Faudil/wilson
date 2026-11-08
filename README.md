@@ -1,4 +1,4 @@
-# Mon courrier — POC
+# Wilson — POC
 
 Service WhatsApp pour les personnes accompagnées par l'association :
 

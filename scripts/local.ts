@@ -1,4 +1,4 @@
-// Run Mon courrier on this computer without Docker (Windows, macOS, Linux). Needs only Bun (https://bun.sh).
+// Run Wilson on this computer without Docker (Windows, macOS, Linux). Needs only Bun (https://bun.sh).
 //   bun install
 //   bun local
 // Back-office: http://localhost:5173 · data stored (encrypted) in ./.data · config in ./.env.local
@@ -93,7 +93,7 @@ run("api", ["src/main.ts"], "apps/api");
 run("web", ["--hot", "serve.ts"], "apps/backoffice");
 
 console.log(`
-  Mon courrier (local, no Docker)
+  Wilson (local, no Docker)
   ───────────────────────────────
   Back-office : http://localhost:5173   (${env.SEED_ADMIN_EMAIL} / ${env.SEED_ADMIN_PASSWORD})
   Sandbox     : http://localhost:5173/#/sandbox
