@@ -17,9 +17,19 @@ describe("UI catalogs", () => {
     expect([...UI_LANGUAGES].sort()).toEqual([...LANGUAGE_CODES].sort());
   });
 
-  it("have identical keys", () => {
+  it("French, English and Arabic have identical keys", () => {
     const base = Object.keys(fr).sort();
-    for (const [lang, catalog] of Object.entries(catalogs)) expect(Object.keys(catalog).sort(), lang).toEqual(base);
+    for (const lang of ["en", "ar"]) expect(Object.keys(catalogs[lang]!).sort(), lang).toEqual(base);
+  });
+
+  // The other catalogs are machine translations that may lag behind: a key
+  // that is missing falls back to English, so new keys only need fr/en/ar.
+  // A key that no longer exists in French must be removed everywhere.
+  it("other catalogs hold no stale keys", () => {
+    for (const [lang, catalog] of Object.entries(catalogs)) {
+      const stale = Object.keys(catalog).filter((k) => !(k in fr));
+      expect(stale, lang).toEqual([]);
+    }
   });
 
   it("flag machine translations only for languages that have a catalog, never French or English", () => {
