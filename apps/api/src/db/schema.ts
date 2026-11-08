@@ -3,15 +3,16 @@
  * Columns suffixed `Enc` hold AES-256-GCM ciphertext under the beneficiary DEK (see src/crypto/keys.ts).
  * Change this file only through a reviewed migration (`bun run db:generate`).
  */
+import type { ChannelId } from "../channels/types.js";
 import { sql } from "drizzle-orm";
 import type { LanguageCode } from "@wilson/contracts";
 import {
   type AnyPgColumn, boolean, customType, date, doublePrecision, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import {
-  BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, GuardReasonSchema, GuardStatusSchema, HelpKindSchema, HelpStatusSchema, HelpTopicSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
+  BackupStatusSchema, BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, GuardReasonSchema, GuardStatusSchema, HelpKindSchema, HelpStatusSchema, HelpTopicSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
   type BuddySlot, type BuddyWindow, BuddyMatchStatusSchema, BuddyModePreferenceSchema, BuddyModeSchema, BuddyWindowSchema,
-  TaskStatusSchema, UrgencySchema, VOLUNTEER_SKILLS, VolunteerRoleSchema,
+  TaskStatusSchema, UrgencySchema, VOLUNTEER_SKILLS, VolunteerRoleSchema, EVENT_KINDS,
 } from "@wilson/contracts";
 
 export const bytea = customType<{ data: Buffer; driverData: Buffer | Uint8Array }>({
@@ -61,6 +62,9 @@ export const helpKindEnum = pgEnum("help_kind", HelpKindSchema.options as [strin
 export const helpTopicEnum = pgEnum("help_topic", HelpTopicSchema.options as [string, ...string[]]);
 export const helpStatusEnum = pgEnum("help_status", HelpStatusSchema.options as [string, ...string[]]);
 export const helpReminderKindEnum = pgEnum("help_reminder_kind", ["d1", "h2"]);
+export const backupStatusEnum = pgEnum("backup_status", tuple(BackupStatusSchema.options));
+export const eventKindEnum = pgEnum("event_kind", tuple(EVENT_KINDS));
+export const eventRegistrationStatusEnum = pgEnum("event_registration_status", ["going", "waitlist"]);
 
 /** Conversation state machine snapshot, owned by src/conversation/engine.ts. */
 export type ConversationState =
@@ -87,6 +91,9 @@ export type ConversationState =
   | { step: "help_consent"; requestId: string; slotId?: string }
   | { step: "help_list"; requestIds: string[] }
   | { step: "help_cancel"; requestId: string }
+  // — Agenda (menu 8 → 4, src/events/flow.ts): eventIds[i] is option i+1 of the list the person saw. —
+  | { step: "event_list"; eventIds: string[] }
+  | { step: "event_detail"; eventId: string }
   /** Menu 5 was answered: a shared location or a typed address lists the places nearest to it (nothing is stored). */
   | { step: "nearby" }
   /** Free-form chat ("ask a question"); any non-menu text also goes to the chatbot. */
@@ -105,7 +112,15 @@ export type ConversationState =
 
 export const beneficiaries = pgTable("beneficiaries", {
   id: uuid("id").primaryKey().defaultRandom(),
-  /** HMAC-SHA256(LOOKUP_KEY, wa_id), hex. Used to find the person from a webhook. */
+  /**
+   * Channel the person writes on (src/channels): whatsapp, web (the web space), later telegram, sms… Text, not an enum, so a new channel
+   * needs no migration. The `wa_id_*` columns hold the address on that channel (phone, BSUID, chat id).
+   */
+  channel: text("channel").$type<ChannelId>().notNull().default("whatsapp"),
+  /**
+   * HMAC-SHA256(LOOKUP_KEY, address), hex. Used to find the person from a webhook. WhatsApp hashes the bare wa_id;
+   * other channels hash `<channel>:<address>`, so the same digits on two channels are two people.
+   */
   waIdHash: text("wa_id_hash").notNull().unique(),
   waIdEnc: bytea("wa_id_enc").notNull(),
   /** Last 2 digits only, for the masked label "+33 •• •• •• •• 21". */
@@ -137,6 +152,20 @@ export const beneficiaries = pgTable("beneficiaries", {
   guardBy: uuid("guard_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
   /** When the person said yes to announcements (menu 6); null = no announcements (opt-in only, WhatsApp policy). */
   announcementsOptInAt: ts("announcements_opt_in_at"),
+  // — Web accounts ("Mon espace", src/webAccounts/): no phone number. wa_id_* then hold the pseudo address
+  //   "web:<id>" (so the conversation engine and the send queue work unchanged) and wa_id_last2 is empty. —
+  /** "W-K7QD3M", random; null for WhatsApp people. Shown as the label instead of the masked number. */
+  webHandle: text("web_handle").unique(),
+  /** The name they chose, under the DEK. */
+  webNameEnc: bytea("web_name_enc"),
+  /** HMAC(LOOKUP_KEY, recovery words): finds the account at login. Null once a volunteer issued an unlock code. */
+  webWordsHash: text("web_words_hash").unique(),
+  /** Locked by a volunteer: the words are refused until an unlock code is used. */
+  webLockedAt: ts("web_locked_at"),
+  webLockedBy: uuid("web_locked_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  /** HMAC(LOOKUP_KEY, unlock code) and its expiry: one-time, given by a volunteer to someone who lost their words. */
+  webUnlockHash: text("web_unlock_hash").unique(),
+  webUnlockUntil: ts("web_unlock_until"),
 }, (t) => [
   index("beneficiaries_guard_idx").on(t.guardStatus, t.guardAt).where(sql`${t.guardStatus} <> 'none'`),
   index("beneficiaries_user_id_hash_idx").on(t.userIdHash),
@@ -281,6 +310,8 @@ export const volunteers = pgTable("volunteers", {
   associationId: uuid("association_id").references((): AnyPgColumn => associations.id, { onDelete: "set null" }),
   /** Association admin: gets members.manage, limited by the server to members of associationId. */
   associationAdmin: boolean("association_admin").notNull().default(false),
+  /** Newest "What's new in Wilson" entry this volunteer has seen (back-office changelog id, e.g. "2026-11-08"). */
+  changelogSeen: text("changelog_seen"),
 });
 
 /** Single-use invite links created by an association admin (or a global admin). Only the token hash is stored. */
@@ -366,6 +397,16 @@ export const sessions = pgTable("sessions", {
   volunteerId: uuid("volunteer_id").notNull().references(() => volunteers.id, { onDelete: "cascade" }),
   expiresAt: ts("expires_at").notNull(),
 });
+
+/** Web space sessions of beneficiaries (separate cookie, separate table: never a volunteer session). */
+export const beneficiarySessions = pgTable("beneficiary_sessions", {
+  /** SHA-256 of the cookie token. */
+  idHash: text("id_hash").primaryKey(),
+  beneficiaryId: uuid("beneficiary_id").notNull().references(() => beneficiaries.id, { onDelete: "cascade" }),
+  /** "This phone is shared": a short session (1 h instead of 90 days). */
+  sharedDevice: boolean("shared_device").notNull().default(false),
+  expiresAt: ts("expires_at").notNull(),
+}, (t) => [index("beneficiary_sessions_beneficiary_idx").on(t.beneficiaryId)]);
 
 export const accessLog = pgTable("access_log", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -653,3 +694,115 @@ export const buddyReports = pgTable("buddy_reports", {
   handledBy: uuid("handled_by").references(() => volunteers.id, { onDelete: "set null" }),
   handledAt: ts("handled_at"),
 }, (t) => [index("buddy_reports_status_idx").on(t.status, t.createdAt)]);
+
+// ---------------------------------------------------------------- Team side (about volunteers, in clear)
+
+/**
+ * Team news from the association to its volunteers. `associationId` null = every volunteer of the instance.
+ * About the association's organisation, never about a beneficiary: stored in clear.
+ */
+export const newsPosts = pgTable("news_posts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  pinned: boolean("pinned").notNull().default(false),
+  associationId: uuid("association_id").references(() => associations.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id").references(() => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  editedAt: ts("edited_at"),
+  /** The e-mail copy was queued (once, at creation). */
+  emailedAt: ts("emailed_at"),
+  removedAt: ts("removed_at"),
+}, (t) => [index("news_posts_active_idx").on(t.removedAt, t.createdAt)]);
+
+/** Who opened which post: unread card on Home, and "seen by 12 of 20" for the author. */
+export const newsReads = pgTable("news_reads", {
+  postId: uuid("post_id").notNull().references(() => newsPosts.id, { onDelete: "cascade" }),
+  volunteerId: uuid("volunteer_id").notNull().references(() => volunteers.id, { onDelete: "cascade" }),
+  readAt: ts("read_at").notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.postId, t.volunteerId] }), index("news_reads_volunteer_idx").on(t.volunteerId)]);
+
+/**
+ * A volunteer asking the others for backup ("need an Arabic speaker tomorrow at the prefecture"). `associationId` is
+ * the author's association when posted (null = none); `openToAll` shows it to every association.
+ */
+export const backupCalls = pgTable("backup_calls", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  details: text("details"),
+  neededOn: date("needed_on", { mode: "string" }).notNull(),
+  startsAt: text("starts_at"),
+  place: text("place"),
+  languages: languageEnum("languages").array().notNull().default(sql`'{}'`),
+  skills: volunteerSkillEnum("skills").array().notNull().default(sql`'{}'`),
+  needed: integer("needed").notNull().default(1),
+  openToAll: boolean("open_to_all").notNull().default(false),
+  status: backupStatusEnum("status").notNull().default("open"),
+  associationId: uuid("association_id").references(() => associations.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id").references(() => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  closedAt: ts("closed_at"),
+  closedBy: uuid("closed_by").references(() => volunteers.id, { onDelete: "set null" }),
+}, (t) => [index("backup_calls_open_idx").on(t.status, t.neededOn)]);
+
+/** "I can help" on a call. Withdrawing deletes the row. */
+export const backupOffers = pgTable("backup_offers", {
+  callId: uuid("call_id").notNull().references(() => backupCalls.id, { onDelete: "cascade" }),
+  volunteerId: uuid("volunteer_id").notNull().references(() => volunteers.id, { onDelete: "cascade" }),
+  note: text("note"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.callId, t.volunteerId] }), index("backup_offers_volunteer_idx").on(t.volunteerId)]);
+
+// ---------------------------------------------------------------- Agenda (events and sign-ups)
+
+/**
+ * An event of the association (maraude, meeting, training, workshop…). Public data in clear: the text is the
+ * association's, not personal. `associationId` null = for every association. `public` = also offered to beneficiaries
+ * on WhatsApp, translated once per language (cache cleared on edit).
+ */
+export const events = pgTable("events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  associationId: uuid("association_id").references(() => associations.id, { onDelete: "cascade" }),
+  kind: eventKindEnum("kind").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  place: text("place"),
+  startsAt: ts("starts_at").notNull(),
+  endsAt: ts("ends_at"),
+  /** null = no limit. */
+  volunteerSpots: integer("volunteer_spots"),
+  public: boolean("public").notNull().default(false),
+  publicSpots: integer("public_spots"),
+  languages: languageEnum("languages").array().notNull().default(sql`'{}'`),
+  skills: volunteerSkillEnum("skills").array().notNull().default(sql`'{}'`),
+  translations: jsonb("translations").$type<Partial<Record<LanguageCode, { title: string; description: string | null }>>>().notNull().default({}),
+  createdBy: uuid("created_by").references(() => volunteers.id, { onDelete: "set null" }),
+  updatedBy: uuid("updated_by").references(() => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+  cancelledAt: ts("cancelled_at"),
+}, (t) => [
+  index("events_starts_idx").on(t.startsAt),
+  index("events_public_idx").on(t.public, t.startsAt),
+]);
+
+/**
+ * One sign-up: a volunteer (back-office) or a beneficiary (WhatsApp), never both. Taking your name off deletes the
+ * row; the waiting list is ordered by createdAt (moving up keeps your place in time).
+ */
+export const eventRegistrations = pgTable("event_registrations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+  volunteerId: uuid("volunteer_id").references(() => volunteers.id, { onDelete: "cascade" }),
+  beneficiaryId: uuid("beneficiary_id").references(() => beneficiaries.id, { onDelete: "cascade" }),
+  status: eventRegistrationStatusEnum("status").notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  /** Beneficiaries: the day-before WhatsApp reminder was sent (claimed exactly once). */
+  remindedAt: ts("reminded_at"),
+}, (t) => [
+  uniqueIndex("event_registrations_volunteer_idx").on(t.eventId, t.volunteerId).where(sql`volunteer_id is not null`),
+  uniqueIndex("event_registrations_beneficiary_idx").on(t.eventId, t.beneficiaryId).where(sql`beneficiary_id is not null`),
+  index("event_registrations_event_idx").on(t.eventId, t.status, t.createdAt),
+  index("event_registrations_volunteer_list_idx").on(t.volunteerId),
+  index("event_registrations_beneficiary_list_idx").on(t.beneficiaryId),
+]);

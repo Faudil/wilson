@@ -4,6 +4,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { asc, eq } from "drizzle-orm";
 import { LetterAnalysisSchema, type LanguageCode, type LetterAnalysis, type LetterText, type WaInboundMessage } from "@wilson/contracts";
 import { processInbound } from "../src/conversation/engine.js";
+import { fromWhatsApp } from "../src/whatsapp/inbound.js";
+import { Channels } from "../src/channels/registry.js";
 import { beneficiaries, messages } from "../src/db/schema.js";
 import { createLettersService } from "../src/letters/service.js";
 import { LlmError, type LlmProvider } from "../src/llm/provider.js";
@@ -68,6 +70,8 @@ export class TestLlm implements LlmProvider {
 /** Meta-mode transport double. */
 export class FakeMeta implements WhatsAppTransport {
   readonly mode = "meta" as const;
+  readonly channel = "whatsapp" as const;
+  readonly capabilities = { serviceWindow: true };
   texts: { to: string; body: string }[] = [];
   templates: { to: string; template: string; params: string[] }[] = [];
   /** Meta error code the next sendText fails with (e.g. 131047, window closed on Meta's side). */
@@ -129,7 +133,7 @@ export async function makeWa(opts: { meta?: boolean; now?: string; config?: Reco
   const meta = opts.meta ? new FakeMeta() : null;
   const beneficiariesSvc = ctx.services.beneficiaries;
   const wa = meta ?? new SandboxTransport({ db: ctx.deps.db, crypto: ctx.deps.crypto, blobs: ctx.deps.blobs, beneficiaries: beneficiariesSvc });
-  const d0 = { ...ctx.deps, llm: tllm, wa };
+  const d0 = { ...ctx.deps, llm: tllm, channels: new Channels([wa]) };
   const letters = createLettersService(d0, beneficiariesSvc);
   const wdeps: WaDeps = { ...d0, beneficiaries: beneficiariesSvc, documents: ctx.services.documents, letters };
   adoptServices(ctx.deps, wdeps);
@@ -138,7 +142,7 @@ export async function makeWa(opts: { meta?: boolean; now?: string; config?: Reco
   const drain = async () => void (await ctx.queue.drain());
 
   const run = async (msg: WaInboundMessage) => {
-    await processInbound(wdeps, msg);
+    await processInbound(wdeps, fromWhatsApp(msg));
     await drain();
   };
   return {

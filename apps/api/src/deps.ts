@@ -5,7 +5,7 @@ import type { GeoProvider } from "./geo/provider.js";
 import type { JobQueue } from "./jobs/names.js";
 import type { LlmProvider } from "./llm/provider.js";
 import type { BlobStore } from "./storage/blobStore.js";
-import type { WhatsAppTransport } from "./whatsapp/transport.js";
+import type { Channels } from "./channels/registry.js";
 
 /** Everything a service needs, built once in main.ts and injected (tests build it with fakes). */
 export interface Deps {
@@ -16,7 +16,8 @@ export interface Deps {
   llm: LlmProvider;
   /** Addresses → points and places around a point (OpenStreetMap, Soliguide). */
   geo: GeoProvider;
-  wa: WhatsAppTransport;
+  /** One transport per messaging channel (WhatsApp today; Telegram, SMS… later). Replies go on the person's channel. */
+  channels: Channels;
   jobs: JobQueue;
   /** Injectable clock for reminders and the 24 h window. */
   now: () => Date;

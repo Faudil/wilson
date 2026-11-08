@@ -1,25 +1,15 @@
 import type { LanguageCode } from "@wilson/contracts";
-import type { Interactive } from "./interactive.js";
+import type { ChannelTransport } from "../channels/types.js";
 
 /**
- * Outbound side of WhatsApp. Two implementations: MetaTransport (Graph API) and SandboxTransport
- * (writes to `messages`, nothing leaves the server). Inbound always goes through `handleWebhook` with a
- * WaWebhook payload — the sandbox fabricates the same payload.
- * `to` is the clear wa_id (decrypted by the caller just before sending).
+ * WhatsApp side of `ChannelTransport`. Two implementations: MetaTransport (Graph API) and SandboxTransport
+ * (writes to `messages`, nothing leaves the server). Inbound goes through the webhook, whose WaWebhook payload is
+ * turned into channel-neutral `InboundMessage`s (whatsapp/inbound.ts) — the sandbox fabricates the same payload.
+ * `address` is the clear wa_id or BSUID (decrypted by the caller just before sending).
  */
-export interface WhatsAppTransport {
+export interface WhatsAppTransport extends ChannelTransport {
+  readonly channel: "whatsapp";
   readonly mode: "sandbox" | "meta";
-  /** Plain-text message (callers already applied bidi isolation). Returns the provider message id. */
-  sendText(to: string, body: string): Promise<{ waMessageId: string }>;
-  /**
-   * Reply buttons or a list (see interactive.ts). `fallbackText` is the same menu as plain text: the sandbox records
-   * it, so the thread reads like the typed menu. Optional: a transport without it gets the plain text.
-   */
-  sendInteractive?(to: string, message: Interactive, fallbackText: string): Promise<{ waMessageId: string }>;
-  /** Pre-approved utility template, used outside the 24 h window. `params` fill {{1}}, {{2}}… in order. */
-  sendTemplate(to: string, template: string, language: LanguageCode, params: string[]): Promise<{ waMessageId: string }>;
-  /** Fetch inbound media bytes by Meta media id. */
-  downloadMedia(mediaId: string): Promise<{ bytes: Buffer; mimeType: string }>;
-  /** Mark an inbound message as read (blue ticks). Optional: the sandbox has nothing to mark. */
-  markRead?(waMessageId: string): Promise<void>;
+  /** Pre-approved utility/marketing template, used outside the 24 h window. `params` fill {{1}}, {{2}}… in order. */
+  sendTemplate(address: string, template: string, language: LanguageCode, params: string[]): Promise<{ waMessageId: string }>;
 }

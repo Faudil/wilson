@@ -55,7 +55,7 @@ export const sw: Record<WaKey, string> = {
   announcements_on: "Imeandikwa: utapokea matangazo. Kusimamisha, andika STOP.",
   announcements_off: "Imeandikwa: hutapokea matangazo tena. Ili kuyapokea tena, chagua 6 kwenye menyu.",
   broadcast_stop_hint: "Ili kuacha kupokea matangazo, andika STOP.",
-  help_menu: "Mtu wa kujitolea anaweza kukusaidia:\n1 - Aje nami kwenye miadi\n2 - Tujaze fomu pamoja\n3 - Miadi yangu\n0 - Rudi kwenye menyu",
+  help_menu: "Mtu wa kujitolea anaweza kukusaidia:\n1 - Aje nami kwenye miadi\n2 - Tujaze fomu pamoja\n3 - Miadi yangu\n4 - Warsha na mikutano\n0 - Rudi kwenye menyu",
   help_place_menu: "Miadi yako iko wapi?\n1 - Préfecture\n2 - OFII\n3 - Hospitali au daktari\n4 - OFPRA au CNDA\n5 - Nyingine",
   help_form_menu: "Fomu gani?\n1 - CAF (posho)\n2 - ANEF (kibali cha ukaazi)\n3 - AME (afya)\n4 - Nyingine",
   help_ask_datetime: "Andika tarehe na saa ya miadi, kwa mfano: 14/03/2027 9:30",

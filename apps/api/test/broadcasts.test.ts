@@ -5,6 +5,7 @@ import { LANGUAGE_CODES } from "@wilson/contracts";
 import { waText } from "@wilson/i18n";
 import { getBroadcasts } from "../src/broadcasts/service.js";
 import { processInbound } from "../src/conversation/engine.js";
+import { fromWhatsApp } from "../src/whatsapp/inbound.js";
 import { accessLog, beneficiaries, broadcastRecipients } from "../src/db/schema.js";
 import { createVolunteer, makeClient } from "./helpers.js";
 import { beneficiaryIdOf, makeE2E, type E2E } from "./e2e.helpers.js";
@@ -217,7 +218,7 @@ describe("announcements outside the 24 h window (meta mode)", () => {
     expect(r).toMatchObject({ status: "awaiting_reply", viaTemplate: true });
     expect((await svc.get(d.id)).estimate.whatsappCostCents).toBe(8.59); // the estimate taken at approval
 
-    await processInbound(w!.wdeps, button(p, "Read"));
+    await processInbound(w!.wdeps, fromWhatsApp(button(p, "Read")));
     await w!.drain();
     const menusBefore = w!.meta!.interactives.length;
     const got = w!.meta!.texts.filter((m) => m.body.includes(TEXT));
@@ -233,7 +234,7 @@ describe("announcements outside the 24 h window (meta mode)", () => {
     const { p, bid, svc, d } = await setup();
     await svc.approve(d.id, w!.volunteerId);
     await w!.drain();
-    await processInbound(w!.wdeps, button(p, "Stop"));
+    await processInbound(w!.wdeps, fromWhatsApp(button(p, "Stop")));
     await w!.drain();
     expect(w!.meta!.texts.filter((m) => m.body.includes(TEXT))).toHaveLength(0);
     expect(w!.meta!.texts.at(-1)!.body).toBe(waText("en", "announcements_off"));

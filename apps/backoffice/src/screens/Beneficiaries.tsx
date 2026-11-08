@@ -1,11 +1,11 @@
-import type { DocumentDto, LanguageCode } from "@wilson/contracts";
+import type { DocumentDto, LanguageCode, WebAccount } from "@wilson/contracts";
 import { LANGUAGES, LANGUAGE_CODES, DOCUMENT_TYPES } from "@wilson/contracts/values";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Chip, Countdown, LangBadge, StatusBadge, UrgencyBadge } from "../components/badges";
 import { Icon } from "../components/Icon";
 import { DateField } from "../components/DateField";
-import { BackLink, ConfirmSheet, Empty, ErrorBox, OverflowMenu, Skeleton, useToast } from "../components/ui";
+import { BackLink, ConfirmSheet, Empty, ErrorBox, OverflowMenu, Sheet, Skeleton, useToast } from "../components/ui";
 import { useI18n, type MessageKey } from "../i18n";
 import { client, orpc } from "../lib/api";
 import { href } from "../lib/router";
@@ -40,7 +40,7 @@ export function BeneficiaryList() {
       <label className="search">
         <span className="visually-hidden">{t("beneficiaries.search")}</span>
         <Icon name="search" size={20} />
-        <input type="search" inputMode="numeric" maxLength={40} value={input} placeholder={t("beneficiaries.searchPlaceholder")} onChange={(e) => setInput(e.target.value)} dir="ltr" />
+        <input type="search" maxLength={40} value={input} placeholder={t("beneficiaries.searchPlaceholder")} onChange={(e) => setInput(e.target.value)} dir="ltr" />
       </label>
       {query.isPending && <Skeleton lines={3} />}
       {query.isError && <ErrorBox error={query.error} retry={() => void query.refetch()} />}
@@ -121,6 +121,8 @@ export function BeneficiaryDetail({ id }: { id: string }) {
             )}
           </header>
 
+          {query.data.webAccount && <WebAccountCard id={id} account={query.data.webAccount} />}
+
           {can("beneficiaries.edit") && (
             <label className="field card">
               <span className="field-label">{t("beneficiaries.language")}</span>
@@ -182,6 +184,68 @@ export function BeneficiaryDetail({ id }: { id: string }) {
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * People who signed up on the web space: no phone number, they sign in with 6 secret words. A volunteer with
+ * beneficiaries.recover gives an unlock code to someone who lost them (after checking in person), or locks the account.
+ */
+function WebAccountCard({ id, account }: { id: string; account: WebAccount }) {
+  const { t, lang } = useI18n();
+  const { can } = useSession();
+  const qc = useQueryClient();
+  const [confirm, setConfirm] = useState<"code" | "lock" | null>(null);
+  const [issued, setIssued] = useState<{ code: string; expiresAt: string } | null>(null);
+  const refresh = () => qc.invalidateQueries({ queryKey: orpc.beneficiaries.key() });
+  const code = useMutation({
+    ...orpc.beneficiaries.unlockCode.mutationOptions(),
+    onSuccess: (r) => {
+      setConfirm(null);
+      setIssued(r);
+      void refresh();
+    },
+  });
+  const lock = useMutation({ ...orpc.beneficiaries.lock.mutationOptions(), onSuccess: () => { setConfirm(null); void refresh(); } });
+  const unlock = useMutation({ ...orpc.beneficiaries.unlock.mutationOptions(), onSuccess: () => void refresh() });
+  const day = (iso: string) => formatDate(iso.slice(0, 10), lang);
+  const time = (iso: string) => new Date(iso).toLocaleString(lang, { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <div className="card stack web-account">
+      <div className="card-top">
+        <strong className="card-title">{t("beneficiaries.web.title")}</strong>
+        <Chip tone={account.lockedAt ? "urgent" : "ok"}>{account.lockedAt ? t("beneficiaries.web.locked", { date: day(account.lockedAt) }) : t("beneficiaries.web.active")}</Chip>
+      </div>
+      {account.name && <p className="sheet-text">{t("beneficiaries.web.name", { name: account.name })}</p>}
+      {account.unlockCodeUntil && <p className="notice notice-warn small">{t("beneficiaries.web.codePending", { date: time(account.unlockCodeUntil) })}</p>}
+      {!can("beneficiaries.recover") && <p className="muted small">{t("beneficiaries.web.needsRecover")}</p>}
+      {can("beneficiaries.recover") && (
+        <>
+          <p className="muted small">{t("beneficiaries.web.help")}</p>
+          <div className="stack-tight">
+            <button type="button" className="btn btn-primary btn-block" onClick={() => setConfirm("code")}>{t("beneficiaries.web.giveCode")}</button>
+            {account.lockedAt ? (
+              <button type="button" className="btn btn-block" disabled={unlock.isPending} onClick={() => unlock.mutate({ id })}>{t("beneficiaries.web.unlock")}</button>
+            ) : (
+              <button type="button" className="btn btn-block btn-danger-quiet" onClick={() => setConfirm("lock")}>{t("beneficiaries.web.lock")}</button>
+            )}
+          </div>
+        </>
+      )}
+      <ConfirmSheet open={confirm === "code"} title={t("beneficiaries.web.giveCode")} body={t("beneficiaries.web.giveCodeConfirm")}
+        confirmLabel={t("beneficiaries.web.giveCode")} busy={code.isPending} onConfirm={() => code.mutate({ id })} onClose={() => setConfirm(null)} />
+      <ConfirmSheet open={confirm === "lock"} title={t("beneficiaries.web.lock")} body={t("beneficiaries.web.lockConfirm")} tone="danger"
+        confirmLabel={t("beneficiaries.web.lock")} busy={lock.isPending} onConfirm={() => lock.mutate({ id })} onClose={() => setConfirm(null)} />
+      <Sheet open={!!issued} onClose={() => setIssued(null)} title={t("beneficiaries.web.codeTitle")}>
+        {issued && (
+          <div className="stack">
+            <p className="unlock-code" dir="ltr">{issued.code}</p>
+            <p className="sheet-text">{t("beneficiaries.web.codeHelp", { date: time(issued.expiresAt) })}</p>
+          </div>
+        )}
+      </Sheet>
+    </div>
   );
 }
 

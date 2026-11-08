@@ -42,7 +42,7 @@ function acquireLock(lockFile: string): () => void {
   try {
     const pid = Number(readFileSync(lockFile, "utf8"));
     if (pid && pid !== process.pid && isAlive(pid)) {
-      throw new Error(`The local database is already used by another Mon courrier process (pid ${pid}). Stop it first (Ctrl+C), then start again.`);
+      throw new Error(`The local database is already used by another Wilson process (pid ${pid}). Stop it first (Ctrl+C), then start again.`);
     }
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;

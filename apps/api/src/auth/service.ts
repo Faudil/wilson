@@ -84,6 +84,8 @@ export interface AuthService {
   logout(token: string): Promise<void>;
   resolveVolunteer(token: string): Promise<Volunteer | null>;
   setUiLanguage(volunteerId: string, language: Volunteer["uiLanguage"]): Promise<Volunteer>;
+  /** Never goes back: an older id (another tab showing an older build) leaves the newer one. */
+  markChangelogSeen(volunteerId: string, id: string): Promise<Volunteer>;
   /** null = already enabled (disable it first). */
   twoFactorSetup(volunteerId: string): Promise<{ secret: string; uri: string } | null>;
   /** false = wrong code. */
@@ -154,6 +156,7 @@ export function createAuthService(deps: { db: Db; config: AuthConfig; crypto: Cr
       twoFactorMissing: missing,
       association: assoc ?? null,
       associationAdmin: !!assoc && row.associationAdmin,
+      changelogSeen: row.changelogSeen,
     };
   }
 
@@ -318,6 +321,14 @@ export function createAuthService(deps: { db: Db; config: AuthConfig; crypto: Cr
 
     async setUiLanguage(volunteerId, language) {
       const [row] = await db.update(volunteers).set({ uiLanguage: language }).where(eq(volunteers.id, volunteerId)).returning();
+      if (!row) throw new Error("volunteer not found");
+      return toVolunteer(row);
+    },
+
+    async markChangelogSeen(volunteerId, id) {
+      const [row] = await db.update(volunteers)
+        .set({ changelogSeen: sql`greatest(coalesce(${volunteers.changelogSeen}, ''), ${id})` })
+        .where(eq(volunteers.id, volunteerId)).returning();
       if (!row) throw new Error("volunteer not found");
       return toVolunteer(row);
     },
