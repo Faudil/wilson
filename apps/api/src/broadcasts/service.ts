@@ -10,7 +10,7 @@ import { withUsageContext } from "../usage/context.js";
 import { footerFor, windowOpen } from "../whatsapp/send.js";
 
 type Row = typeof broadcasts.$inferSelect;
-type BDeps = Pick<Deps, "db" | "llm" | "config" | "now" | "jobs" | "wa">;
+type BDeps = Pick<Deps, "db" | "llm" | "config" | "now" | "jobs" | "channels">;
 
 export class BroadcastError extends DomainError {
   constructor(code: "NOT_FOUND" | "CONFLICT" | "FORBIDDEN", reason?: string) {
@@ -55,7 +55,7 @@ function createBroadcastsService(deps: BDeps): BroadcastsService {
 
   /** Everyone who said yes to announcements, still active, in the chosen languages. */
   async function audience(languages: LanguageCode[] | null) {
-    return db.select({ id: beneficiaries.id, language: beneficiaries.language, lastInboundAt: beneficiaries.lastInboundAt, webHandle: beneficiaries.webHandle })
+    return db.select({ id: beneficiaries.id, channel: beneficiaries.channel, language: beneficiaries.language, lastInboundAt: beneficiaries.lastInboundAt })
       .from(beneficiaries)
       .where(and(
         isNotNull(beneficiaries.announcementsOptInAt), isNull(beneficiaries.archivedAt),
@@ -69,7 +69,7 @@ function createBroadcastsService(deps: BDeps): BroadcastsService {
     let inWindow = 0;
     for (const p of people) {
       counts.set(p.language, (counts.get(p.language) ?? 0) + 1);
-      if (windowOpen(deps, p.lastInboundAt, p.webHandle !== null)) inWindow++;
+      if (windowOpen(deps, p)) inWindow++;
     }
     const outsideWindow = people.length - inWindow;
     const byLanguage = [...counts].map(([language, count]) => ({ language, count })).sort((a, z) => z.count - a.count);

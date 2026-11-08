@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { ORPCError } from "@orpc/server";
 import { and, asc, eq, isNull } from "drizzle-orm";
-import type { WaInboundMessage } from "@wilson/contracts";
 import { documents, messages } from "../db/schema.js";
+import type { InboundContent, InboundMessage } from "../channels/types.js";
 import { deleteAllData, processInbound } from "../conversation/engine.js";
 import { getServices } from "../services.js";
 import { getWaDeps } from "../whatsapp/context.js";
@@ -29,9 +29,9 @@ function refused(r: Exclude<WebResult<object>, { kind: "ok" }>, errors: Errors):
 
 const web = (c: RpcContext) => getWebAccounts(c.deps);
 
-/** A message from the web page, in the shape WhatsApp delivers, to the same engine. */
-function inbound(beneficiaryId: string, body: Record<string, unknown>): WaInboundMessage {
-  return { id: `web.in.${randomUUID()}`, from: webAddress(beneficiaryId), timestamp: String(Math.floor(Date.now() / 1000)), ...body } as WaInboundMessage;
+/** A message from the web page, on the "web" channel, to the same engine as WhatsApp. */
+function inbound(beneficiaryId: string, content: InboundContent): InboundMessage {
+  return { channel: "web", id: `web.in.${randomUUID()}`, from: webAddress(beneficiaryId), content };
 }
 
 export const meRouter = {
@@ -108,15 +108,13 @@ export const meRouter = {
       const mediaId = await putWebMedia(d, id, Buffer.from(await input.file.arrayBuffer()), mime);
       const caption = mime.startsWith("image/") ? "📷" : "📄";
       try {
-        await processInbound(d, inbound(id, mime.startsWith("image/")
-          ? { type: "image", image: { id: mediaId, mime_type: mime, caption } }
-          : { type: "document", document: { id: mediaId, mime_type: mime, caption } }));
+        await processInbound(d, inbound(id, { type: "file", kind: mime.startsWith("image/") ? "image" : "document", mediaId, mime, caption }));
       } finally {
         // The letter or document now holds its own encrypted copy: the upload itself is not kept.
         await d.blobs.delete(mediaId).catch(() => undefined);
       }
     }
-    if (input.text) await processInbound(d, inbound(id, { type: "text", text: { body: input.text } }));
+    if (input.text) await processInbound(d, inbound(id, { type: "text", text: input.text }));
   }),
 
   documents: os.me.documents.use(signedIn).handler(async ({ context }) => {

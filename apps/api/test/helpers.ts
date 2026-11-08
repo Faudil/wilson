@@ -19,7 +19,8 @@ import { router } from "../src/rpc/router.js";
 import { getServices, type Services } from "../src/services.js";
 import { MemoryBlobStore } from "../src/storage/memory.js";
 import type { WhatsAppTransport } from "../src/whatsapp/transport.js";
-import { withWebAccounts } from "../src/whatsapp/web.js";
+import { Channels } from "../src/channels/registry.js";
+import { WebTransport } from "../src/whatsapp/web.js";
 
 const ADMIN_URL = process.env.TEST_ADMIN_DATABASE_URL ?? "postgres://wilson:wilson@localhost:5432/postgres";
 const FALLBACK_URL = process.env.TEST_DATABASE_URL ?? "postgres://wilson:wilson@localhost:5432/wilson_test";
@@ -70,6 +71,8 @@ export class StubLlm implements LlmProvider {
 /** Transport stub recording what would have been sent. */
 export class StubTransport implements WhatsAppTransport {
   readonly mode = "sandbox" as const;
+  readonly channel = "whatsapp" as const;
+  readonly capabilities = { serviceWindow: false };
   readonly texts: { to: string; body: string }[] = [];
   readonly templates: { to: string; template: string; params: string[] }[] = [];
   async sendText(to: string, body: string) {
@@ -156,9 +159,9 @@ export async function makeTestDeps(opts: { now?: string; config?: Record<string,
   const llm = new StubLlm();
   const wa = new StubTransport();
   const geo = new FakeGeo();
-  const deps: Deps = { config, db, crypto: createCrypto(config), blobs, llm, geo, wa, jobs: queue, now: clock.now };
-  // Web accounts are delivered by the wrapper (like in main.ts); everything else still reaches the stub.
-  deps.wa = withWebAccounts(wa, { db, crypto: deps.crypto, blobs, beneficiaries: getServices(deps).beneficiaries });
+  const deps: Deps = { config, db, crypto: createCrypto(config), blobs, llm, geo, channels: new Channels([wa]), jobs: queue, now: clock.now };
+  // Web accounts have their own channel (like in main.ts); everyone else reaches the WhatsApp stub.
+  deps.channels = new Channels([wa, new WebTransport({ db, crypto: deps.crypto, blobs, beneficiaries: getServices(deps).beneficiaries })]);
   return {
     deps, config, queue, blobs, clock, llm, wa, geo,
     services: getServices(deps),

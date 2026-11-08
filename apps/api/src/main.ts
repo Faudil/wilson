@@ -19,7 +19,7 @@ import { createHttpServer } from "./server.js";
 import { enqueueInitialSync } from "./knowledge/service.js";
 import { adoptServices, getServices } from "./services.js";
 import { S3BlobStore } from "./storage/s3.js";
-import { createTransport, registerWaDeps, type WaDeps } from "./whatsapp/index.js";
+import { createChannels, registerWaDeps, type WaDeps } from "./whatsapp/index.js";
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -56,7 +56,7 @@ async function main(): Promise<void> {
   const usage = usageServiceFor({ db, crypto, config, now });
   const base = { config, db, crypto, blobs, llm: createLlmProvider(config, usage.meter), geo: createGeoProvider(config), jobs: queue, now };
   const { beneficiaries, documents, knowledge } = getServices(base);
-  const deps: Deps = { ...base, wa: createTransport({ ...base, beneficiaries }) };
+  const deps: Deps = { ...base, channels: createChannels({ ...base, beneficiaries }) };
   const letters = createLettersService(deps, beneficiaries, knowledge);
   const waDeps: WaDeps = { ...deps, beneficiaries, documents, letters };
   adoptServices(base, deps, waDeps);

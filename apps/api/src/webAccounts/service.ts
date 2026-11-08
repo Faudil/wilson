@@ -148,7 +148,7 @@ export function createWebAccounts(deps: WebAccountsDeps) {
       for (let i = 0; i < 5 && !handle; i++) {
         const candidate = `W-${randomChars(6)}`;
         const inserted = await db.insert(beneficiaries).values({
-          id, waIdHash: crypto.lookupHash(address), waIdEnc: crypto.encrypt(dek, address), waIdLast2: "", wrappedDek: wrapped,
+          id, channel: "web", waIdHash: crypto.lookupHash(address), waIdEnc: crypto.encrypt(dek, address), waIdLast2: "", wrappedDek: wrapped,
           language: input.language, languageConfirmed: true, conversationState: { step: "main_menu" },
           webHandle: candidate, webNameEnc: crypto.encrypt(dek, input.name.trim()), createdAt: deps.now(),
         }).onConflictDoNothing().returning({ id: beneficiaries.id });

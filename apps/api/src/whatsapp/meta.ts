@@ -53,7 +53,9 @@ export class MetaApiError extends Error {
 
 /** WhatsApp Cloud API (Graph) transport. Never logs the access token or message bodies. */
 export class MetaTransport implements WhatsAppTransport {
+  readonly channel = "whatsapp" as const;
   readonly mode = "meta" as const;
+  readonly capabilities = { serviceWindow: true };
   private readonly base: string;
 
   constructor(
