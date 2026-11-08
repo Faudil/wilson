@@ -36,6 +36,7 @@ const { Usage } = lazyScreens(() => import("./screens/Usage"), "Usage");
 const { Tasks } = lazyScreens(() => import("./screens/Tasks"), "Tasks");
 const { Skills } = lazyScreens(() => import("./screens/Skills"), "Skills");
 const { Places } = lazyScreens(() => import("./screens/Places"), "Places");
+const { Events } = lazyScreens(() => import("./screens/Events"), "Events");
 const { Broadcasts } = lazyScreens(() => import("./screens/Broadcasts"), "Broadcasts");
 const { Appointments } = lazyScreens(() => import("./screens/Appointments"), "Appointments");
 const { Numbers } = lazyScreens(() => import("./screens/Numbers"), "Numbers");
@@ -132,6 +133,7 @@ const MORE: NavItem[] = [
   { key: "places", label: "nav.places", icon: "home", desc: "more.places", permission: "places.view" },
   { key: "broadcasts", label: "nav.broadcasts", icon: "megaphone", desc: "more.broadcasts", permission: "broadcasts.view" },
   { key: "appointments", label: "nav.appointments", icon: "hand", desc: "more.appointments", permission: "appointments.view" },
+  { key: "events", label: "nav.events", icon: "calendar", desc: "more.events", permission: "events.view" },
   { key: "deadlines", label: "nav.deadlines", icon: "calendar", desc: "more.deadlines", permission: "documents.view_metadata" },
   { key: "knowledge", label: "nav.knowledge", icon: "book", desc: "more.knowledge", permission: "knowledge.view" },
   { key: "buddies", label: "nav.buddies", icon: "hand", desc: "more.buddies", permission: ["buddies.be_buddy", "buddies.manage", "buddies.reports"] },
@@ -385,9 +387,10 @@ export function App() {
   else if (section === "buddies" && arg && allowed("buddies")) screen = <BuddyDetail id={arg} />;
   else if (section === "buddies" && allowed("buddies")) screen = <BuddyList />;
   else if (section === "appointments" && allowed("appointments")) screen = <Appointments />;
+  else if (section === "events" && allowed("events")) screen = <Events openId={arg} />;
   else screen = <Home />;
 
-  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters", "volunteers", "associations", "usage", "tasks", "skills", "places", "broadcasts", "buddies", "appointments", "numbers"];
+  const known = ["queue", "conversations", "beneficiaries", "deadlines", "knowledge", "languages", "sandbox", "letters", "volunteers", "associations", "usage", "tasks", "skills", "places", "broadcasts", "buddies", "appointments", "events", "numbers"];
   const current = section === "letters" ? "queue" : known.includes(section) ? section : "";
   const focus = (section === "letters" || section === "conversations") && !!arg;
 

@@ -55,7 +55,7 @@ export const bm: Record<WaKey, string> = {
   announcements_on: "A sɛbɛnna: i na kunnafoniw sɔrɔ. Walasa k'a jɔ, STOP sɛbɛn.",
   announcements_off: "A sɛbɛnna: i tɛna kunnafoniw sɔrɔ tun. Walasa k'u sɔrɔ kokura, 6 sugandi menu kɔnɔ.",
   broadcast_stop_hint: "Walasa ka kunnafoniw jɔ, STOP sɛbɛn.",
-  help_menu: "Fanyadilabaga bɛ se ka i dɛmɛ:\n1 - Ka taa ni ne ye ɲɔgɔnye la\n2 - An ka sɛbɛn fa ɲɔgɔn fɛ\n3 - N ka ɲɔgɔnyew\n0 - Segin menu la",
+  help_menu: "Fanyadilabaga bɛ se ka i dɛmɛ:\n1 - Ka taa ni ne ye ɲɔgɔnye la\n2 - An ka sɛbɛn fa ɲɔgɔn fɛ\n3 - N ka ɲɔgɔnyew\n4 - Kalan baarakɛyɔrɔw ni ɲɔgɔnyew\n0 - Segin menu la",
   help_place_menu: "I ka ɲɔgɔnye bɛ min?\n1 - Prefekitiri (Préfecture)\n2 - OFII\n3 - Dɔgɔtɔrɔso walima dɔgɔtɔrɔ\n4 - OFPRA walima CNDA\n5 - Wɛrɛ",
   help_form_menu: "Sɛbɛn jumɛn?\n1 - CAF (dɛmɛw)\n2 - ANEF (sigiyɔrɔ sɛbɛn)\n3 - AME (kɛnɛya)\n4 - Wɛrɛ",
   help_ask_datetime: "Ɲɔgɔnye don ni waati sɛbɛn, misali: 14/03/2027 9:30",

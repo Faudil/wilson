@@ -55,7 +55,7 @@ export const tr: Record<WaKey, string> = {
   announcements_on: "Tamam: duyuruları alacaksınız. Durdurmak için STOP yazın.",
   announcements_off: "Tamam: artık duyuru almayacaksınız. Yeniden almak için menüde 6'yı seçin.",
   broadcast_stop_hint: "Duyuruları durdurmak için STOP yazın.",
-  help_menu: "Bir gönüllü size yardım edebilir:\n1 - Benimle randevuya gelsin\n2 - Birlikte form dolduralım\n3 - Randevularım\n0 - Menüye dön",
+  help_menu: "Bir gönüllü size yardım edebilir:\n1 - Benimle randevuya gelsin\n2 - Birlikte form dolduralım\n3 - Randevularım\n4 - Atölyeler ve toplantılar\n0 - Menüye dön",
   help_place_menu: "Randevunuz nerede?\n1 - Valilik (Préfecture)\n2 - OFII\n3 - Hastane veya doktor\n4 - OFPRA veya CNDA\n5 - Diğer",
   help_form_menu: "Hangi form?\n1 - CAF (yardımlar)\n2 - ANEF (oturma izni)\n3 - AME (sağlık)\n4 - Diğer",
   help_ask_datetime: "Randevunun tarihini ve saatini yazın, örneğin: 14/03/2027 9:30",

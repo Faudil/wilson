@@ -5,6 +5,7 @@
  *   8 → 1 accompany me → place (1–5) → date and time → city (0 = rather not say) → confirm → open
  *     → 2 fill in a form → which form (1–4) → free slots (or none) → may the volunteer see my documents? → booked / open
  *     → 3 my appointments → pick one → cancel? → cancelled
+ *     → 4 workshops and meetings (Agenda, src/events/flow.ts)
  */
 import { ACCOMPANIMENT_TOPICS, FORM_TOPICS, isRtl, type HelpTopic, type LanguageCode } from "@wilson/contracts";
 import { parseUserDateTime, waText } from "@wilson/i18n";
@@ -14,6 +15,7 @@ import { enqueueText } from "../whatsapp/send.js";
 import { menuChoice } from "../conversation/text.js";
 import { zonedDateTime } from "../time.js";
 import { getAppointments } from "./service.js";
+import { startEvents } from "../events/flow.js";
 
 type HelpState = Extract<ConversationState, { step: `help_${string}` }>;
 export const isHelpState = (s: ConversationState): s is HelpState => s.step.startsWith("help_");
@@ -58,6 +60,7 @@ export async function onHelpState(io: FlowIo, state: HelpState, text: string | n
         return sayKey(io, "help_form_menu", true);
       }
       if (choice === "3") return showList(io);
+      if (choice === "4") return startEvents(io);
       if (choice === "0") return io.showMainMenu();
       return sayKey(io, "help_menu", true);
     }

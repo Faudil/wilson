@@ -55,7 +55,7 @@ export const ht: Record<WaKey, string> = {
   announcements_on: "Sa anrejistre: w ap resevwa anons yo. Pou kanpe, ekri STOP.",
   announcements_off: "Sa anrejistre: ou p ap resevwa anons ankò. Pou resevwa yo ankò, chwazi 6 nan meni an.",
   broadcast_stop_hint: "Pou pa resevwa anons ankò, ekri STOP.",
-  help_menu: "Yon volontè ka ede w:\n1 - Vini avè m nan yon randevou\n2 - Ranpli yon fòmilè ansanm\n3 - Randevou m yo\n0 - Retounen nan meni an",
+  help_menu: "Yon volontè ka ede w:\n1 - Vini avè m nan yon randevou\n2 - Ranpli yon fòmilè ansanm\n3 - Randevou m yo\n4 - Atelye ak reyinyon\n0 - Retounen nan meni an",
   help_place_menu: "Ki kote randevou w la ye?\n1 - Prefekti (Préfecture)\n2 - OFII\n3 - Lopital oswa doktè\n4 - OFPRA oswa CNDA\n5 - Lòt",
   help_form_menu: "Ki fòmilè?\n1 - CAF (alokasyon)\n2 - ANEF (dokiman sejou)\n3 - AME (sante)\n4 - Lòt",
   help_ask_datetime: "Ekri dat ak lè randevou a, pa egzanp: 14/03/2027 9:30",

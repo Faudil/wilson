@@ -9,6 +9,7 @@ import { KnowledgeHitSchema, KnowledgeSearchInputSchema, KnowledgeSourceIdSchema
 import { LanguageSchema } from "./languages.js";
 import { BroadcastInputSchema, BroadcastEstimateSchema, BroadcastSchema } from "./broadcasts.js";
 import { PlaceInputSchema, PlaceSchema } from "./places.js";
+import { EventInputSchema, EventListInputSchema, EventSchema } from "./events.js";
 import { LetterDetailSchema, LetterEditSchema, LetterStatusSchema, LetterSummarySchema } from "./letters.js";
 import { MeDocumentSchema, MeLoginInputSchema, MeMessageSchema, MeRedeemInputSchema, MeSchema, MeSendInputSchema, MeSignupInputSchema, MeWordsSchema } from "./me.js";
 import { SandboxMessageSchema, SandboxPhoneSchema, SandboxSendInputSchema } from "./sandbox.js";
@@ -350,6 +351,29 @@ const appointments = {
 };
 
 /**
+ * Agenda (see events.ts). `events.view` to read, `events.join` to sign yourself up, `events.create` for your own events,
+ * `events.manage` for every event in your association (global admins: all). Scope: members see their association's
+ * events and those for everyone; anything else is NOT_FOUND.
+ */
+const events = {
+  list: base.input(EventListInputSchema).output(z.array(EventSchema)),
+  get: base.input(z.object({ id: IdSchema })).output(EventSchema),
+  create: base.input(EventInputSchema).output(EventSchema),
+  /** Registered beneficiaries are told on WhatsApp when the date, time or place changes. */
+  update: base.input(z.object({ id: IdSchema, event: EventInputSchema })).output(EventSchema),
+  /** Cancel for good: registered beneficiaries are told on WhatsApp. */
+  cancel: base.input(z.object({ id: IdSchema })).output(EventSchema),
+  /** Sign up: going, or on the waiting list when full. CONFLICT { reason: "cancelled" | "past" }. */
+  join: base.input(z.object({ id: IdSchema })).output(EventSchema),
+  /** Take your name off; the first on the waiting list moves up. */
+  leave: base.input(z.object({ id: IdSchema })).output(EventSchema),
+  /** Organiser or events.manage: take someone off the list. */
+  removeAttendee: base.input(z.object({ id: IdSchema, volunteerId: IdSchema })).output(EventSchema),
+  /** The WhatsApp text a beneficiary gets for this event, in a chosen language (public events). */
+  preview: base.input(z.object({ id: IdSchema, language: LanguageSchema })).output(z.object({ text: z.string() })),
+};
+
+/**
  * WhatsApp numbers held by the flood guard, and blocked numbers (`numbers.moderate`). Every call is logged.
  * Releasing tells the person (fixed text) that they can write again; blocking is silent.
  */
@@ -396,5 +420,5 @@ const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional(), emailVerification: z.boolean().optional() })),
 };
 
-export const contract = { auth, me, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, numbers, system };
+export const contract = { auth, me, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, events, numbers, system };
 export type Contract = typeof contract;

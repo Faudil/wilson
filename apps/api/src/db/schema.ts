@@ -11,7 +11,7 @@ import {
 import {
   BroadcastStatusSchema, DocumentTypeSchema, ExpirySourceSchema, GuardReasonSchema, GuardStatusSchema, HelpKindSchema, HelpStatusSchema, HelpTopicSchema, LANGUAGE_CODES, PlaceKindSchema, LetterStatusSchema, LetterTypeSchema, PermissionSchema,
   type BuddySlot, type BuddyWindow, BuddyMatchStatusSchema, BuddyModePreferenceSchema, BuddyModeSchema, BuddyWindowSchema,
-  TaskStatusSchema, UrgencySchema, VOLUNTEER_SKILLS, VolunteerRoleSchema,
+  TaskStatusSchema, UrgencySchema, VOLUNTEER_SKILLS, VolunteerRoleSchema, EVENT_KINDS,
 } from "@wilson/contracts";
 
 export const bytea = customType<{ data: Buffer; driverData: Buffer | Uint8Array }>({
@@ -61,6 +61,8 @@ export const helpKindEnum = pgEnum("help_kind", HelpKindSchema.options as [strin
 export const helpTopicEnum = pgEnum("help_topic", HelpTopicSchema.options as [string, ...string[]]);
 export const helpStatusEnum = pgEnum("help_status", HelpStatusSchema.options as [string, ...string[]]);
 export const helpReminderKindEnum = pgEnum("help_reminder_kind", ["d1", "h2"]);
+export const eventKindEnum = pgEnum("event_kind", tuple(EVENT_KINDS));
+export const eventRegistrationStatusEnum = pgEnum("event_registration_status", ["going", "waitlist"]);
 
 /** Conversation state machine snapshot, owned by src/conversation/engine.ts. */
 export type ConversationState =
@@ -87,6 +89,9 @@ export type ConversationState =
   | { step: "help_consent"; requestId: string; slotId?: string }
   | { step: "help_list"; requestIds: string[] }
   | { step: "help_cancel"; requestId: string }
+  // — Agenda (menu 8 → 4, src/events/flow.ts): eventIds[i] is option i+1 of the list the person saw. —
+  | { step: "event_list"; eventIds: string[] }
+  | { step: "event_detail"; eventId: string }
   /** Menu 5 was answered: a shared location or a typed address lists the places nearest to it (nothing is stored). */
   | { step: "nearby" }
   /** Free-form chat ("ask a question"); any non-menu text also goes to the chatbot. */
@@ -677,3 +682,57 @@ export const buddyReports = pgTable("buddy_reports", {
   handledBy: uuid("handled_by").references(() => volunteers.id, { onDelete: "set null" }),
   handledAt: ts("handled_at"),
 }, (t) => [index("buddy_reports_status_idx").on(t.status, t.createdAt)]);
+
+// ---------------------------------------------------------------- Agenda (events and sign-ups)
+
+/**
+ * An event of the association (maraude, meeting, training, workshop…). Public data in clear: the text is the
+ * association's, not personal. `associationId` null = for every association. `public` = also offered to beneficiaries
+ * on WhatsApp, translated once per language (cache cleared on edit).
+ */
+export const events = pgTable("events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  associationId: uuid("association_id").references(() => associations.id, { onDelete: "cascade" }),
+  kind: eventKindEnum("kind").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  place: text("place"),
+  startsAt: ts("starts_at").notNull(),
+  endsAt: ts("ends_at"),
+  /** null = no limit. */
+  volunteerSpots: integer("volunteer_spots"),
+  public: boolean("public").notNull().default(false),
+  publicSpots: integer("public_spots"),
+  languages: languageEnum("languages").array().notNull().default(sql`'{}'`),
+  skills: volunteerSkillEnum("skills").array().notNull().default(sql`'{}'`),
+  translations: jsonb("translations").$type<Partial<Record<LanguageCode, { title: string; description: string | null }>>>().notNull().default({}),
+  createdBy: uuid("created_by").references(() => volunteers.id, { onDelete: "set null" }),
+  updatedBy: uuid("updated_by").references(() => volunteers.id, { onDelete: "set null" }),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+  cancelledAt: ts("cancelled_at"),
+}, (t) => [
+  index("events_starts_idx").on(t.startsAt),
+  index("events_public_idx").on(t.public, t.startsAt),
+]);
+
+/**
+ * One sign-up: a volunteer (back-office) or a beneficiary (WhatsApp), never both. Taking your name off deletes the
+ * row; the waiting list is ordered by createdAt (moving up keeps your place in time).
+ */
+export const eventRegistrations = pgTable("event_registrations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+  volunteerId: uuid("volunteer_id").references(() => volunteers.id, { onDelete: "cascade" }),
+  beneficiaryId: uuid("beneficiary_id").references(() => beneficiaries.id, { onDelete: "cascade" }),
+  status: eventRegistrationStatusEnum("status").notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  /** Beneficiaries: the day-before WhatsApp reminder was sent (claimed exactly once). */
+  remindedAt: ts("reminded_at"),
+}, (t) => [
+  uniqueIndex("event_registrations_volunteer_idx").on(t.eventId, t.volunteerId).where(sql`volunteer_id is not null`),
+  uniqueIndex("event_registrations_beneficiary_idx").on(t.eventId, t.beneficiaryId).where(sql`beneficiary_id is not null`),
+  index("event_registrations_event_idx").on(t.eventId, t.status, t.createdAt),
+  index("event_registrations_volunteer_list_idx").on(t.volunteerId),
+  index("event_registrations_beneficiary_list_idx").on(t.beneficiaryId),
+]);

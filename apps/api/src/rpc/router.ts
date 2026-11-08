@@ -18,6 +18,7 @@ import { volunteersRouter } from "./volunteers.js";
 import { associationsRouter, invitationsRouter } from "./associations.js";
 import { placesRouter } from "./places.js";
 import { broadcastsRouter } from "./broadcasts.js";
+import { eventsRouter } from "./events.js";
 
 export const router = os.router({
   auth: authRouter,
@@ -40,6 +41,7 @@ export const router = os.router({
   broadcasts: broadcastsRouter,
   buddies: buddiesRouter,
   appointments: appointmentsRouter,
+  events: eventsRouter,
   numbers: numbersRouter,
 });
 export type AppRouter = typeof router;

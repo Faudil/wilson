@@ -137,6 +137,11 @@ export const PERMISSIONS = [
   "appointments.documents", // open the person's saved documents, only for a session you hold and only if they agreed
   "appointments.manage", // see every appointment and who holds it, cancel any, remove anyone's slot
   "numbers.moderate", // release a WhatsApp number held by the flood guard, block or unblock a number
+  // — Agenda (maraudes, meetings, trainings, workshops) —
+  "events.view", // see the calendar of your association's events (and everyone's) and who is coming
+  "events.join", // sign yourself up for an event, or take your name off
+  "events.create", // create events; edit or cancel your own, see their full list (incl. how many beneficiaries)
+  "events.manage", // edit or cancel any event of your association (global admins: any event), remove anyone from it
 ] as const;
 export type PermissionValue = (typeof PERMISSIONS)[number];
 
@@ -171,6 +176,8 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
   "appointments.slots",
   "appointments.documents",
   "numbers.moderate",
+  "events.view",
+  "events.join",
 ];
 
 /**
@@ -181,6 +188,8 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
  * drafting announcements, accepting appointments and publishing form-filling slots. Responders get no appointments:
  * meeting people in person needs an admin's trust, so it is granted per person.
  * Volunteers can also be someone's French practice buddy.
+ * Everyone (responders included) sees the Agenda and can sign up for events; creating events is for admins and
+ * association admins (and anyone they grant events.create to).
  * admin: + volunteers, audit, knowledge sync, usage, moderating notes, approving announcements, arranging French
  * buddies and handling their reports, managing appointments.
  */
@@ -188,15 +197,15 @@ const VOLUNTEER_BUNDLE: PermissionValue[] = [
  * Granted on top of the role to an association admin (set by a global admin), never part of a role bundle:
  * the server limits it to members of that association.
  */
-export const ASSOCIATION_ADMIN_PERMISSIONS: readonly PermissionValue[] = ["members.manage"];
+export const ASSOCIATION_ADMIN_PERMISSIONS: readonly PermissionValue[] = ["members.manage", "events.create", "events.manage"];
 
 /** What an association admin may never hand out (to keep them inside their association and below global admins). */
 export const GLOBAL_ONLY_PERMISSIONS: readonly PermissionValue[] = ["volunteers.manage", "associations.manage", "members.manage", "usage.manage", "knowledge.manage", "audit.view"];
 
 export const ROLE_PERMISSIONS: Record<(typeof VOLUNTEER_ROLES)[number], readonly PermissionValue[]> = {
-  responder: ["conversations.view", "conversations.reply", "knowledge.view", "places.view", "skills.edit_own"],
+  responder: ["conversations.view", "conversations.reply", "knowledge.view", "places.view", "skills.edit_own", "events.view", "events.join"],
   volunteer: VOLUNTEER_BUNDLE,
-  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "associations.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"],
+  admin: [...VOLUNTEER_BUNDLE, "volunteers.manage", "associations.manage", "audit.view", "knowledge.manage", "usage.manage", "notes.moderate", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage", "events.create", "events.manage"],
 };
 
 /** Kinds of places volunteers post for the day (shown with an emoji in WhatsApp, grouped in this order). */
@@ -210,6 +219,9 @@ export const HELP_KINDS = ["accompaniment", "form_session"] as const;
  */
 export const ACCOMPANIMENT_TOPICS = ["prefecture", "ofii", "hospital", "ofpra", "other_place"] as const;
 export const FORM_TOPICS = ["caf", "anef", "ame", "other_form"] as const;
+
+/** Kinds of events in the Agenda (shown with an emoji). */
+export const EVENT_KINDS = ["maraude", "meeting", "training", "workshop", "info_session", "other"] as const;
 export const HELP_TOPICS = [...ACCOMPANIMENT_TOPICS, ...FORM_TOPICS] as const;
 
 /** draft = being typed on WhatsApp (never shown to volunteers). */

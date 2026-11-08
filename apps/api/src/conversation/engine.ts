@@ -20,6 +20,8 @@ import { getBuddies } from "../buddies/service.js";
 import { buddyEntry, isBuddyStep, onBuddyState, type BuddyFlowCtx } from "./buddyFlow.js";
 import { getAppointments } from "../appointments/service.js";
 import { isHelpState, onHelpState, startHelp, type FlowIo } from "../appointments/flow.js";
+import { getEvents } from "../events/service.js";
+import { isEventState, onEventState } from "../events/flow.js";
 import { getGuard, quarantine, throttleNotice } from "../whatsapp/guard.js";
 
 const MAX_MEDIA_BYTES = 12 * 1024 * 1024;
@@ -218,6 +220,10 @@ async function dispatch(c: Ctx, input: Input): Promise<void> {
   if (isHelpState(c.state)) {
     if (input.type === "text" && isMenuWord(input.text)) return showMainMenu(c);
     return onHelpState(helpIo(c), c.state, input.type === "text" ? input.text : null);
+  }
+  if (isEventState(c.state)) {
+    if (input.type === "text" && isMenuWord(input.text)) return showMainMenu(c);
+    return onEventState(helpIo(c), c.state, input.type === "text" ? input.text : null);
   }
   switch (c.state.step) {
     case "choose_language": return onChooseLanguage(c, input);
@@ -489,6 +495,7 @@ async function onAnnouncements(c: Ctx, input: Input): Promise<void> {
 export async function deleteAllData(deps: WaDeps, beneficiaryId: string): Promise<void> {
   await getBuddies(deps).endAllForBeneficiary(beneficiaryId); // the buddy can no longer reach them
   await getAppointments(deps).cancelAllFor(beneficiaryId); // before archiving: nothing stays open or scheduled
+  await getEvents(deps).removeAllFor(beneficiaryId);
   await deps.beneficiaries.archiveAll(beneficiaryId);
 }
 
