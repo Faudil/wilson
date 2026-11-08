@@ -3,7 +3,7 @@ import { isolate, waText } from "@wilson/i18n";
 import type { Deps } from "../deps.js";
 import { directionsUrl, distanceM, formatDistance, type LatLon, type NearbyKind, type NearbyPoi } from "../geo/provider.js";
 import { getPlaces, isoWeekday, PLACE_EMOJI, type PlaceRow } from "../places/service.js";
-import { todayIn } from "../whatsapp/context.js";
+import { localDate } from "../time.js";
 
 type NearbyDeps = Pick<Deps, "db" | "llm" | "config" | "now" | "geo">;
 
@@ -31,7 +31,7 @@ const near = (a: Item, b: Item, m: number) => distanceM(a.point, b.point) < m;
 export async function nearbyMessage(deps: NearbyDeps, point: LatLon, lang: LanguageCode, beneficiaryId: string | null): Promise<string> {
   const { geo, config } = deps;
   const radius = config.NEARBY_RADIUS_M;
-  const today = todayIn(deps.now(), config.TIMEZONE);
+  const today = localDate(deps.now(), config.TIMEZONE);
   const places = getPlaces(deps);
   const [rows, soli, osm] = await Promise.all([
     places.openOn(today),

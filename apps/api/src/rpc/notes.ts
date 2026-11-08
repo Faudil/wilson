@@ -8,7 +8,7 @@ import type { Deps } from "../deps.js";
 import { getServices } from "../services.js";
 import { localDate } from "../time.js";
 import { logAccess } from "./logAccess.js";
-import { os, requirePermission } from "./base.js";
+import { can, os, requirePermission } from "./base.js";
 
 type NoteRow = typeof caseNotes.$inferSelect;
 type TaskRow = typeof caseTasks.$inferSelect;
@@ -16,7 +16,6 @@ type TaskRow = typeof caseTasks.$inferSelect;
 const view = requirePermission("notes.view");
 const write = requirePermission("notes.write");
 
-const can = (v: Volunteer, p: Permission) => v.permissions.includes(p);
 const today = (deps: Deps) => localDate(deps.now(), deps.config.TIMEZONE);
 
 async function names(deps: Deps, ids: (string | null)[]): Promise<Map<string, string>> {

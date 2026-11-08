@@ -9,7 +9,7 @@ import { router } from "./rpc/router.js";
 import type { RpcContext } from "./rpc/base.js";
 
 export const SESSION_COOKIE = "wilson_session";
-export const MAX_BODY_BYTES = 12 * 1024 * 1024;
+const MAX_BODY_BYTES = 12 * 1024 * 1024;
 
 export function readCookie(header: string | undefined, name: string): string | null {
   if (!header) return null;

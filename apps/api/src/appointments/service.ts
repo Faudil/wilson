@@ -11,6 +11,7 @@
  * row (encrypted, visible in Conversations) so that, outside WhatsApp's 24 h window, it waits behind the opt-in
  * template like any other answer.
  */
+import { DomainError } from "../errors.js";
 import { and, asc, eq, gt, gte, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 import {
   ACCOMPANIMENT_TOPICS, FORM_TOPICS, isRtl, type Appointment, type HelpKind, type HelpTopic, type LanguageCode, type Permission, type Slot, type Volunteer,
@@ -44,9 +45,9 @@ const MINE_PAST_MS = 7 * 24 * HOUR;
 
 export const SLOT_OFFER_LIMIT = 9; // + "0 - none of these" = 10 rows, WhatsApp's list maximum
 
-export class AppointmentError extends Error {
-  constructor(readonly code: "NOT_FOUND" | "FORBIDDEN" | "CONFLICT", readonly reason?: string) {
-    super(reason ?? code);
+export class AppointmentError extends DomainError {
+  constructor(code: "NOT_FOUND" | "FORBIDDEN" | "CONFLICT", reason?: string) {
+    super(code, reason ?? code);
     this.name = "AppointmentError";
   }
 }

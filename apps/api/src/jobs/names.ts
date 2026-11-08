@@ -36,4 +36,6 @@ export interface JobPayloads {
 
 export interface JobQueue {
   send<N extends keyof JobPayloads>(name: N, payload: JobPayloads[N], opts?: { singletonKey?: string; startAfter?: Date }): Promise<void>;
+  /** Only the in-process queue (local/sandbox/tests) has it: run what was just queued now. pg-boss workers run on their own. */
+  drain?(): Promise<number>;
 }

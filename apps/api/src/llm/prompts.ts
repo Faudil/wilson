@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 export type PromptName = "letter-analysis" | "document-analysis" | "language-detect" | "letter-translate" | "letter-orientation" | "chat-plan" | "chat-reply" | "chat-translate";
 
 /** Current released version of each prompt. Bump here (and add the vN file) to switch. */
-export const PROMPT_VERSIONS: Record<PromptName, number> = {
+const PROMPT_VERSIONS: Record<PromptName, number> = {
   "letter-analysis": 1,
   "document-analysis": 1,
   "language-detect": 1,

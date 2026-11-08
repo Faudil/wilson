@@ -3,7 +3,7 @@ import type { KnowledgeChunkInput, SourceAdapter } from "../types.js";
 export const ANNUAIRE_URL = "https://api-lannuaire.service-public.fr/api/explore/v2.1/catalog/datasets/api-lannuaire-administration/records";
 
 /** Human label for each pivot type (`type_service_local`). Unknown types fall back to the raw value. */
-export const TYPE_LABELS: Record<string, string> = {
+const TYPE_LABELS: Record<string, string> = {
   prefecture: "Préfecture",
   sous_pref: "Sous-préfecture",
   caf: "Caisse d'allocations familiales (CAF)",
@@ -102,7 +102,7 @@ function phones(v: unknown): string[] {
 }
 
 /** Département from a postal code ("75001" → "75", "20090" → "2A", "97400" → "974"). */
-export function departmentOf(postalCode: string, insee = ""): string | null {
+function departmentOf(postalCode: string, insee = ""): string | null {
   const code = insee || postalCode;
   if (!/^\d/.test(code) && !/^[0-9][AB]/i.test(code)) return null;
   if (/^2[AB]/i.test(code)) return code.slice(0, 2).toUpperCase();

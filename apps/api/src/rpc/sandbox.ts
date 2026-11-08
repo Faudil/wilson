@@ -83,8 +83,7 @@ export const sandboxRouter = {
     // 10:00 Europe/Paris on the requested date (noon UTC is always the same calendar day there; 10:00 local = 08:00/09:00 UTC).
     const asOf = parisTime(input.date, 10, d.config.TIMEZONE);
     const result: unknown = await dispatchDueReminders(d, asOf);
-    const drain = (d.jobs as { drain?: () => Promise<unknown> }).drain;
-    if (typeof drain === "function") await drain.call(d.jobs);
+    await d.jobs.drain?.();
     const sent = typeof result === "number" ? result : typeof (result as { sent?: unknown } | null)?.sent === "number" ? (result as { sent: number }).sent : 0;
     return { sent };
   }),

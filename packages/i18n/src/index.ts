@@ -128,7 +128,7 @@ export type Params = Record<string, string | number>;
 
 export { LANGUAGE_MENU, LANGUAGE_MENU_HEADER } from "./menu.js";
 // Dates and document type names live in their own modules so the back-office can import them without the WhatsApp catalogs.
-export { formatDate, formatTime, parseUserDate, parseUserDateTime } from "./dates.js";
+export { formatDate, formatTime, normaliseDigits, parseUserDate, parseUserDateTime } from "./dates.js";
 export { documentTypeName } from "./doctypes.js";
 
 export const CATALOGS: Record<LanguageCode, Record<WaKey, string>> = {

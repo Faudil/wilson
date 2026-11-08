@@ -2,7 +2,7 @@
 // Names keep the French administrative term in parentheses so people recognise the paper.
 import type { DocumentType } from "@wilson/contracts";
 
-export const DOCTYPES_B: Record<"hy" | "sq" | "ro" | "ht" | "wo" | "ff" | "bm" | "ln" | "sw", Record<DocumentType, string>> = {
+export const DOCTYPES_MORE_LANGUAGES: Record<"hy" | "sq" | "ro" | "ht" | "wo" | "ff" | "bm" | "ln" | "sw", Record<DocumentType, string>> = {
   hy: {
     attestation_demande_asile: "ապաստանի դիմումի վկայական (attestation de demande d'asile)",
     recepisse: "դիմումի անդորրագիր (récépissé)",

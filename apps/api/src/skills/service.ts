@@ -48,7 +48,7 @@ export async function directory(db: Db, filter: { language?: LanguageCode; skill
 }
 
 /** Skills that help with a chat intent. Language is matched separately. */
-export const SKILLS_FOR_INTENT: Record<ChatIntent, VolunteerSkill[]> = {
+const SKILLS_FOR_INTENT: Record<ChatIntent, VolunteerSkill[]> = {
   legal: ["legal", "asylum"],
   urgent: ["housing", "accompaniment", "health"],
   places: ["housing"],

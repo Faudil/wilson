@@ -8,16 +8,11 @@ import { alert } from "../alerts.js";
 import { getBuddies } from "../buddies/service.js";
 import { getWaDeps } from "../whatsapp/context.js";
 import { logAccess } from "./logAccess.js";
-import { os, type RpcContext } from "./base.js";
+import { os, requireMemberAdmin, type RpcContext } from "./base.js";
 
 type Row = typeof volunteers.$inferSelect;
 /** Global admins (volunteers.manage) or association admins (members.manage); the scope is checked per account. */
-const manage = os.middleware(async ({ context, next }) => {
-  const v = context.volunteer;
-  if (!v) throw new ORPCError("UNAUTHORIZED");
-  if (!v.permissions.includes("volunteers.manage") && !(v.permissions.includes("members.manage") && v.association)) throw new ORPCError("FORBIDDEN");
-  return next({ context: { volunteer: v } });
-});
+const manage = requireMemberAdmin;
 
 /** null = every account (global admin); else the only association whose members the caller may manage. */
 export function scopeOf(ctx: RpcContext): string | null {

@@ -4,12 +4,12 @@
  */
 
 /** Themes ("N…" ids from the Service-Public taxonomy) whose whole subtree is relevant. */
-export const THEME_IDS = new Set<string>([
+const THEME_IDS = new Set<string>([
   "N19804", // Étranger (séjour, asile, nationalité…)
 ]);
 
 /** Individual fiches always kept (add ids here, e.g. "F2741"). */
-export const FICHE_IDS = new Set<string>([
+const FICHE_IDS = new Set<string>([
   "F2741", // Renouvellement d'un titre de séjour
 ]);
 
@@ -17,7 +17,7 @@ export const FICHE_IDS = new Set<string>([
  * Keywords searched (case/accent-insensitive) in the fiche title, subject and breadcrumb.
  * Grouped by the situation they cover so volunteers can see what is missing.
  */
-export const KEYWORDS: Record<string, string[]> = {
+const KEYWORDS: Record<string, string[]> = {
   etrangers: ["titre de sejour", "carte de sejour", "recepisse", "demande d'asile", "demandeur d'asile", "refugie", "protection subsidiaire", "apatride", "naturalisation", "nationalite francaise", "visa long sejour", "regroupement familial", "obligation de quitter le territoire", "oqtf", "etranger", "ofii", "contrat d'integration republicaine", "passeport talent", "carte de resident"],
   prestations: ["caf", "allocations familiales", "rsa", "revenu de solidarite active", "prime d'activite", "apl", "aide personnalisee au logement", "aides au logement", "allocation de rentree scolaire", "complement familial", "allocation adulte handicape", "allocation de soutien familial", "css", "complementaire sante solidaire"],
   sante: ["aide medicale de l'etat", "puma", "protection universelle maladie", "assurance maladie", "carte vitale", "mutuelle"],

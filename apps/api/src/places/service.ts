@@ -1,10 +1,11 @@
+import { DomainError } from "../errors.js";
 import { and, asc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { PLACE_KINDS, isRtl, type LanguageCode, type Place, type PlaceInput, type PlaceKind } from "@wilson/contracts";
 import { formatDate, isolate, waText } from "@wilson/i18n";
 import { places, volunteers } from "../db/schema.js";
 import type { Deps } from "../deps.js";
 import { withUsageContext } from "../usage/context.js";
-import { todayIn } from "../whatsapp/context.js";
+import { localDate } from "../time.js";
 
 export type PlaceRow = typeof places.$inferSelect;
 type Row = PlaceRow;
@@ -24,8 +25,8 @@ export function openOn(p: Pick<Row, "startsOn" | "endsOn" | "weekdays" | "remove
   return p.weekdays.length === 0 || p.weekdays.includes(isoWeekday(date));
 }
 
-export class PlaceError extends Error {
-  constructor(readonly code: "NOT_FOUND") {
+export class PlaceError extends DomainError {
+  constructor(code: "NOT_FOUND") {
     super(code);
     this.name = "PlaceError";
   }
@@ -57,9 +58,9 @@ export function getPlaces(deps: PlaceDeps): PlacesService {
 
 const kindOrder = (k: string) => PLACE_KINDS.indexOf(k as PlaceKind);
 
-export function createPlacesService(deps: PlaceDeps): PlacesService {
+function createPlacesService(deps: PlaceDeps): PlacesService {
   const { db, llm, config } = deps;
-  const today = () => todayIn(deps.now(), config.TIMEZONE);
+  const today = () => localDate(deps.now(), config.TIMEZONE);
 
   async function names(ids: string[]): Promise<Map<string, string>> {
     const m = new Map<string, string>();

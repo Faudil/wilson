@@ -1,7 +1,7 @@
 // machine-drafted (non-fr/en), needs native review.
 // Non-French names keep the French administrative term in parentheses so people recognise the paper.
 import type { DocumentType, LanguageCode } from "@wilson/contracts";
-import { DOCTYPES_B } from "./doctypes-b.js";
+import { DOCTYPES_MORE_LANGUAGES } from "./doctypes-more-languages.js";
 
 export const DOCUMENT_TYPE_NAMES: Record<LanguageCode, Record<DocumentType, string>> = {
   fr: {
@@ -270,7 +270,7 @@ export const DOCUMENT_TYPE_NAMES: Record<LanguageCode, Record<DocumentType, stri
     letter: "წერილი (courrier)",
     other: "სხვა დოკუმენტი (autre document)",
   },
-  ...DOCTYPES_B,
+  ...DOCTYPES_MORE_LANGUAGES,
 };
 
 export function documentTypeName(type: DocumentType, lang: LanguageCode): string {

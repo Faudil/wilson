@@ -14,7 +14,7 @@ interface Price {
 
 const p = (input: number, output: number, cacheRead = input * 0.1, long?: Price["long"]): Price => ({ input, output, cacheRead, cacheWrite: input * 1.25, long });
 
-export const PRICES: Record<string, Price> = {
+const PRICES: Record<string, Price> = {
   "claude-fable-5-1": p(10, 50, 0.25),
   "claude-fable-5": p(10, 50),
   "claude-opus-5-5": p(4, 20, 0.2),

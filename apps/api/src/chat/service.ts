@@ -1,3 +1,4 @@
+import { DomainError } from "../errors.js";
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import {
   isRtl,
@@ -17,7 +18,7 @@ import type { ChatTurn } from "../llm/provider.js";
 import { getServices } from "../services.js";
 import { footerFor, windowOpen } from "../whatsapp/send.js";
 import { looksUrgent } from "./urgent.js";
-import { todayIn } from "../whatsapp/context.js";
+import { localDate } from "../time.js";
 import { withUsageContext } from "../usage/context.js";
 import { getPlaces } from "../places/service.js";
 
@@ -27,9 +28,9 @@ type Source = ChatMessage["sources"][number];
 type ConversationSummary = z.infer<typeof ConversationSummarySchema>;
 type ConversationDetail = z.infer<typeof ConversationDetailSchema>;
 
-export class ChatError extends Error {
-  constructor(readonly code: "NOT_FOUND" | "CONFLICT" | "BAD_REQUEST", message: string) {
-    super(message);
+export class ChatError extends DomainError {
+  constructor(code: "NOT_FOUND" | "CONFLICT" | "BAD_REQUEST", message: string) {
+    super(code, message);
     this.name = "ChatError";
   }
 }
@@ -73,11 +74,11 @@ export function getChat(deps: Deps): ChatService {
   return s;
 }
 
-export function createChatService(deps: Deps): ChatService {
+function createChatService(deps: Deps): ChatService {
   const { db, crypto, llm, config, jobs } = deps;
   const { beneficiaries: ben, knowledge } = getServices(deps);
   const association = { name: config.ASSOCIATION_NAME, contact: config.ASSOCIATION_CONTACT };
-  const today = () => todayIn(deps.now(), config.TIMEZONE);
+  const today = () => localDate(deps.now(), config.TIMEZONE);
 
   const dec = (dek: Buffer, b: Buffer | null): string | null => (b ? crypto.decrypt(dek, b).toString("utf8") : null);
 

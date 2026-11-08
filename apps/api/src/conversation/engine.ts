@@ -4,7 +4,8 @@ import { LANGUAGE_MENU_HEADER, documentTypeName, formatDate, parseUserDate, waTe
 import type { BeneficiaryRow } from "../beneficiaries/service.js";
 import { letters, messages, type ConversationState } from "../db/schema.js";
 import { JOBS } from "../jobs/names.js";
-import { todayIn, type WaDeps } from "../whatsapp/context.js";
+import { localDate } from "../time.js";
+import type { WaDeps } from "../whatsapp/context.js";
 import { enqueueText, footerFor, letterOfferText, sendTextNow } from "../whatsapp/send.js";
 import { announceDocumentDetection } from "./documentFlow.js";
 import { getChat } from "../chat/service.js";
@@ -182,7 +183,7 @@ const showMainMenu = async (c: Ctx, intro?: Parameters<typeof waText>[1]) => {
   if (intro) await sayKey(c, intro);
   await sayMenu(c, "main_menu");
 };
-const today = (c: Ctx) => todayIn(c.deps.now(), c.deps.config.TIMEZONE);
+const today = (c: Ctx) => localDate(c.deps.now(), c.deps.config.TIMEZONE);
 const buddyCtx = (c: Ctx): BuddyFlowCtx => ({
   deps: c.deps, beneficiaryId: c.b.id, lang: c.lang, state: c.state,
   setState: (s) => setState(c, s),

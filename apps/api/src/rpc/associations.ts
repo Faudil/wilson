@@ -6,7 +6,7 @@ import { INVITATION_TTL_DAYS, sha256Hex } from "../auth/service.js";
 import { associations, invitations, sessions, volunteers } from "../db/schema.js";
 import type { Deps } from "../deps.js";
 import { logAccess } from "./logAccess.js";
-import { os, requirePermission } from "./base.js";
+import { os, requireMemberAdmin, requirePermission } from "./base.js";
 import { mustRow, one, scopeOf } from "./volunteers.js";
 
 type ARow = typeof associations.$inferSelect;
@@ -96,12 +96,7 @@ export const associationsRouter = {
 
 /* ---------- invitations ---------- */
 
-const inviter = os.middleware(async ({ context, next }) => {
-  const v = context.volunteer;
-  if (!v) throw new ORPCError("UNAUTHORIZED");
-  if (!v.permissions.includes("volunteers.manage") && !(v.permissions.includes("members.manage") && v.association)) throw new ORPCError("FORBIDDEN");
-  return next({ context: { volunteer: v } });
-});
+const inviter = requireMemberAdmin;
 
 async function toInvitations(deps: Deps, rows: IRow[]): Promise<Invitation[]> {
   const vIds = [...new Set(rows.flatMap((r) => [r.createdBy, ...(r.usedBy ? [r.usedBy] : [])]))];

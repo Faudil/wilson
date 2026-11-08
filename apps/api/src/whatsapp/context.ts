@@ -24,8 +24,3 @@ export function getWaDeps(): WaDeps {
   if (!registered) throw new Error("registerWaDeps() was not called at startup");
   return registered;
 }
-
-/** Calendar date (YYYY-MM-DD) of `now` in the configured timezone (Europe/Paris). */
-export function todayIn(now: Date, timezone: string): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
-}

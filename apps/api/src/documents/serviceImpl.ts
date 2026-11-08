@@ -16,7 +16,7 @@ const REMINDERS = [
   { kind: "d30", daysBefore: 30 },
   { kind: "d7", daysBefore: 7 },
 ] as const;
-export const REMINDER_HOUR = 10;
+const REMINDER_HOUR = 10;
 
 export interface DocumentEdit {
   type?: DocumentType;

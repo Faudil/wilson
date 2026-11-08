@@ -1,19 +1,10 @@
 import { ORPCError } from "@orpc/server";
-import { getPlaces, PlaceError } from "../places/service.js";
+import { getPlaces } from "../places/service.js";
 import { logAccess } from "./logAccess.js";
-import { os, requirePermission } from "./base.js";
+import { guard, os, requirePermission } from "./base.js";
 
 const view = requirePermission("places.view");
 const manage = requirePermission("places.manage");
-
-async function mapped<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (e) {
-    if (e instanceof PlaceError) throw new ORPCError(e.code);
-    throw e;
-  }
-}
 
 /** Every change is logged: what a place says reaches beneficiaries without review. */
 export const placesRouter = {
@@ -26,13 +17,13 @@ export const placesRouter = {
   }),
 
   update: os.places.update.use(manage).handler(async ({ input, context }) => {
-    const p = await mapped(() => getPlaces(context.deps).update(input.id, input.place, context.volunteer.id));
+    const p = await guard(() => getPlaces(context.deps).update(input.id, input.place, context.volunteer.id));
     await logAccess(context, "places.update", p.id);
     return p;
   }),
 
   remove: os.places.remove.use(manage).handler(async ({ input, context }) => {
-    await mapped(() => getPlaces(context.deps).remove(input.id, context.volunteer.id));
+    await guard(() => getPlaces(context.deps).remove(input.id, context.volunteer.id));
     await logAccess(context, "places.remove", input.id);
   }),
 
