@@ -96,12 +96,18 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       s3: { condition: service_healthy }
+    networks:
+      default:
+        # Unique name: the back-office also sits on the shared proxy network, where another
+        # stack's "api" service would otherwise answer to the short name.
+        aliases: [wilson-api]
 
   backoffice:
     build: { context: ., dockerfile: docker/backoffice.Dockerfile }
     restart: unless-stopped
     depends_on: [api]
     environment:
+      API_ORIGIN: http://wilson-api:3000
       # Read by nginx-proxy / acme-companion on the shared proxy network.
       VIRTUAL_HOST: ${PUBLIC_HOST:?set PUBLIC_HOST in .env, e.g. courrier.example.org}
       VIRTUAL_PORT: "8080"
