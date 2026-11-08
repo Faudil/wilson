@@ -30,6 +30,8 @@ const INPUTS: Record<string, unknown> = {
   "auth.me": undefined,
   "auth.setUiLanguage": { language: "fr" },
   "auth.verifyEmail": { token: "x".repeat(43) },
+  "auth.resetPassword": { token: "x".repeat(43), password: "long-enough-pass" },
+  "auth.finishWelcome": undefined,
   "auth.twoFactorSetup": undefined,
   "auth.twoFactorEnable": { code: "123456" },
   "auth.twoFactorDisable": { code: "123456" },
@@ -42,6 +44,11 @@ const INPUTS: Record<string, unknown> = {
   "beneficiaries.list": { limit: 5 },
   "beneficiaries.get": { id },
   "beneficiaries.setLanguage": { id, language: "fr" },
+  "beneficiaries.setNickname": { id, nickname: "Ali" },
+  "quickReplies.list": undefined,
+  "quickReplies.create": { title: "Bonjour", text: "Bonjour !" },
+  "quickReplies.update": { id, title: "Bonjour", text: "Bonjour !" },
+  "quickReplies.remove": { id },
   "documents.deadlines": { withinDays: 30 },
   "documents.file": { id },
   "documents.update": { id, label: "x" },
@@ -67,6 +74,7 @@ const INPUTS: Record<string, unknown> = {
   "volunteers.setRole": { id, role: "volunteer" },
   "volunteers.setDisabled": { id, disabled: true },
   "volunteers.resetTwoFactor": { id },
+  "volunteers.passwordResetLink": { id },
   "volunteers.setPermissions": { id, overrides: [{ permission: "places.manage", granted: false }] },
   "associations.list": undefined,
   "associations.create": { name: "Coverage asso", siren: null, rna: null, city: null },
@@ -143,11 +151,13 @@ const INPUTS: Record<string, unknown> = {
 };
 /** The permission(s) each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
 const REQUIRES: Record<string, Permission | Permission[] | null> = {
-  "auth.me": null, "auth.setUiLanguage": null,
+  "auth.me": null, "auth.setUiLanguage": null, "auth.finishWelcome": null,
   "auth.twoFactorSetup": null, "auth.twoFactorEnable": null, "auth.twoFactorDisable": null,
   "letters.list": "letters.review", "letters.get": "letters.review", "letters.edit": "letters.review",
   "letters.approve": "letters.review", "letters.reject": "letters.review", "letters.photo": "letters.view_photo",
   "beneficiaries.list": "beneficiaries.view", "beneficiaries.get": "beneficiaries.view", "beneficiaries.setLanguage": "beneficiaries.edit",
+  "beneficiaries.setNickname": "conversations.reply",
+  "quickReplies.list": "conversations.reply", "quickReplies.create": "replies.manage", "quickReplies.update": "replies.manage", "quickReplies.remove": "replies.manage",
   "documents.deadlines": "documents.view_metadata", "documents.file": "documents.view_file",
   "documents.update": "documents.edit", "documents.archive": "documents.edit",
   "sandbox.send": "sandbox.use", "sandbox.thread": "sandbox.use", "sandbox.runReminders": "sandbox.use", "sandbox.reset": "sandbox.use",
@@ -156,7 +166,7 @@ const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "conversations.approveDraft": "conversations.reply", "conversations.rejectDraft": "conversations.reply",
   "conversations.reply": "conversations.reply", "conversations.resolve": "conversations.reply", "conversations.takeOver": "conversations.reply",
   "volunteers.list": "volunteers.manage", "volunteers.approve": "volunteers.manage", "volunteers.reject": "volunteers.manage",
-  "volunteers.setRole": "volunteers.manage", "volunteers.setDisabled": "volunteers.manage", "volunteers.setPermissions": "volunteers.manage", "volunteers.resetTwoFactor": "volunteers.manage",
+  "volunteers.setRole": "volunteers.manage", "volunteers.setDisabled": "volunteers.manage", "volunteers.setPermissions": "volunteers.manage", "volunteers.resetTwoFactor": "volunteers.manage", "volunteers.passwordResetLink": "volunteers.manage",
   "associations.list": "associations.manage", "associations.create": "associations.manage",
   "associations.setMember": "associations.manage", "associations.setAdmin": "associations.manage",
   // members.manage also opens these, but only with an association (scoping tested in associations.admin.test.ts).
@@ -190,7 +200,7 @@ const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "numbers.releaseAllGlobal": "numbers.moderate", "numbers.block": "numbers.moderate", "numbers.unblock": "numbers.moderate",
 };
 const needs = (req: Permission | Permission[] | null, perm: Permission) => (Array.isArray(req) ? req.includes(perm) : req === perm);
-const PUBLIC = new Set(["auth.login", "auth.signup", "auth.searchAssociations", "auth.verifyEmail", "auth.invitation", "system.health"]);
+const PUBLIC = new Set(["auth.login", "auth.signup", "auth.searchAssociations", "auth.verifyEmail", "auth.resetPassword", "auth.invitation", "system.health"]);
 /** auth.logout is deliberately idempotent for anonymous callers (clears the cookie, returns void). */
 const ANON_OK = new Set([...PUBLIC, "auth.logout"]);
 const ALL = leaves(contract);
@@ -221,7 +231,7 @@ describe("contract coverage", () => {
       const v = await createVolunteer(t.deps);
       await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: perm, granted: false });
       // knowledge.manage / volunteers.manage are admin-only by role: grant them per-volunteer so every other procedure starts allowed.
-      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "associations.manage", "usage.manage", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"] as const) {
+      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "associations.manage", "usage.manage", "replies.manage", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"] as const) {
         if (perm !== adminOnly) await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: adminOnly, granted: true });
       }
       const { client } = makeClient(t.deps);

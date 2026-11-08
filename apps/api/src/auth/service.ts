@@ -81,6 +81,9 @@ export interface AuthService {
    */
   signup(input: SignupInput, opts?: { ip?: string | null }): Promise<void>;
   verifyEmail(token: string): Promise<void>;
+  /** One-time link from an admin: false = unknown, used or expired. Closes every session of the account. */
+  resetPassword(token: string, password: string): Promise<boolean>;
+  finishWelcome(volunteerId: string): Promise<Volunteer>;
   logout(token: string): Promise<void>;
   resolveVolunteer(token: string): Promise<Volunteer | null>;
   setUiLanguage(volunteerId: string, language: Volunteer["uiLanguage"]): Promise<Volunteer>;
@@ -154,6 +157,7 @@ export function createAuthService(deps: { db: Db; config: AuthConfig; crypto: Cr
       twoFactorMissing: missing,
       association: assoc ?? null,
       associationAdmin: !!assoc && row.associationAdmin,
+      showWelcome: !row.welcomedAt,
     };
   }
 
@@ -300,6 +304,26 @@ export function createAuthService(deps: { db: Db; config: AuthConfig; crypto: Cr
     async verifyEmail(token) {
       await db.update(volunteers).set({ emailVerified: true, emailTokenHash: null, emailTokenExpiresAt: null })
         .where(and(eq(volunteers.emailTokenHash, sha256Hex(token)), gt(volunteers.emailTokenExpiresAt, deps.now())));
+    },
+
+    async resetPassword(token, password) {
+      const passwordHash = await hashPassword(password);
+      const [row] = await db.update(volunteers)
+        .set({ passwordHash, passwordResetTokenHash: null, passwordResetExpiresAt: null })
+        .where(and(eq(volunteers.passwordResetTokenHash, sha256Hex(token)), gt(volunteers.passwordResetExpiresAt, deps.now()), isNull(volunteers.disabledAt)))
+        .returning({ id: volunteers.id, email: volunteers.email });
+      if (!row) return false;
+      await db.delete(sessions).where(eq(sessions.volunteerId, row.id));
+      // A lockout from the forgotten-password attempts would keep them out for no reason.
+      failuresByEmail.clear(`e:${row.email}`);
+      locks.clear(`e:${row.email}`);
+      return true;
+    },
+
+    async finishWelcome(volunteerId) {
+      const [row] = await db.update(volunteers).set({ welcomedAt: deps.now() }).where(eq(volunteers.id, volunteerId)).returning();
+      if (!row) throw new Error("volunteer not found");
+      return toVolunteer(row);
     },
 
     async logout(token) {

@@ -1,10 +1,10 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-import { AssociationRefSchema, AssociationSchema, AssociationSearchInputSchema, InvitationPreviewSchema, InvitationSchema, LoginInputSchema, PermissionSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
-import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
+import { AssociationRefSchema, AssociationSchema, AssociationSearchInputSchema, InvitationPreviewSchema, InvitationSchema, LoginInputSchema, PasswordResetLinkSchema, PermissionSchema, ResetPasswordInputSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
+import { BeneficiaryDetailSchema, BeneficiarySummarySchema, NicknameSchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
-import { ConversationDetailSchema, ConversationSummarySchema } from "./chat.js";
+import { ConversationDetailSchema, ConversationSummarySchema, QuickReplyInputSchema, QuickReplySchema } from "./chat.js";
 import { KnowledgeHitSchema, KnowledgeSearchInputSchema, KnowledgeSourceIdSchema, KnowledgeSourceSchema } from "./knowledge.js";
 import { LanguageSchema } from "./languages.js";
 import { BroadcastInputSchema, BroadcastEstimateSchema, BroadcastSchema } from "./broadcasts.js";
@@ -24,7 +24,7 @@ import { ApiKeyAddSchema, ApiKeyListSchema, ApiKeySchema, ApiKeyUpdateSchema, Us
 /**
  * The single source of truth for every back-office ⇄ API call.
  * Server: `implement(contract)` in apps/api. Client: `ContractRouterClient<typeof contract>` in apps/backoffice.
- * All procedures require a volunteer session except `auth.login`, `auth.signup`, `auth.searchAssociations`, `auth.verifyEmail` and
+ * All procedures require a volunteer session except `auth.login`, `auth.signup`, `auth.searchAssociations`, `auth.verifyEmail`, `auth.resetPassword` and
  * `system.health`.
  */
 
@@ -59,6 +59,13 @@ const auth = {
   setUiLanguage: base.input(z.object({ language: LanguageSchema })).output(VolunteerSchema),
   /** Public: the link in the verification e-mail. Always `{ ok: true }` for a well-formed token (no oracle). */
   verifyEmail: base.input(z.object({ token: z.string().min(20).max(100) })).output(z.object({ ok: z.literal(true) })),
+  /**
+   * Public: choose a new password with the one-time link an admin created (`volunteers.passwordResetLink`).
+   * NOT_FOUND when the link is unknown, used or older than 24 h. Every session of the account is closed.
+   */
+  resetPassword: base.input(ResetPasswordInputSchema).output(z.object({ ok: z.literal(true) })),
+  /** The volunteer closed the first-day welcome cards. */
+  finishWelcome: base.output(VolunteerSchema),
   /** New authenticator secret for the logged-in volunteer (not active until twoFactorEnable confirms a code). */
   twoFactorSetup: base.output(TwoFactorSetupSchema),
   twoFactorEnable: base.input(z.object({ code: TotpCodeSchema })).output(VolunteerSchema),
@@ -87,6 +94,16 @@ const beneficiaries = {
     .output(pageOf(BeneficiarySummarySchema)),
   get: base.input(z.object({ id: IdSchema })).output(BeneficiaryDetailSchema),
   setLanguage: base.input(z.object({ id: IdSchema, language: LanguageSchema })).output(BeneficiarySummarySchema),
+  /** Give the person a first name or nickname so volunteers recognise them (empty = remove). conversations.reply */
+  setNickname: base.input(z.object({ id: IdSchema, nickname: NicknameSchema })).output(z.object({ nickname: z.string().nullable() })),
+};
+
+/** Saved answers for the conversation composer: everyone who replies reads them, `replies.manage` curates them. */
+const quickReplies = {
+  list: base.output(z.array(QuickReplySchema)),
+  create: base.input(QuickReplyInputSchema).output(QuickReplySchema),
+  update: base.input(QuickReplyInputSchema.extend({ id: IdSchema })).output(QuickReplySchema),
+  remove: base.input(z.object({ id: IdSchema })).output(z.void()),
 };
 
 const documents = {
@@ -126,6 +143,11 @@ const volunteers = {
   setDisabled: base.input(z.object({ id: IdSchema, disabled: z.boolean() })).output(VolunteerAccountSchema),
   /** Someone lost their phone: remove their authenticator app (they enrol again at next login). Not on yourself. */
   resetTwoFactor: base.input(z.object({ id: IdSchema })).output(VolunteerAccountSchema),
+  /**
+   * Someone forgot their password: a one-time link (valid 24 h) the admin passes on by hand. Creating a new link
+   * cancels the previous one. Not on yourself, not on a pending or disabled account (CONFLICT).
+   */
+  passwordResetLink: base.input(z.object({ id: IdSchema })).output(PasswordResetLinkSchema),
   /**
    * Replace a person's per-permission overrides on top of their role bundle (granted: false = revoked). Not on
    * yourself, not on a pending account (CONFLICT). Applies on the person's next request.
@@ -361,5 +383,5 @@ const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional(), emailVerification: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, numbers, system };
+export const contract = { auth, letters, beneficiaries, quickReplies, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, numbers, system };
 export type Contract = typeof contract;

@@ -54,8 +54,9 @@ export function BeneficiaryList() {
               </span>
               <span className="person-main">
                 <span className="card-top">
-                  <strong className="card-title" dir="ltr">
-                    {b.label}
+                  <strong className="card-title">
+                    {b.nickname && <span className="nickname">{b.nickname} </span>}
+                    <span className="masked" dir="ltr">{b.label}</span>
                   </strong>
                   <LangBadge language={b.language} />
                 </span>
@@ -104,9 +105,14 @@ export function BeneficiaryDetail({ id }: { id: string }) {
               <Icon name="user" size={22} />
             </span>
             <div className="chat-head-main">
-              <h1 dir="ltr" className="start">
-                {query.data.label}
+              <h1 className="start">
+                {query.data.nickname ? <span>{query.data.nickname}</span> : <span className="masked" dir="ltr">{query.data.label}</span>}
               </h1>
+              {query.data.nickname && (
+                <span className="small muted masked" dir="ltr">
+                  {query.data.label}
+                </span>
+              )}
               <div className="chips">
                 <LangBadge language={query.data.language} />
                 <span className="muted small">

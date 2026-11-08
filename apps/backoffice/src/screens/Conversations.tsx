@@ -11,6 +11,7 @@ import { errorCode, orpc } from "../lib/api";
 import { href } from "../lib/router";
 import { useSession } from "../lib/session";
 import { CaseFilePanel, HelpersSheet } from "./CaseFile";
+import { QuickRepliesSheet } from "../components/QuickReplies";
 import { formatDateTime } from "../lib/wilson-i18n";
 import { relativeTime } from "../lib/relative";
 
@@ -72,7 +73,15 @@ export function ConversationList() {
               <div className="card-top">
                 <span className="card-kicker">
                   <Icon name="chat" size={16} />
-                  <span dir="ltr">{c.beneficiaryLabel}</span>
+                  {c.nickname ? (
+                    <strong className="nickname" title={c.beneficiaryLabel}>
+                      {c.nickname}
+                    </strong>
+                  ) : (
+                    <span className="masked" dir="ltr">
+                      {c.beneficiaryLabel}
+                    </span>
+                  )}
                   {c.lastMessageAt && (
                     <>
                       <span aria-hidden="true">·</span>
@@ -92,9 +101,9 @@ export function ConversationList() {
                     {t("conv.assignee", { name: c.assignee.id === me.id ? t("vol.you") : c.assignee.name })}
                   </Chip>
                 )}
-                {c.awaitingReply && c.status === "with_volunteer" && (
+                {c.awaitingReply && c.lastMessageAt && (
                   <Chip tone="warn" icon="clock">
-                    {t("conv.awaiting")}
+                    {t("conv.awaitingSince", { time: relativeTime(c.lastMessageAt, lang) })}
                   </Chip>
                 )}
                 {c.pendingDrafts > 0 && (
@@ -245,7 +254,7 @@ export function ConversationDetail({ id }: { id: string }) {
   const qc = useQueryClient();
   const toast = useToast();
   const [text, setText] = useState("");
-  const [panel, setPanel] = useState<"notes" | "helpers" | null>(null);
+  const [panel, setPanel] = useState<"notes" | "helpers" | "replies" | "nickname" | null>(null);
   const query = useQuery({ ...orpc.conversations.get.queryOptions({ input: { beneficiaryId: id } }), refetchInterval: 10_000 });
   const c = query.data;
   const done = () => {
@@ -327,8 +336,18 @@ export function ConversationDetail({ id }: { id: string }) {
             </span>
             <div className="chat-head-main">
               <h1>
-                <span dir="ltr">{c.beneficiaryLabel}</span>
+                {c.nickname ? <span>{c.nickname}</span> : <span className="masked" dir="ltr">{c.beneficiaryLabel}</span>}
+                {canAct && (
+                  <button type="button" className="icon-btn icon-btn-small" aria-label={t("nick.edit")} title={t("nick.edit")} onClick={() => setPanel("nickname")}>
+                    <Icon name="edit" size={16} />
+                  </button>
+                )}
               </h1>
+              {c.nickname && (
+                <span className="small muted masked" dir="ltr">
+                  {c.beneficiaryLabel}
+                </span>
+              )}
               <div className="chips">
                 <LangBadge language={c.language} />
                 <StatusChip status={c.status} />
@@ -486,6 +505,21 @@ export function ConversationDetail({ id }: { id: string }) {
           <CaseFilePanel beneficiaryId={c.beneficiaryId} />
         </Sheet>
       )}
+      {c && canAct && (
+        <QuickRepliesSheet
+          open={panel === "replies"}
+          onClose={() => setPanel(null)}
+          onPick={(picked) => setText((cur) => (cur.trim() ? `${cur.trimEnd()}\n${picked}` : picked))}
+        />
+      )}
+      {c && canAct && panel === "nickname" && (
+        <NicknameSheet
+          beneficiaryId={c.beneficiaryId}
+          current={c.nickname}
+          onClose={() => setPanel(null)}
+          onSaved={() => void query.refetch()}
+        />
+      )}
       {c && session.can("skills.view") && <HelpersSheet beneficiaryId={c.beneficiaryId} open={panel === "helpers"} onClose={() => setPanel(null)} />}
 
       {c && canAct && (
@@ -497,6 +531,9 @@ export function ConversationDetail({ id }: { id: string }) {
           }}
         >
           <div className="composer-inner">
+            <button type="button" className="composer-tool" aria-label={t("qr.open")} title={t("qr.open")} onClick={() => setPanel("replies")}>
+              <Icon name="book" size={22} />
+            </button>
             <div className="composer-field">
               <textarea
                 rows={1}
@@ -530,5 +567,55 @@ export function ConversationDetail({ id }: { id: string }) {
         </form>
       )}
     </section>
+  );
+}
+
+/** A first name or nickname so volunteers recognise the person (stored encrypted, deleted with their data). */
+export function NicknameSheet({ beneficiaryId, current, onClose, onSaved }: { beneficiaryId: string; current: string | null; onClose: () => void; onSaved: () => void }) {
+  const { t } = useI18n();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [value, setValue] = useState(current ?? "");
+  const save = useMutation({
+    ...orpc.beneficiaries.setNickname.mutationOptions(),
+    onSuccess: () => {
+      toast(t("nick.savedToast"));
+      void qc.invalidateQueries({ queryKey: orpc.conversations.key() });
+      void qc.invalidateQueries({ queryKey: orpc.beneficiaries.key() });
+      onSaved();
+      onClose();
+    },
+  });
+  return (
+    <Sheet open onClose={onClose} title={t("nick.title")}>
+      <form
+        className="stack"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate({ id: beneficiaryId, nickname: value.trim() });
+        }}
+      >
+        <p className="sheet-text">{t("nick.help")}</p>
+        <label className="field">
+          <span className="field-label">{t("nick.label")}</span>
+          <input maxLength={40} autoComplete="off" value={value} onChange={(e) => setValue(e.target.value)} />
+        </label>
+        {save.error && (
+          <div className="notice notice-error" role="alert">
+            <Icon name="alert" />
+            <span className="notice-body">{t("error.generic")}</span>
+          </div>
+        )}
+        <div className="stack-tight">
+          <button type="submit" className="btn btn-block btn-primary" disabled={save.isPending}>
+            <Icon name="check" size={18} />
+            {value.trim() ? t("nick.save") : t("nick.remove")}
+          </button>
+          <button type="button" className="btn btn-block btn-quiet" onClick={onClose}>
+            {t("common.cancel")}
+          </button>
+        </div>
+      </form>
+    </Sheet>
   );
 }

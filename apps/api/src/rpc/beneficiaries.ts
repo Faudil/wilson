@@ -5,6 +5,7 @@ import { beneficiaries as bTable, documents as dTable, letters as lTable } from 
 import { maskedLabel } from "../beneficiaries/serviceImpl.js";
 import { getServices } from "../services.js";
 import { os, requirePermission } from "./base.js";
+import { logAccess } from "./logAccess.js";
 import type { Deps } from "../deps.js";
 
 type BRow = typeof bTable.$inferSelect;
@@ -17,7 +18,9 @@ async function summaries(deps: Deps, rows: BRow[]) {
     .where(and(inArray(dTable.beneficiaryId, rows.map((r) => r.id)), isNull(dTable.archivedAt), eq(dTable.confirmed, true)))
     .groupBy(dTable.beneficiaryId);
   const byId = new Map(stats.map((s) => [s.id, s]));
-  return rows.map((r) => ({
+  const ben = getServices(deps).beneficiaries;
+  const nicknames = await Promise.all(rows.map((r) => ben.readNickname(r.id, r.nicknameEnc)));
+  return rows.map((r, i) => ({
     id: r.id,
     label: maskedLabel(r.waIdLast2),
     language: r.language,
@@ -25,6 +28,7 @@ async function summaries(deps: Deps, rows: BRow[]) {
     lastMessageAt: r.lastInboundAt?.toISOString() ?? null,
     documentCount: byId.get(r.id)?.n ?? 0,
     nextExpiry: byId.get(r.id)?.next ?? null,
+    nickname: nicknames[i] ?? null,
   }));
 }
 
@@ -77,6 +81,15 @@ export const beneficiariesRouter = {
       receivedAt: l.receivedAt.toISOString(),
     }));
     return { ...summary!, documents: docs, letters };
+  }),
+
+  setNickname: os.beneficiaries.setNickname.use(requirePermission("conversations.reply")).handler(async ({ input, context }) => {
+    const { deps } = context;
+    const [row] = await deps.db.select({ id: bTable.id, archivedAt: bTable.archivedAt }).from(bTable).where(eq(bTable.id, input.id));
+    if (!row || row.archivedAt) throw new ORPCError("NOT_FOUND");
+    const nickname = await getServices(deps).beneficiaries.setNickname(input.id, input.nickname);
+    await logAccess(context, "beneficiaries.set_nickname", input.id);
+    return { nickname };
   }),
 
   setLanguage: os.beneficiaries.setLanguage.use(requirePermission("beneficiaries.edit")).handler(async ({ input, context }) => {

@@ -180,3 +180,82 @@ export function VerifyEmail({ token }: { token: string }) {
     </div>
   );
 }
+
+/** The one-time link an admin created in Bénévoles: #/reset/<token>. Choose a new password, then log in. */
+export function ResetPassword({ token }: { token: string }) {
+  const { t } = useI18n();
+  const [password, setPassword] = useState("");
+  const [again, setAgain] = useState("");
+  const [show, setShow] = useState(false);
+  const reset = useMutation(orpc.auth.resetPassword.mutationOptions());
+  const mismatch = again.length > 0 && again !== password;
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (password !== again) return;
+    reset.mutate({ token, password });
+  };
+
+  if (reset.isSuccess) {
+    return (
+      <div className="login">
+        <div className="card">
+          <Empty art="done" sub={t("reset.doneText")}>
+            {t("reset.doneTitle")}
+          </Empty>
+        </div>
+        <p className="center">
+          <a className="btn btn-block btn-primary" href={href("")}>
+            {t("join.login")}
+          </a>
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="login">
+      <form className="card stack" onSubmit={submit}>
+        <h1>{t("reset.title")}</h1>
+        <p className="muted">{t("reset.intro")}</p>
+        <label className="field">
+          <span className="field-label">{t("reset.password")}</span>
+          <span className="input-wrap">
+            <input
+              type={show ? "text" : "password"}
+              autoComplete="new-password"
+              required
+              minLength={10}
+              maxLength={200}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              dir="ltr"
+            />
+            <button type="button" className="icon-btn input-action" onClick={() => setShow(!show)} aria-label={show ? t("login.hidePassword") : t("login.showPassword")}>
+              <Icon name={show ? "eyeOff" : "eye"} />
+            </button>
+          </span>
+          <span className="small muted">{t("reset.hint")}</span>
+        </label>
+        <label className="field">
+          <span className="field-label">{t("reset.again")}</span>
+          <input type={show ? "text" : "password"} autoComplete="new-password" required minLength={10} maxLength={200} value={again} onChange={(e) => setAgain(e.target.value)} dir="ltr" />
+          {mismatch && <span className="small" role="alert">{t("reset.mismatch")}</span>}
+        </label>
+        {reset.isError && (
+          <p className="notice notice-error" role="alert">
+            <Icon name="alert" />
+            <span className="notice-body">{errorCode(reset.error) === "NOT_FOUND" ? t("reset.invalid") : t("error.generic")}</span>
+          </p>
+        )}
+        <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={reset.isPending || mismatch || password.length < 10}>
+          {reset.isPending ? t("common.loading") : t("reset.submit")}
+        </button>
+      </form>
+      <p className="center">
+        <a className="link-quiet" href={href("")}>
+          {t("signup.backToLogin")}
+        </a>
+      </p>
+    </div>
+  );
+}

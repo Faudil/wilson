@@ -27,7 +27,8 @@ const { Knowledge } = lazyScreens(() => import("./screens/Knowledge"), "Knowledg
 const { LetterReview } = lazyScreens(() => import("./screens/LetterReview"), "LetterReview");
 const { Queue } = lazyScreens(() => import("./screens/Queue"), "Queue");
 const { Sandbox } = lazyScreens(() => import("./screens/Sandbox"), "Sandbox");
-const { Signup, VerifyEmail } = lazyScreens(() => import("./screens/Signup"), "Signup", "VerifyEmail");
+const { Signup, VerifyEmail, ResetPassword } = lazyScreens(() => import("./screens/Signup"), "Signup", "VerifyEmail", "ResetPassword");
+const { WelcomeSheet } = lazyScreens(() => import("./components/Welcome"), "WelcomeSheet");
 const { TwoFactorPanel } = lazyScreens(() => import("./screens/TwoFactor"), "TwoFactorPanel");
 const { Volunteers } = lazyScreens(() => import("./screens/Volunteers"), "Volunteers");
 const { Associations } = lazyScreens(() => import("./screens/Associations"), "Associations");
@@ -335,6 +336,15 @@ export function App() {
     );
   }
 
+  // The one-time password link an admin created works logged out (that is the point).
+  if (section === "reset" && arg) {
+    return (
+      <Shell>
+        <ResetPassword token={arg} />
+      </Shell>
+    );
+  }
+
   if (me.isPending) {
     return (
       <Shell>
@@ -412,6 +422,7 @@ export function App() {
         }
       >
         {screen}
+        {session.volunteer.showWelcome && <WelcomeSheet session={session} />}
       </Shell>
     </SessionContext.Provider>
   );

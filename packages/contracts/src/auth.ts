@@ -34,6 +34,8 @@ export const VolunteerSchema = z.object({
   /** Association the volunteer belongs to, and whether they administer its members. */
   association: z.object({ id: IdSchema, name: z.string() }).nullable().default(null),
   associationAdmin: z.boolean().default(false),
+  /** First login after approval: show the welcome cards until `auth.finishWelcome`. */
+  showWelcome: z.boolean().default(false),
 });
 export type Volunteer = z.infer<typeof VolunteerSchema>;
 
@@ -67,6 +69,14 @@ export const AssociationRefSchema = z.object({
 export type AssociationRef = z.infer<typeof AssociationRefSchema>;
 
 export const AssociationSearchInputSchema = z.object({ query: z.string().trim().min(3).max(100) });
+
+export const ResetPasswordInputSchema = z.object({
+  token: z.string().min(20).max(100),
+  password: z.string().min(10).max(200),
+});
+
+/** One-time link an admin gives a volunteer who forgot their password (the token is shown once). */
+export const PasswordResetLinkSchema = z.object({ token: z.string(), expiresAt: z.string() });
 
 export const SignupInputSchema = z.object({
   name: z.string().trim().min(2).max(80),

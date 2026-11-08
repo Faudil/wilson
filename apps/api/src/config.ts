@@ -104,6 +104,11 @@ const EnvSchema = z.object({
    * contain names, phone numbers or message content. Unset = alerts only go to the server log.
    */
   ALERT_WEBHOOK_URL: z.url().optional(),
+  /**
+   * Post "N people have been waiting more than X h" to ALERT_WEBHOOK_URL (counts only, never who or what), checked
+   * every hour between 8:00 and 21:00 local time and repeated at most every X hours. 0 = off.
+   */
+  WAITING_ALERT_HOURS: z.coerce.number().min(0).max(72).default(2),
 
   /**
    * Nearby places (a shared WhatsApp location or a typed address → the nearest help). "osm" = OpenStreetMap

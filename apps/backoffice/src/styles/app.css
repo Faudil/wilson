@@ -2735,3 +2735,79 @@ fieldset {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* ---------- Volunteer tools: quick replies, nickname, welcome ---------- */
+.composer-tool {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 44px;
+  block-size: 52px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--brand-text);
+  cursor: pointer;
+}
+.composer-tool:hover {
+  background: var(--surface-2, rgba(0, 0, 0, 0.04));
+}
+.qr-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.qr-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  inline-size: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.qr-item:hover,
+.qr-item:focus-visible {
+  border-color: var(--brand);
+}
+.nickname {
+  font-weight: 700;
+}
+.chat-head-main h1 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.welcome-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.welcome-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.welcome-list li svg {
+  flex: none;
+  margin-block-start: 2px;
+  color: var(--brand-text);
+}
+.welcome-steps {
+  margin: 0;
+}
+.masked {
+  white-space: nowrap;
+}
