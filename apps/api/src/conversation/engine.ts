@@ -1,7 +1,8 @@
 import { and, eq, isNotNull } from "drizzle-orm";
-import { LANGUAGES, LANGUAGE_CODES, type LanguageCode, type WaInboundMessage } from "@wilson/contracts";
+import { LANGUAGES, LANGUAGE_CODES, type LanguageCode } from "@wilson/contracts";
 import { LANGUAGE_MENU_HEADER, documentTypeName, formatDate, parseUserDate, waText } from "@wilson/i18n";
 import type { BeneficiaryRow } from "../beneficiaries/service.js";
+import type { InboundContent, InboundMessage } from "../channels/types.js";
 import { letters, messages, type ConversationState } from "../db/schema.js";
 import { JOBS } from "../jobs/names.js";
 import { localDate } from "../time.js";
@@ -40,69 +41,73 @@ interface Ctx {
   b: BeneficiaryRow;
   lang: LanguageCode;
   state: ConversationState;
-  /** Meta message id of the inbound message being processed (its row already exists). */
+  /** Id of the inbound message being processed (its row already exists): `messages.wa_message_id`. */
   msgId: string;
 }
 
-function classify(msg: WaInboundMessage): Input {
-  switch (msg.type) {
-    case "text": return { type: "text", text: msg.text.body };
-    case "image": return { type: "file", mediaId: msg.image.id, mime: msg.image.mime_type };
-    case "document": return { type: "file", mediaId: msg.document.id, mime: msg.document.mime_type };
-    case "interactive": {
-      // Button and list ids are the menu numbers (see whatsapp/interactive.ts): same as typing them.
-      const r = msg.interactive.button_reply ?? msg.interactive.list_reply;
-      return r ? { type: "text", text: r.id || r.title } : { type: "other" };
-    }
-    case "audio": return { type: "voice" };
-    case "video": case "sticker": return { type: "media_unsupported" };
+function classify(c: InboundContent): Input {
+  switch (c.type) {
+    case "text": return { type: "text", text: c.text };
+    case "file": return { type: "file", mediaId: c.mediaId, mime: c.mime };
+    case "choice": return { type: "text", text: c.id || c.title };
+    case "voice": return { type: "voice" };
+    case "media_unsupported": return { type: "media_unsupported" };
     case "reaction": return { type: "ignore" };
-    case "button": return { type: "button", text: msg.button.text };
-    case "location": return { type: "location", lat: msg.location.latitude, lon: msg.location.longitude };
+    case "button": return { type: "button", text: c.text };
+    case "location": return { type: "location", lat: c.lat, lon: c.lon };
     default: return { type: "other" };
   }
 }
 
-function inboundText(msg: WaInboundMessage): string | null {
-  switch (msg.type) {
-    case "text": return msg.text.body;
-    case "image": return msg.image.caption ?? null;
-    case "document": return msg.document.caption ?? null;
-    case "interactive": return (msg.interactive.button_reply ?? msg.interactive.list_reply)?.title ?? null;
-    case "button": return msg.button.text;
+function inboundText(c: InboundContent): string | null {
+  switch (c.type) {
+    case "text": return c.text;
+    case "file": return c.caption ?? null;
+    case "choice": return c.title;
+    case "button": return c.text;
     case "location": return "📍"; // that a location was shared, never where
     default: return null;
   }
 }
 
+function storedKind(c: InboundContent): "text" | "image" | "document" | "interactive" | "other" {
+  switch (c.type) {
+    case "text": return "text";
+    case "file": return c.kind;
+    case "choice": case "button": return "interactive";
+    default: return "other";
+  }
+}
+
 /**
- * Entry point for every inbound WhatsApp message (webhook and sandbox). Idempotent on the Meta message id.
- * All replies go through the wa.send queue.
+ * Entry point for every inbound message, whatever the channel (WhatsApp webhook, sandbox, later Telegram/SMS).
+ * Idempotent on the message id. All replies go through the wa.send queue, on the person's channel.
  */
-export async function processInbound(deps: WaDeps, msg: WaInboundMessage): Promise<void> {
+export async function processInbound(deps: WaDeps, msg: InboundMessage): Promise<void> {
   const { beneficiaries, db, crypto } = deps;
-  if (msg.type === "system") {
-    // WhatsApp's own notice that the person changed number or BSUID: follow them, say nothing.
-    const s = msg.system;
+  const c = msg.content;
+  if (c.type === "identity_change") {
+    // The channel's own notice that the person changed number (or WhatsApp BSUID): follow them, say nothing.
     const moved = await beneficiaries.changeIdentity(
-      { waId: msg.from, userId: s.previous_user_id ?? msg.from_user_id },
-      { waId: s.wa_id ?? s.new_wa_id, userId: s.user_id },
+      msg.channel,
+      { address: msg.from, userId: c.previousUserId ?? msg.userId },
+      { address: c.address, userId: c.userId },
     );
-    if (!moved) console.warn(`[whatsapp] identity change (${s.type ?? "unknown"}) matched nobody, or the new number is already known`);
+    if (!moved) console.warn(`[${msg.channel}] identity change (${c.reason ?? "unknown"}) matched nobody, or the new address is already known`);
     return;
   }
-  const { beneficiary } = await beneficiaries.findOrCreateByWaId(msg.from, msg.from_user_id);
+  const { beneficiary } = await beneficiaries.findOrCreate(msg.channel, msg.from, msg.userId);
   if (beneficiary.archivedAt) return; // asked for deletion: stay silent
   // Blocked, or held by the flood guard until a volunteer looks: drop before storing or processing anything.
   if (beneficiary.guardStatus !== "none") return;
 
   const dek = await beneficiaries.getDek(beneficiary.id);
-  const body = inboundText(msg);
-  const mediaId = msg.type === "image" ? msg.image.id : msg.type === "document" ? msg.document.id : null;
+  const body = inboundText(c);
+  const mediaId = c.type === "file" ? c.mediaId : null;
   const inserted = await db.insert(messages).values({
     beneficiaryId: beneficiary.id,
     direction: "in",
-    kind: msg.type === "text" || msg.type === "image" || msg.type === "document" || msg.type === "interactive" ? msg.type : msg.type === "button" ? "interactive" : "other",
+    kind: storedKind(c),
     waMessageId: msg.id,
     bodyEnc: body ? crypto.encrypt(dek, body) : null,
     mediaKey: mediaId?.startsWith("sandbox/") ? mediaId : null,
@@ -111,7 +116,7 @@ export async function processInbound(deps: WaDeps, msg: WaInboundMessage): Promi
   if (!inserted.length) return; // duplicate delivery
   await beneficiaries.touchInbound(beneficiary.id, deps.now());
 
-  const input = classify(msg);
+  const input = classify(c);
   if (input.type !== "ignore") {
     const verdict = getGuard(deps).check(beneficiary, input.type === "file", deps.now());
     if (verdict.kind === "quarantine") return quarantine(deps, beneficiary, verdict.reason);
@@ -348,7 +353,7 @@ async function onFreeState(c: Ctx, input: Input): Promise<void> {
 
 async function fetchMedia(c: Ctx, f: Extract<Input, { type: "file" }>): Promise<{ bytes: Buffer; mimeType: string } | null> {
   try {
-    const m = await c.deps.wa.downloadMedia(f.mediaId);
+    const m = await c.deps.channels.get(c.b.channel).downloadMedia(f.mediaId);
     const mimeType = SUPPORTED_MIME.has(f.mime) ? f.mime : m.mimeType;
     if (!SUPPORTED_MIME.has(mimeType) || m.bytes.length === 0 || m.bytes.length > MAX_MEDIA_BYTES) return null;
     return { bytes: m.bytes, mimeType: mimeType === "image/jpg" ? "image/jpeg" : mimeType };

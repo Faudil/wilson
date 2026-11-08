@@ -200,9 +200,9 @@ export const buddiesRouter = {
   contact: os.buddies.contact.use(requirePermission(BE)).handler(async ({ input, context }) => {
     const m = await ownMatch(context, input.matchId);
     if (m.status !== "active" || !m.contactShared) throw new ORPCError("FORBIDDEN");
-    const waId = await getServices(context.deps).beneficiaries.getWaId(m.beneficiaryId);
-    // WhatsApp hides this person's number (username, BSUID only): there is no phone number to give.
-    if (isBsuid(waId)) throw new ORPCError("NOT_FOUND", { message: "phone number hidden by WhatsApp" });
+    const { channel, address: waId } = await getServices(context.deps).beneficiaries.getAddress(m.beneficiaryId);
+    // No phone number to give: WhatsApp hides it (username, BSUID only), or the channel has none (Telegram chat id).
+    if ((channel !== "whatsapp" && channel !== "sms") || isBsuid(waId)) throw new ORPCError("NOT_FOUND", { message: "no phone number for this person" });
     await logAccess(context, "buddies.contact", m.id);
     return { phone: `+${waId.replace(/^\+/, "")}` };
   }),

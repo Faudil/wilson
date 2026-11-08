@@ -3,6 +3,7 @@
  * Columns suffixed `Enc` hold AES-256-GCM ciphertext under the beneficiary DEK (see src/crypto/keys.ts).
  * Change this file only through a reviewed migration (`bun run db:generate`).
  */
+import type { ChannelId } from "../channels/types.js";
 import { sql } from "drizzle-orm";
 import type { LanguageCode } from "@wilson/contracts";
 import {
@@ -105,7 +106,15 @@ export type ConversationState =
 
 export const beneficiaries = pgTable("beneficiaries", {
   id: uuid("id").primaryKey().defaultRandom(),
-  /** HMAC-SHA256(LOOKUP_KEY, wa_id), hex. Used to find the person from a webhook. */
+  /**
+   * Channel the person writes on (src/channels): whatsapp, later telegram, sms… Text, not an enum, so a new channel
+   * needs no migration. The `wa_id_*` columns hold the address on that channel (phone, BSUID, chat id).
+   */
+  channel: text("channel").$type<ChannelId>().notNull().default("whatsapp"),
+  /**
+   * HMAC-SHA256(LOOKUP_KEY, address), hex. Used to find the person from a webhook. WhatsApp hashes the bare wa_id;
+   * other channels hash `<channel>:<address>`, so the same digits on two channels are two people.
+   */
   waIdHash: text("wa_id_hash").notNull().unique(),
   waIdEnc: bytea("wa_id_enc").notNull(),
   /** Last 2 digits only, for the masked label "+33 •• •• •• •• 21". */

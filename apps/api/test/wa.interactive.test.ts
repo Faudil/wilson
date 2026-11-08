@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { LANGUAGE_CODES } from "@wilson/contracts";
 import { LANGUAGE_MENU, waText } from "@wilson/i18n";
 import { processInbound } from "../src/conversation/engine.js";
+import { fromWhatsApp } from "../src/whatsapp/inbound.js";
 import { letters } from "../src/db/schema.js";
 import { toInteractive } from "../src/whatsapp/interactive.js";
 import { MetaTransport } from "../src/whatsapp/meta.js";
@@ -59,7 +60,7 @@ describe("tapping buttons and asking for more explanation (sandbox engine)", () 
   afterAll(() => t.close());
 
   const tap = async (phone: string, id: string, title: string) => {
-    await processInbound(t.wdeps, { id: `wamid.${randomUUID()}`, from: phone, timestamp: "1", type: "interactive", interactive: { type: "list_reply", list_reply: { id, title } } });
+    await processInbound(t.wdeps, fromWhatsApp({ id: `wamid.${randomUUID()}`, from: phone, timestamp: "1", type: "interactive", interactive: { type: "list_reply", list_reply: { id, title } } }));
     await t.drain();
   };
 

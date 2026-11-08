@@ -477,7 +477,7 @@ function createChatService(deps: Deps): ChatService {
         awaitingReply: awaiting(msgs),
         messages: msgs,
         footer: footerFor(deps, b.language),
-        windowOpen: windowOpen(deps, b.lastInboundAt),
+        windowOpen: windowOpen(deps, b),
         guard: b.guardStatus as "none" | "quarantined" | "blocked",
       };
     },

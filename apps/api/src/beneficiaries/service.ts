@@ -3,10 +3,13 @@
  * consumed by the webhook/conversation engine, letters and documents.
  */
 import type { LanguageCode } from "@wilson/contracts";
+import type { ChannelId } from "../channels/types.js";
 import type { ConversationState } from "../db/schema.js";
 
 export interface BeneficiaryRow {
   id: string;
+  /** Channel the person writes on; replies go back on it. */
+  channel: ChannelId;
   language: LanguageCode;
   languageConfirmed: boolean;
   conversationState: ConversationState;
@@ -21,20 +24,25 @@ export interface BeneficiaryRow {
 
 export interface BeneficiariesService {
   /**
-   * Lookup by HMAC of wa_id, then of the BSUID (`userId`); creates the row + a new DEK on first contact. `waId` is the
-   * phone number, or the BSUID itself when WhatsApp hides the number. A phone number seen later replaces the BSUID.
+   * Lookup by HMAC of the address on this channel, then of `userId` (WhatsApp BSUID); creates the row + a new DEK on
+   * first contact. On WhatsApp `address` is the phone number, or the BSUID itself when WhatsApp hides the number; a
+   * phone number seen later replaces the BSUID.
    */
+  findOrCreate(channel: ChannelId, address: string, userId?: string): Promise<{ beneficiary: BeneficiaryRow; created: boolean }>;
+  /** `findOrCreate("whatsapp", …)`. */
   findOrCreateByWaId(waId: string, userId?: string): Promise<{ beneficiary: BeneficiaryRow; created: boolean }>;
   /**
-   * WhatsApp says the person changed phone number or BSUID: move the address to the new one, so letters, documents
-   * and reminders follow them. Returns false when nobody matches, or the new number already belongs to someone else.
+   * The channel says the person changed address (phone number, BSUID): move them to the new one, so letters,
+   * documents and reminders follow. Returns false when nobody matches, or the new address already belongs to someone else.
    */
-  changeIdentity(from: { waId?: string; userId?: string }, to: { waId?: string; userId?: string }): Promise<boolean>;
+  changeIdentity(channel: ChannelId, from: { address?: string; userId?: string }, to: { address?: string; userId?: string }): Promise<boolean>;
   get(id: string): Promise<BeneficiaryRow | null>;
   /** Clear DEK for this beneficiary (cached per process for a few minutes). Throws if shredded. */
   getDek(id: string): Promise<Buffer>;
-  /** Decrypted wa_id (phone number, or BSUID when the number is hidden), used only right before sending. */
+  /** Decrypted address on the person's channel (phone number, BSUID, chat id…), used only right before sending. */
   getWaId(id: string): Promise<string>;
+  /** Channel + decrypted address: where replies go. */
+  getAddress(id: string): Promise<{ channel: ChannelId; address: string }>;
   setLanguage(id: string, language: LanguageCode, confirmed: boolean): Promise<void>;
   setConversationState(id: string, state: ConversationState): Promise<void>;
   touchInbound(id: string, at: Date): Promise<void>;

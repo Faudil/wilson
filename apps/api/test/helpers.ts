@@ -19,6 +19,7 @@ import { router } from "../src/rpc/router.js";
 import { getServices, type Services } from "../src/services.js";
 import { MemoryBlobStore } from "../src/storage/memory.js";
 import type { WhatsAppTransport } from "../src/whatsapp/transport.js";
+import { Channels } from "../src/channels/registry.js";
 
 const ADMIN_URL = process.env.TEST_ADMIN_DATABASE_URL ?? "postgres://wilson:wilson@localhost:5432/postgres";
 const FALLBACK_URL = process.env.TEST_DATABASE_URL ?? "postgres://wilson:wilson@localhost:5432/wilson_test";
@@ -69,6 +70,8 @@ export class StubLlm implements LlmProvider {
 /** Transport stub recording what would have been sent. */
 export class StubTransport implements WhatsAppTransport {
   readonly mode = "sandbox" as const;
+  readonly channel = "whatsapp" as const;
+  readonly capabilities = { serviceWindow: false };
   readonly texts: { to: string; body: string }[] = [];
   readonly templates: { to: string; template: string; params: string[] }[] = [];
   async sendText(to: string, body: string) {
@@ -155,7 +158,7 @@ export async function makeTestDeps(opts: { now?: string; config?: Record<string,
   const llm = new StubLlm();
   const wa = new StubTransport();
   const geo = new FakeGeo();
-  const deps: Deps = { config, db, crypto: createCrypto(config), blobs, llm, geo, wa, jobs: queue, now: clock.now };
+  const deps: Deps = { config, db, crypto: createCrypto(config), blobs, llm, geo, channels: new Channels([wa]), jobs: queue, now: clock.now };
   return {
     deps, config, queue, blobs, clock, llm, wa, geo,
     services: getServices(deps),
