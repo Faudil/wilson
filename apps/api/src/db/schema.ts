@@ -110,6 +110,11 @@ export const beneficiaries = pgTable("beneficiaries", {
   waIdEnc: bytea("wa_id_enc").notNull(),
   /** Last 2 digits only, for the masked label "+33 •• •• •• •• 21". */
   waIdLast2: text("wa_id_last2").notNull(),
+  /**
+   * HMAC-SHA256(LOOKUP_KEY, BSUID), hex: WhatsApp's business-scoped user id, sent with every message since 2026.
+   * Finds the person when WhatsApp hides their phone number (usernames); `wa_id_*` then hold the BSUID itself.
+   */
+  userIdHash: text("user_id_hash"),
   language: languageEnum("language").notNull().default("fr"),
   languageConfirmed: boolean("language_confirmed").notNull().default(false),
   conversationState: jsonb("conversation_state").$type<ConversationState>().notNull().default({ step: "choose_language" }),
@@ -146,7 +151,10 @@ export const beneficiaries = pgTable("beneficiaries", {
   /** HMAC(LOOKUP_KEY, unlock code) and its expiry: one-time, given by a volunteer to someone who lost their words. */
   webUnlockHash: text("web_unlock_hash").unique(),
   webUnlockUntil: ts("web_unlock_until"),
-}, (t) => [index("beneficiaries_guard_idx").on(t.guardStatus, t.guardAt).where(sql`${t.guardStatus} <> 'none'`)]);
+}, (t) => [
+  index("beneficiaries_guard_idx").on(t.guardStatus, t.guardAt).where(sql`${t.guardStatus} <> 'none'`),
+  index("beneficiaries_user_id_hash_idx").on(t.userIdHash),
+]);
 
 export const messages = pgTable("messages", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -22,12 +22,20 @@ export interface BeneficiaryRow {
 }
 
 export interface BeneficiariesService {
-  /** Lookup by HMAC of wa_id; creates the row + a new DEK on first contact. */
-  findOrCreateByWaId(waId: string): Promise<{ beneficiary: BeneficiaryRow; created: boolean }>;
+  /**
+   * Lookup by HMAC of wa_id, then of the BSUID (`userId`); creates the row + a new DEK on first contact. `waId` is the
+   * phone number, or the BSUID itself when WhatsApp hides the number. A phone number seen later replaces the BSUID.
+   */
+  findOrCreateByWaId(waId: string, userId?: string): Promise<{ beneficiary: BeneficiaryRow; created: boolean }>;
+  /**
+   * WhatsApp says the person changed phone number or BSUID: move the address to the new one, so letters, documents
+   * and reminders follow them. Returns false when nobody matches, or the new number already belongs to someone else.
+   */
+  changeIdentity(from: { waId?: string; userId?: string }, to: { waId?: string; userId?: string }): Promise<boolean>;
   get(id: string): Promise<BeneficiaryRow | null>;
   /** Clear DEK for this beneficiary (cached per process for a few minutes). Throws if shredded. */
   getDek(id: string): Promise<Buffer>;
-  /** Decrypted wa_id, used only right before sending. */
+  /** Decrypted wa_id (phone number, or BSUID when the number is hidden), used only right before sending. */
   getWaId(id: string): Promise<string>;
   setLanguage(id: string, language: LanguageCode, confirmed: boolean): Promise<void>;
   setConversationState(id: string, state: ConversationState): Promise<void>;

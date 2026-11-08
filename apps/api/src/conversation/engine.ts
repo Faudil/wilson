@@ -81,7 +81,17 @@ function inboundText(msg: WaInboundMessage): string | null {
  */
 export async function processInbound(deps: WaDeps, msg: WaInboundMessage): Promise<void> {
   const { beneficiaries, db, crypto } = deps;
-  const { beneficiary } = await beneficiaries.findOrCreateByWaId(msg.from);
+  if (msg.type === "system") {
+    // WhatsApp's own notice that the person changed number or BSUID: follow them, say nothing.
+    const s = msg.system;
+    const moved = await beneficiaries.changeIdentity(
+      { waId: msg.from, userId: s.previous_user_id ?? msg.from_user_id },
+      { waId: s.wa_id ?? s.new_wa_id, userId: s.user_id },
+    );
+    if (!moved) console.warn(`[whatsapp] identity change (${s.type ?? "unknown"}) matched nobody, or the new number is already known`);
+    return;
+  }
+  const { beneficiary } = await beneficiaries.findOrCreateByWaId(msg.from, msg.from_user_id);
   if (beneficiary.archivedAt) return; // asked for deletion: stay silent
   // Blocked, or held by the flood guard until a volunteer looks: drop before storing or processing anything.
   if (beneficiary.guardStatus !== "none") return;

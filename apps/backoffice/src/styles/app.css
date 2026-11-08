@@ -1,25 +1,27 @@
 /* Logical properties only (margin-inline, padding-block, inset-inline, text-align: start…). A test enforces it. */
 
-/* Visual identity: Solidarité Migrants Wilson. Green (#14450a) and orange (#ff7300) come from the association's logo;
+/* Visual identity: Solidarité Migrants Wilson. The logo is dark green (#14450a) and orange (#ff7300); the UI uses a deep
+   teal primary (the complement of the orange) so brand never reads as the success green, and orange stays the "person waiting" signal;
    headings use Montserrat like the logo, body text stays in Noto Sans (all scripts). Text colours meet WCAG AA (4.5:1). */
 :root {
   /* Logo colours (decoration only: orange is too light for text on white) */
-  --logo-green: #14450a;
   --logo-orange: #ff7300;
   /* Surfaces and text: warm paper */
-  --bg: #f8f6f1;
+  --bg: #faf6f0;
   --surface: #ffffff;
-  --surface-2: #f1eee7;
-  --ink: #17201a;
-  --muted: #5a6359;
-  --line: #e5e1d7;
-  --line-strong: #b5b0a3;
-  /* Primary: association green */
-  --brand: #1d5c12;
-  --brand-hover: #14450a;
+  --surface-2: #f3ede4;
+  --ink: #1b2224;
+  --muted: #5b6466;
+  --line: #e8e1d6;
+  --line-strong: #b6ada0;
+  /* Primary: deep teal ("pétrole") */
+  --brand: #0f5c63;
+  --brand-hover: #0b474d;
   --on-brand: #ffffff;
-  --brand-soft: #e6f0de;
-  --brand-text: #1a5210;
+  /* Greeting banner: flat deep teal (white text 7.7:1) */
+  --hero: #0f5c63;
+  --brand-soft: #dcefee;
+  --brand-text: #0d5258;
   /* Warm accent: association orange */
   --orange: #ff7300;
   --on-orange: #1a1205;
@@ -37,9 +39,9 @@
   --ok: #1d7a46;
   --ok-bg: #ddf1e4;
   --ok-ink: #145a33;
-  --info-bg: #e5edf0;
-  --info-ink: #1e4c5c;
-  --muted-bg: #ebe8e1;
+  --info-bg: #e3ecf3;
+  --info-ink: #24435e;
+  --muted-bg: #ece6dd;
   --danger: #b42318;
   --on-danger: #ffffff;
   --wa-bg: #ece4d8;
@@ -64,19 +66,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --logo-green: #3f8f2c;
-    --bg: #0f1411;
-    --surface: #161d18;
-    --surface-2: #1f2821;
-    --ink: #e9efe6;
-    --muted: #a9b4a8;
-    --line: #29332b;
-    --line-strong: #56645a;
-    --brand: #8fd27a;
-    --brand-hover: #a6de94;
-    --on-brand: #0f1511;
-    --brand-soft: #22351d;
-    --brand-text: #a6de94;
+    --bg: #0e1416;
+    --surface: #151d20;
+    --surface-2: #1d272a;
+    --ink: #e8eef0;
+    --muted: #a6b3b6;
+    --line: #263236;
+    --line-strong: #52626a;
+    --brand: #6fc7c9;
+    --brand-hover: #8ad4d5;
+    --on-brand: #0b1416;
+    --hero: #12474d;
+    --brand-soft: #173236;
+    --brand-text: #8ad4d5;
     --orange: #ff8a2b;
     --on-orange: #2b1206;
     --orange-soft: #3a2412;
@@ -92,9 +94,9 @@
     --ok: #6fcf97;
     --ok-bg: #1b3a29;
     --ok-ink: #b0e6c5;
-    --info-bg: #1c2f37;
-    --info-ink: #b0dbea;
-    --muted-bg: #262f28;
+    --info-bg: #1c2c3a;
+    --info-ink: #b3cde3;
+    --muted-bg: #232d30;
     --danger: #ff8f84;
     --on-danger: #2b0805;
     --wa-bg: #141b16;
@@ -247,14 +249,14 @@ a {
   background: var(--surface);
   border-block-end: 1px solid var(--line);
 }
-/* Thin orange/green stripe: the two halves of the logo ring (kept as in the logo, not mirrored in RTL). */
+/* Thin orange stripe from the logo; the logo's green stays inside the logo. */
 .topbar::before {
   content: "";
   position: absolute;
   inset-inline: 0;
   inset-block-start: 0;
   block-size: 3px;
-  background: linear-gradient(90deg, var(--orange) 0 50%, var(--logo-green) 50% 100%);
+  background: var(--orange);
 }
 .brand {
   display: flex;
@@ -1118,13 +1120,13 @@ fieldset:disabled {
 }
 
 /* ---------- Home ---------- */
-/* Greeting banner in the association's green, with the logo's orange/green ring drawn in CSS (no image to load). */
+/* Greeting banner in the brand teal, with the logo's orange/green ring drawn in CSS (no image to load). */
 .hello {
   position: relative;
   overflow: hidden;
   padding: 22px 20px;
   border-radius: 22px;
-  background: linear-gradient(135deg, #1d5c12, #14450a);
+  background: var(--hero);
   color: #ffffff;
   box-shadow: var(--shadow);
 }

@@ -137,7 +137,7 @@ Détails et captures des menus : [whatsapp-setup.md §1 à §4](whatsapp-setup.m
 2. Page **WhatsApp → API Setup** : notez le *Phone number ID* et le *WhatsApp Business Account ID* ; ajoutez votre portable comme destinataire de test.
 3. **Clé secrète de l'app** : *App settings → Basic → App secret*.
 4. **Jeton de vérification** : `openssl rand -hex 24`, une valeur que vous inventez.
-5. **Jeton permanent** via un utilisateur système (le jeton de la page *API Setup* expire en 24 h) : <https://business.facebook.com/settings> → Utilisateurs système → « wilson-api », rôle Admin → attribuer l'app et le compte WhatsApp → *Générer un jeton*, expiration **Jamais**, autorisations `whatsapp_business_messaging` et `whatsapp_business_management`.
+5. **Jeton permanent** via un utilisateur système (le jeton de la page *API Setup* expire en 24 h) : <https://business.facebook.com/settings> → Utilisateurs système → « wilson-api », rôle Admin → attribuer l'app et le compte WhatsApp → *Générer un jeton*, expiration **Jamais**, autorisations `whatsapp_business_messaging`, `whatsapp_business_management` et `business_management`.
    → <https://developers.facebook.com/docs/whatsapp/business-management-api/get-started#system-user-access-tokens>
 6. Dans le `.env` du serveur :
 
@@ -191,7 +191,7 @@ Une fois la vérification de l'entreprise (étape 1.6) acceptée. Détails : [wh
    ```
 
    Choisissez un PIN à 6 chiffres et **notez-le** dans le gestionnaire de mots de passe (c'est la vérification en deux étapes du numéro). Stockage local : <https://developers.facebook.com/docs/whatsapp/cloud-api/overview/local-storage>
-4. **Moyen de paiement** : WhatsApp Manager → Vue d'ensemble → *Ajouter un moyen de paiement* (les modèles hors 24 h coûtent quelques centimes ; grille : <https://developers.facebook.com/docs/whatsapp/pricing>).
+4. **Moyen de paiement** : WhatsApp Manager → Vue d'ensemble → *Ajouter un moyen de paiement* — obligatoire : sans lui, Meta n'envoie ni les modèles (hors 24 h) ni, depuis le 1er octobre 2026, les réponses au-delà de 1 000 par mois et par numéro (environ 0,03 $ chacune en France ; grille : <https://developers.facebook.com/docs/whatsapp/pricing>).
 5. **Mode Live** : en haut de l'app Meta, basculez de « Développement » à « Live » (demande l'URL de la politique de confidentialité, étape 1.7).
 6. `wa check` doit afficher `platform=CLOUD_API`, `status=CONNECTED`, webhooks abonnés, modèles approuvés. Faites un dernier test depuis un portable qui n'a jamais écrit au numéro.
 
