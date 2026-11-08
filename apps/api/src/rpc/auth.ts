@@ -1,7 +1,10 @@
 import { ORPCError } from "@orpc/server";
 import { os, requirePermission } from "./base.js";
 import { getAssociationSearch } from "../associations/search.js";
-import { SignupError } from "../auth/service.js";
+import { eq } from "drizzle-orm";
+import type { VolunteerRole } from "@wilson/contracts";
+import { openInvitation, SignupError } from "../auth/service.js";
+import { associations } from "../db/schema.js";
 import { getAuth } from "./context.js";
 import { logAccess } from "./logAccess.js";
 
@@ -19,11 +22,13 @@ export const authRouter = {
   }),
 
   signup: os.auth.signup.handler(async ({ input, context, errors }) => {
-    if (context.deps.config.VOLUNTEER_SIGNUP !== "on") throw new ORPCError("FORBIDDEN");
+    // Public sign-up can be off; an invite link still works (checked in the service).
+    if (context.deps.config.VOLUNTEER_SIGNUP !== "on" && !input.invitationToken) throw new ORPCError("FORBIDDEN");
     try {
       await getAuth(context.deps).signup(input, { ip: context.ip });
     } catch (e) {
       if (e instanceof SignupError && e.reason === "rate_limited") throw errors.TOO_MANY_REQUESTS({ data: { retryAfterSeconds: e.retryAfterSeconds } });
+      if (e instanceof SignupError && e.reason === "signup_closed") throw new ORPCError("FORBIDDEN");
       if (e instanceof SignupError) throw new ORPCError("CONFLICT", { data: { reason: e.reason } });
       throw e;
     }
@@ -35,7 +40,16 @@ export const authRouter = {
     return { ok: true as const };
   }),
   searchAssociations: os.auth.searchAssociations.handler(({ input, context }) =>
-    context.deps.config.VOLUNTEER_SIGNUP === "on" ? getAssociationSearch(context.deps).search(input.query) : []),
+    context.deps.config.VOLUNTEER_SIGNUP === "on" || context.volunteer ? getAssociationSearch(context.deps).search(input.query) : []),
+
+  invitation: os.auth.invitation.handler(async ({ input, context }) => {
+    const inv = await openInvitation(context.deps.db, input.token, context.deps.now());
+    if (!inv) return { valid: false, associationName: null, role: null };
+    const [a] = inv.associationId
+      ? await context.deps.db.select({ name: associations.name }).from(associations).where(eq(associations.id, inv.associationId)).limit(1)
+      : [];
+    return { valid: true, associationName: a?.name ?? null, role: inv.role as VolunteerRole };
+  }),
 
   logout: os.auth.logout.handler(async ({ context }) => {
     if (context.sessionToken) await getAuth(context.deps).logout(context.sessionToken);

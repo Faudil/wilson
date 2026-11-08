@@ -2581,6 +2581,7 @@ fieldset {
   padding: 0;
   margin: 0;
   min-inline-size: 0;
+}
 
 /* ---------- Help today (places) & announcements ---------- */
 .kind-picker,
@@ -2680,6 +2681,32 @@ fieldset {
   font-size: 0.8rem;
 }
 
+/* ---------- Associations ---------- */
+.assoc-admins {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.assoc-admins li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.assoc-admins li > span {
+  flex: 1;
+}
+/* Four tabs on Bénévoles: keep labels on one line and let the row scroll on narrow phones. */
+.vol-tabs .segmented {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.vol-tabs .segmented button {
+  flex: 1 0 auto;
+  white-space: nowrap;
+}
 /* Two-factor authentication */
 .tfa-banner {
   margin-block-end: 16px;

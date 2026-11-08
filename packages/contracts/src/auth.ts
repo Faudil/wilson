@@ -16,7 +16,7 @@ export { ROLE_PERMISSIONS };
  */
 export const TWO_FACTOR_PERMISSIONS: readonly Permission[] = [
   "volunteers.manage", "audit.view", "usage.manage", "knowledge.manage", "notes.moderate", "broadcasts.approve",
-  "buddies.manage", "buddies.reports", "appointments.manage",
+  "buddies.manage", "buddies.reports", "appointments.manage", "associations.manage", "members.manage",
 ];
 
 export const VolunteerSchema = z.object({
@@ -31,6 +31,9 @@ export const VolunteerSchema = z.object({
   twoFactorEnabled: z.boolean(),
   /** Admin rights are withheld until this account enrols an authenticator app (see TWO_FACTOR_PERMISSIONS). */
   twoFactorMissing: z.boolean(),
+  /** Association the volunteer belongs to, and whether they administer its members. */
+  association: z.object({ id: IdSchema, name: z.string() }).nullable().default(null),
+  associationAdmin: z.boolean().default(false),
 });
 export type Volunteer = z.infer<typeof VolunteerSchema>;
 
@@ -78,6 +81,8 @@ export const SignupInputSchema = z.object({
   acceptsConfidentiality: z.literal(true),
   /** Honeypot: hidden from people, filled in by bots. A non-empty value is silently ignored. */
   website: z.string().max(200).optional(),
+  /** Token of an invite link (#/join/<token>): the account is created active, in the inviting association. */
+  invitationToken: z.string().min(20).max(100).optional(),
 });
 export type SignupInput = z.infer<typeof SignupInputSchema>;
 
@@ -97,6 +102,9 @@ export const VolunteerAccountSchema = z.object({
   createdAt: TimestampSchema,
   approvedAt: TimestampSchema.nullable(),
   approvedByName: z.string().nullable(),
+  /** Association the account belongs to (managed by its association admins), and whether it is one of them. */
+  memberOf: z.object({ id: IdSchema, name: z.string() }).nullable(),
+  associationAdmin: z.boolean(),
   /** Effective permissions (role bundle + the overrides below). */
   permissions: z.array(PermissionSchema),
   /** Per-person grants (granted: true) or revocations (false) on top of the role bundle. */
@@ -106,3 +114,37 @@ export const VolunteerAccountSchema = z.object({
   twoFactorEnabled: z.boolean(),
 });
 export type VolunteerAccount = z.infer<typeof VolunteerAccountSchema>;
+
+/** An association working on this instance (created by a global admin). */
+export const AssociationSchema = z.object({
+  id: IdSchema,
+  name: z.string(),
+  siren: z.string().nullable(),
+  rna: z.string().nullable(),
+  city: z.string().nullable(),
+  memberCount: z.number().int(),
+  pendingCount: z.number().int(),
+  admins: z.array(z.object({ id: IdSchema, name: z.string() })),
+  createdAt: TimestampSchema,
+});
+export type Association = z.infer<typeof AssociationSchema>;
+
+export const InvitationSchema = z.object({
+  id: IdSchema,
+  association: z.object({ id: IdSchema, name: z.string() }).nullable(),
+  role: VolunteerRoleSchema,
+  label: z.string().nullable(),
+  createdByName: z.string().nullable(),
+  createdAt: TimestampSchema,
+  expiresAt: TimestampSchema,
+  status: z.enum(["open", "used", "expired", "revoked"]),
+  usedByName: z.string().nullable(),
+});
+export type Invitation = z.infer<typeof InvitationSchema>;
+
+/** What the join page shows before sign-up (public, from the token). */
+export const InvitationPreviewSchema = z.object({
+  valid: z.boolean(),
+  associationName: z.string().nullable(),
+  role: VolunteerRoleSchema.nullable(),
+});

@@ -1,6 +1,6 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-import { AssociationRefSchema, AssociationSearchInputSchema, LoginInputSchema, PermissionSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
+import { AssociationRefSchema, AssociationSchema, AssociationSearchInputSchema, InvitationPreviewSchema, InvitationSchema, LoginInputSchema, PermissionSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
 import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
@@ -52,6 +52,8 @@ const auth = {
    * is unreachable or ASSOCIATION_SEARCH=off: the form then keeps the typed name as free text.
    */
   searchAssociations: base.input(AssociationSearchInputSchema).output(z.array(AssociationRefSchema)),
+  /** Public: what an invite link leads to (association, role), or valid: false when unknown, used, revoked or expired. */
+  invitation: base.input(z.object({ token: z.string().min(20).max(100) })).output(InvitationPreviewSchema),
   logout: base.output(z.void()),
   me: base.output(VolunteerSchema),
   setUiLanguage: base.input(z.object({ language: LanguageSchema })).output(VolunteerSchema),
@@ -107,7 +109,12 @@ const sandbox = {
   reset: base.input(z.object({ phone: SandboxPhoneSchema })).output(z.void()),
 };
 
-/** Account management (admin, `volunteers.manage`): approve self-signups, change roles, disable accounts. */
+/**
+ * Account management: approve self-signups, change roles and permissions, disable accounts.
+ * `volunteers.manage` (global admin) acts on every account; `members.manage` (association admin) only on members of
+ * their own association, never on other association admins, never up to the admin role or global-only permissions.
+ * An account outside the caller's scope answers NOT_FOUND.
+ */
 const volunteers = {
   list: base.input(z.object({ status: VolunteerAccountStatusSchema.optional() })).output(z.array(VolunteerAccountSchema)),
   /** Pending → active with the chosen role (default responder: conversations only). */
@@ -322,9 +329,37 @@ const numbers = {
   unblock: base.input(z.object({ beneficiaryId: IdSchema })).output(z.void()),
 };
 
+/** Associations (global admin, `associations.manage`). */
+const associations = {
+  list: base.output(z.array(AssociationSchema)),
+  /** From the official register (siren/rna) or a typed name. CONFLICT { reason: "exists" } on a duplicate SIREN/RNA. */
+  create: base.input(AssociationRefSchema).output(AssociationSchema),
+  /** Put a volunteer in an association (or none). Removing them from an association also removes its admin flag. */
+  setMember: base.input(z.object({ volunteerId: IdSchema, associationId: IdSchema.nullable() })).output(VolunteerAccountSchema),
+  /** Name or remove an association admin. Naming also moves the volunteer into the association. Active accounts only. */
+  setAdmin: base.input(z.object({ volunteerId: IdSchema, associationId: IdSchema, admin: z.boolean() })).output(VolunteerAccountSchema),
+};
+
+/**
+ * Invite links (`members.manage` for your own association, `volunteers.manage` for any). The token is returned once,
+ * in the link; only its hash is stored. Valid 7 days, single use. Opening it signs the person up already approved.
+ */
+const invitations = {
+  list: base.output(z.array(InvitationSchema)),
+  create: base
+    .input(z.object({
+      role: VolunteerRoleSchema.default("responder"),
+      label: z.string().trim().max(80).optional(),
+      /** Global admins pick the association (null = none); association admins always invite into their own. */
+      associationId: IdSchema.nullable().optional(),
+    }))
+    .output(z.object({ invitation: InvitationSchema, token: z.string() })),
+  revoke: base.input(z.object({ id: IdSchema })).output(InvitationSchema),
+};
+
 const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional(), emailVerification: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, numbers, system };
+export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, numbers, system };
 export type Contract = typeof contract;

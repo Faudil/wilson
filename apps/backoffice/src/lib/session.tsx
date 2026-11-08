@@ -9,3 +9,6 @@ export function useSession(): Session {
   if (!s) throw new Error("useSession outside session");
   return s;
 }
+
+/** Global admins manage every account; association admins (members.manage) only their own association's members. */
+export const canManageMembers = (s: Session): boolean => s.can("volunteers.manage") || (s.can("members.manage") && !!s.volunteer.association);

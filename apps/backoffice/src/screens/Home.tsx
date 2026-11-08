@@ -5,7 +5,7 @@ import { useAppointmentCounts, useAttentionCount, useDueTasks, useLetterStats, u
 import { BudgetNotice, useUsageBudget } from "../components/BudgetNotice";
 import { firstName, longDate } from "../lib/relative";
 import { href } from "../lib/router";
-import { useSession } from "../lib/session";
+import { canManageMembers, useSession } from "../lib/session";
 
 function Tile({
   to,
@@ -51,14 +51,15 @@ function Tile({
 
 export function Home() {
   const { t, lang } = useI18n();
-  const { volunteer, can } = useSession();
+  const session = useSession();
+  const { volunteer, can } = session;
   const canLetters = can("letters.review");
   const canChats = can("conversations.view");
   const canDeadlines = can("documents.view_metadata");
   const letters = useLetterStats(canLetters);
   const chats = useAttentionCount(canChats);
   const deadlines = useWeekDeadlines(canDeadlines);
-  const canVolunteers = can("volunteers.manage");
+  const canVolunteers = canManageMembers(session);
   const signups = usePendingVolunteers(canVolunteers);
   const budget = useUsageBudget(can("usage.manage"));
   const canTasks = can("notes.view");
