@@ -146,6 +146,17 @@ describe("rpc: documents & beneficiaries", () => {
     expect((await client.beneficiaries.list({ limit: 20, search: "99" })).items).toHaveLength(0);
     expect((await client.beneficiaries.setLanguage({ id: beneficiary.id, language: "ar" })).language).toBe("ar");
 
+    // A nickname and avatar replace the masked phone everywhere volunteers see the person, and can be searched.
+    const named = await client.beneficiaries.setAvatar({ id: beneficiary.id, avatar: { name: "  Fatima ", emoji: "🌻", color: "plum" } });
+    expect(named).toMatchObject({ label: "Fatima", avatar: { name: "Fatima", emoji: "🌻", color: "plum" } });
+    expect((await client.beneficiaries.list({ limit: 20, search: "fat" })).items.map((i) => i.id)).toEqual([beneficiary.id]);
+    expect((await client.beneficiaries.list({ limit: 20, search: "zz" })).items).toHaveLength(0);
+    const cleared = await client.beneficiaries.setAvatar({ id: beneficiary.id, avatar: { name: " ", emoji: null, color: null } });
+    expect(cleared).toMatchObject({ label: "•• •• •• •• 21", avatar: null });
+    expect(await code(client.beneficiaries.setAvatar({ id: crypto.randomUUID(), avatar: { name: "X", emoji: null, color: null } }))).toBe("NOT_FOUND");
+    const week = await client.team.week();
+    expect(week).toMatchObject({ lettersExplained: expect.any(Number), peopleHelped: expect.any(Number), mine: expect.any(Number) });
+
     const archived = await client.documents.archive({ id: documentId });
     expect(archived.archivedAt).not.toBeNull();
     expect(archived.reminders).toHaveLength(0);

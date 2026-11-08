@@ -2,7 +2,7 @@
  * Beneficiary identity + keys — implemented by batch "api-core" (beneficiaries/serviceImpl.ts),
  * consumed by the webhook/conversation engine, letters and documents.
  */
-import type { LanguageCode } from "@wilson/contracts";
+import type { Avatar, LanguageCode } from "@wilson/contracts";
 import type { ConversationState } from "../db/schema.js";
 
 export interface BeneficiaryRow {
@@ -42,4 +42,6 @@ export interface BeneficiariesService {
   archiveAll(id: string): Promise<void>;
   /** "+33 •• •• •• •• 21" */
   label(id: string): Promise<string>;
+  /** Label (nickname or masked phone) and the avatar volunteers chose, for summaries. */
+  identity(id: string): Promise<{ label: string; avatar: Avatar | null }>;
 }

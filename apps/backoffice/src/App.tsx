@@ -14,6 +14,7 @@ import { initials } from "./lib/relative";
 import { href, useRoute } from "./lib/router";
 import { canManageMembers, SessionContext, type Session } from "./lib/session";
 import { Home } from "./screens/Home";
+import { TOUR_EVENT } from "./components/WelcomeTour";
 import { Login } from "./screens/Login";
 import markUrl from "./brand/mark.svg";
 
@@ -108,6 +109,19 @@ function AccountSheet({ open, onClose, onLogout, volunteer }: { open: boolean; o
             <TwoFactorPanel />
           </Suspense>
         </LazyBoundary>
+        <button
+          type="button"
+          className="btn btn-block btn-quiet"
+          onClick={() => {
+            onClose();
+            // The tour lives on the home page: go there, then ask it to open.
+            location.hash = "#/";
+            setTimeout(() => window.dispatchEvent(new Event(TOUR_EVENT)), 80);
+          }}
+        >
+          <Icon name="sparkles" size={18} />
+          {t("tour.again")}
+        </button>
         <button type="button" className="btn btn-block btn-danger-quiet" onClick={onLogout}>
           <Icon name="logout" size={18} />
           {t("account.logout")}

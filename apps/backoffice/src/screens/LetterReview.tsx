@@ -4,12 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Chip, Countdown, DeadlineText, LangBadge, StatusBadge, UrgencyBadge } from "../components/badges";
 import { DateField } from "../components/DateField";
+import { labelDir } from "../components/Avatar";
 import { Icon, type IconName } from "../components/Icon";
 import { BackLink, ConfirmSheet, ErrorBox, Skeleton, useObjectUrl, useToast } from "../components/ui";
 import { useI18n, type MessageKey } from "../i18n";
 import { errorCode, orpc } from "../lib/api";
 import { linesToList } from "../lib/format";
 import { href, navigate } from "../lib/router";
+import { celebrate } from "../lib/celebrate";
 import { relativeTime } from "../lib/relative";
 import { useSession } from "../lib/session";
 import { formatDate, formatDateTime } from "../lib/wilson-i18n";
@@ -199,7 +201,8 @@ function Review({ detail }: { detail: LetterDetail }) {
     ...orpc.letters.approve.mutationOptions(),
     onSuccess: (d) => {
       refresh(d);
-      toast(t("letter.sentToast"));
+      // The queue says thank you (and offers the next letter) instead of a toast.
+      celebrate({ label: d.beneficiaryLabel });
       navigate("queue");
     },
   });
@@ -274,7 +277,7 @@ function Review({ detail }: { detail: LetterDetail }) {
         </div>
         <h1>{detail.letterType ? t(`letterType.${detail.letterType}` as MessageKey) : t("queue.typeUnknown")}</h1>
         <p className="muted small">
-          <span dir="ltr">{detail.beneficiaryLabel}</span> · {relativeTime(detail.receivedAt, uiLang)}
+          <span dir={labelDir(detail.beneficiaryLabel)}>{detail.beneficiaryLabel}</span> · {relativeTime(detail.receivedAt, uiLang)}
         </p>
         {deadlineDate && (
           <div className={`deadline-banner${urgency === "high" ? " is-hot" : ""}`}>

@@ -1,7 +1,7 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 import { AssociationRefSchema, AssociationSchema, AssociationSearchInputSchema, InvitationPreviewSchema, InvitationSchema, LoginInputSchema, PermissionSchema, SignupInputSchema, TotpCodeSchema, TwoFactorSetupSchema, VolunteerAccountSchema, VolunteerAccountStatusSchema, VolunteerRoleSchema, VolunteerSchema } from "./auth.js";
-import { BeneficiaryDetailSchema, BeneficiarySummarySchema } from "./beneficiaries.js";
+import { BeneficiaryAvatarInputSchema, BeneficiaryDetailSchema, BeneficiarySummarySchema, TeamWeekSchema } from "./beneficiaries.js";
 import { CalendarDateSchema, IdSchema, pageOf, PageInputSchema } from "./common.js";
 import { DeadlineRowSchema, DocumentSchema, DocumentUpdateSchema } from "./documents.js";
 import { ConversationDetailSchema, ConversationSummarySchema } from "./chat.js";
@@ -87,6 +87,13 @@ const beneficiaries = {
     .output(pageOf(BeneficiarySummarySchema)),
   get: base.input(z.object({ id: IdSchema })).output(BeneficiaryDetailSchema),
   setLanguage: base.input(z.object({ id: IdSchema, language: LanguageSchema })).output(BeneficiarySummarySchema),
+  /** Nickname, emoji and colour volunteers see for this person. Back-office only: never sent to the person. */
+  setAvatar: base.input(BeneficiaryAvatarInputSchema).output(BeneficiarySummarySchema),
+};
+
+/** The team's week, for the home page thank-you. Any logged-in volunteer. */
+const team = {
+  week: base.output(TeamWeekSchema),
 };
 
 const documents = {
@@ -361,5 +368,5 @@ const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional(), emailVerification: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, numbers, system };
+export const contract = { auth, team, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, numbers, system };
 export type Contract = typeof contract;

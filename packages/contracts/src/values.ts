@@ -212,3 +212,7 @@ export const HELP_TOPICS = [...ACCOMPANIMENT_TOPICS, ...FORM_TOPICS] as const;
 
 /** draft = being typed on WhatsApp (never shown to volunteers). */
 export const HELP_STATUSES = ["draft", "open", "accepted", "done", "cancelled", "expired"] as const;
+
+/** Avatar choices volunteers can give a person in the back-office (see AvatarSchema). */
+export const AVATAR_EMOJIS = ["🌻", "🌿", "🌙", "⭐", "🍊", "🐦", "🌊", "🎈", "🌸", "🍀", "☀️", "🦋", "🐢", "🍎", "🎵", "🏔️"] as const;
+export const AVATAR_COLORS = ["teal", "orange", "plum", "sky", "moss", "rose", "sand", "slate"] as const;

@@ -17,9 +17,11 @@ import { volunteersRouter } from "./volunteers.js";
 import { associationsRouter, invitationsRouter } from "./associations.js";
 import { placesRouter } from "./places.js";
 import { broadcastsRouter } from "./broadcasts.js";
+import { teamRouter } from "./team.js";
 
 export const router = os.router({
   auth: authRouter,
+  team: teamRouter,
   beneficiaries: beneficiariesRouter,
   documents: documentsRouter,
   system: systemRouter,

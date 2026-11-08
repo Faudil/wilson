@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CalendarDateSchema, IdSchema, TimestampSchema } from "./common.js";
+import { AvatarSchema, CalendarDateSchema, IdSchema, TimestampSchema } from "./common.js";
 import { LetterSourceRefSchema } from "./knowledge.js";
 import { LanguageSchema } from "./languages.js";
 import { LETTER_TYPES } from "./values.js";
@@ -75,7 +75,8 @@ export type LetterStatus = z.infer<typeof LetterStatusSchema>;
 export const LetterSummarySchema = z.object({
   id: IdSchema,
   beneficiaryId: IdSchema,
-  beneficiaryLabel: z.string(), // masked phone, e.g. "+33 6 •• •• •4 21"
+  beneficiaryLabel: z.string(), // nickname if a volunteer gave one, else masked phone, e.g. "•• •• •• •• 21"
+  beneficiaryAvatar: AvatarSchema.nullable(),
   language: LanguageSchema,
   status: LetterStatusSchema,
   letterType: LetterTypeSchema.nullable(),

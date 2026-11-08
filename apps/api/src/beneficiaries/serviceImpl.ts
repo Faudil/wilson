@@ -1,5 +1,5 @@
 import { eq, and, isNull, sql } from "drizzle-orm";
-import { isBsuid, type LanguageCode } from "@wilson/contracts";
+import { isBsuid, type Avatar, type LanguageCode } from "@wilson/contracts";
 import type { Deps } from "../deps.js";
 import { beneficiaries, documents, type ConversationState } from "../db/schema.js";
 import { cancelRemindersFor } from "../documents/reminders.js";
@@ -164,9 +164,19 @@ export class BeneficiariesServiceImpl implements BeneficiariesService {
   }
 
   async label(id: string): Promise<string> {
-    const [r] = await this.deps.db.select({ l: beneficiaries.waIdLast2 }).from(beneficiaries).where(eq(beneficiaries.id, id));
-    return `${LABEL_MASK} ${r?.l ?? "••"}`;
+    return (await this.identity(id)).label;
+  }
+
+  async identity(id: string): Promise<{ label: string; avatar: Avatar | null }> {
+    const [r] = await this.deps.db.select({ l: beneficiaries.waIdLast2, a: beneficiaries.avatar }).from(beneficiaries).where(eq(beneficiaries.id, id));
+    return { label: maskedLabel(r?.l ?? "••", r?.a), avatar: avatarOf(r?.a) };
   }
 }
 
-export const maskedLabel = (last2: string): string => `${LABEL_MASK} ${last2}`;
+/** The nickname volunteers gave the person, else "•• •• •• •• 21". */
+export const maskedLabel = (last2: string, avatar?: { name: string | null } | null): string =>
+  avatar?.name?.trim() || `${LABEL_MASK} ${last2}`;
+
+/** The stored avatar as the contract shape, or null when nothing was chosen. */
+export const avatarOf = (a: { name: string | null; emoji: string | null; color: string | null } | null | undefined): Avatar | null =>
+  a && (a.name || a.emoji || a.color) ? ({ name: a.name ?? null, emoji: a.emoji ?? null, color: a.color ?? null } as Avatar) : null;

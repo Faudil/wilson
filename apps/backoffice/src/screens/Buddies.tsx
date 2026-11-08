@@ -6,6 +6,7 @@ import { LANGUAGES, LANGUAGE_CODES } from "@wilson/contracts/values";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Chip, LangBadge } from "../components/badges";
+import { labelDir } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { BackLink, ConfirmSheet, Empty, ErrorBox, Sheet, Skeleton, useToast } from "../components/ui";
 import { useI18n, type MessageKey, type TFn } from "../i18n";
@@ -230,7 +231,7 @@ function MatchCard({ m, showVolunteer }: { m: BuddyMatch; showVolunteer?: boolea
     <li>
       <a className={`card${m.status === "suspended" ? " is-attention" : ""}`} href={href("buddies", m.id)}>
         <div className="card-top">
-          <strong className="card-title" dir="ltr">{m.beneficiaryLabel}</strong>
+          <strong className="card-title" dir={labelDir(m.beneficiaryLabel)}>{m.beneficiaryLabel}</strong>
           <LangBadge language={m.beneficiaryLanguage} />
         </div>
         <div className="chips">
@@ -295,7 +296,7 @@ function Requests() {
           <li key={r.id}>
             <div className="card">
               <div className="card-top">
-                <strong className="card-title" dir="ltr">{r.beneficiaryLabel}</strong>
+                <strong className="card-title" dir={labelDir(r.beneficiaryLabel)}>{r.beneficiaryLabel}</strong>
                 <LangBadge language={r.language} />
               </div>
               <div className="chips">
@@ -484,7 +485,7 @@ export function BuddyDetail({ id }: { id: string }) {
       <BackLink to={href("buddies")}>{t("buddy.title")}</BackLink>
       <div className="card stack-tight">
         <div className="card-top">
-          <h1 className="card-title" dir="ltr">{m.beneficiaryLabel}</h1>
+          <h1 className="card-title" dir={labelDir(m.beneficiaryLabel)}>{m.beneficiaryLabel}</h1>
           <LangBadge language={m.beneficiaryLanguage} />
         </div>
         <div className="chips">

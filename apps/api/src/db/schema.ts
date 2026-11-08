@@ -117,6 +117,8 @@ export const beneficiaries = pgTable("beneficiaries", {
   userIdHash: text("user_id_hash"),
   language: languageEnum("language").notNull().default("fr"),
   languageConfirmed: boolean("language_confirmed").notNull().default(false),
+  /** Nickname / emoji / colour volunteers chose for this person (back-office only, never sent). Null = masked phone. */
+  avatar: jsonb("avatar").$type<{ name: string | null; emoji: string | null; color: string | null }>(),
   conversationState: jsonb("conversation_state").$type<ConversationState>().notNull().default({ step: "choose_language" }),
   /** Beneficiary DEK wrapped by MASTER_KEY (iv|tag|ciphertext). Destroyed = all data unreadable. */
   wrappedDek: bytea("wrapped_dek"),

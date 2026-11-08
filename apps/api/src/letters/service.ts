@@ -127,10 +127,12 @@ export function createLettersService(deps: Deps, beneficiaries: BeneficiariesSer
 
   async function toSummary(r: LetterRow): Promise<LetterSummary> {
     const b = await beneficiaries.get(r.beneficiaryId);
+    const who = await beneficiaries.identity(r.beneficiaryId);
     return {
       id: r.id,
       beneficiaryId: r.beneficiaryId,
-      beneficiaryLabel: await beneficiaries.label(r.beneficiaryId),
+      beneficiaryLabel: who.label,
+      beneficiaryAvatar: who.avatar,
       language: b?.language ?? "fr",
       status: r.status as LetterStatus,
       letterType: (r.letterType as LetterType | null) ?? null,

@@ -10,7 +10,13 @@ export function useLetterStats(enabled: boolean) {
     retry: false,
   });
   const items = q.data?.items ?? [];
-  return { query: q, pending: items.length, urgent: items.filter((l) => l.urgency === "high").length };
+  // The one to start with: most urgent first, then the nearest deadline, then the one waiting longest.
+  const rank = { high: 0, medium: 1, low: 2 } as const;
+  const next = [...items].sort((a, z) =>
+    (rank[a.urgency ?? "low"] - rank[z.urgency ?? "low"])
+    || (a.deadline ?? "9999").localeCompare(z.deadline ?? "9999")
+    || a.receivedAt.localeCompare(z.receivedAt))[0] ?? null;
+  return { query: q, pending: items.length, urgent: items.filter((l) => l.urgency === "high").length, next };
 }
 
 /** Documents expiring within the next 7 days. */
@@ -57,4 +63,20 @@ export function useAppointmentCounts(enabled: boolean): { open: number; mineSoon
 export function useHeldNumbers(enabled: boolean): number {
   const q = useQuery({ ...orpc.numbers.heldCount.queryOptions(), enabled, refetchInterval: 60_000, retry: false });
   return q.data?.count ?? 0;
+}
+
+/** The conversation that most needs a person right now (the attention list is already sorted that way). */
+export function useTopConversation(enabled: boolean) {
+  const q = useQuery({
+    ...orpc.conversations.list.queryOptions({ input: { filter: "attention", limit: 1 } }),
+    enabled,
+    refetchInterval: 30_000,
+    retry: false,
+  });
+  return q.data?.items[0] ?? null;
+}
+
+/** What the team did this week, for the home page thank-you. */
+export function useTeamWeek() {
+  return useQuery({ ...orpc.team.week.queryOptions(), staleTime: 60_000, retry: false });
 }

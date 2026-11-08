@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Countdown } from "../components/badges";
+import { labelDir } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { Empty, ErrorBox, Skeleton } from "../components/ui";
 import { useI18n, type MessageKey } from "../i18n";
@@ -46,7 +47,7 @@ export function Deadlines() {
                       <Icon name="calendar" size={16} />
                       {formatDate(row.expiresAt, lang, { weekday: true })}
                     </span>
-                    <span className="card-kicker" dir="ltr">
+                    <span className="card-kicker" dir={labelDir(row.beneficiaryLabel)}>
                       <Icon name="user" size={16} />
                       {row.beneficiaryLabel}
                     </span>
