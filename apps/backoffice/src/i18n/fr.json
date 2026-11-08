@@ -1,6 +1,7 @@
 {
   "app.name": "Wilson",
   "ui.language": "Langue de l'écran",
+  "ui.machineTranslated": "Traduction automatique, pas encore relue : elle peut contenir des erreurs. Signalez à la coordination toute phrase étrange.",
   "common.loading": "Chargement…",
   "common.retry": "Réessayer",
   "common.cancel": "Annuler",

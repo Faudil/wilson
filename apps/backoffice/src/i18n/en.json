@@ -1,6 +1,7 @@
 {
   "app.name": "Wilson",
   "ui.language": "Screen language",
+  "ui.machineTranslated": "Machine translation, not yet proofread: it may contain mistakes. Please tell the coordinators about any odd wording.",
   "common.loading": "Loading…",
   "common.retry": "Try again",
   "common.cancel": "Cancel",

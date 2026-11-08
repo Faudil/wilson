@@ -1,6 +1,7 @@
 {
   "app.name": "Wilson",
   "ui.language": "لغة الشاشة",
+  "ui.machineTranslated": "ترجمة آلية لم تُراجَع بعد، وقد تحتوي على أخطاء. يُرجى إبلاغ المنسّقين بأي عبارة غريبة.",
   "common.loading": "جارٍ التحميل…",
   "common.retry": "إعادة المحاولة",
   "common.cancel": "إلغاء",

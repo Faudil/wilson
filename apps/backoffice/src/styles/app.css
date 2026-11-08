@@ -1490,7 +1490,7 @@ fieldset:disabled {
   background: var(--surface-2);
   border-radius: var(--radius-sm);
 }
-.segmented-lang button {
+.lang-select {
   min-block-size: 48px;
 }
 .more-list {

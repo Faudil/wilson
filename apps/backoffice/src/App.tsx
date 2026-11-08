@@ -5,7 +5,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { Icon, type IconName } from "./components/Icon";
 import { ErrorBox, Sheet, Skeleton } from "./components/ui";
 import { useI18n, type MessageKey } from "./i18n";
-import { UI_LANGUAGES } from "./i18n/core";
+import { MACHINE_TRANSLATED, UI_LANGUAGES } from "./i18n/core";
 import { orpc } from "./lib/api";
 import { fetchMe, ME_KEY } from "./lib/me";
 import { useAppointmentCounts, useAttentionCount, useBackupCounts, useDueTasks, useHeldNumbers, useLetterStats, useNewsUnread, usePendingVolunteers } from "./lib/counts";
@@ -100,13 +100,14 @@ function AccountSheet({ open, onClose, onLogout, volunteer }: { open: boolean; o
         </div>
         <div className="stack-tight">
           <span className="field-label">{t("ui.language")}</span>
-          <div className="segmented segmented-lang" role="radiogroup" aria-label={t("ui.language")}>
+          <select className="lang-select" aria-label={t("ui.language")} value={current} onChange={(e) => change(e.target.value as LanguageCode)}>
             {UI_LANGUAGES.map((code) => (
-              <button key={code} type="button" role="radio" aria-checked={code === current} className={code === current ? "is-active" : ""} lang={code} dir={LANGUAGES[code].dir} onClick={() => change(code)}>
+              <option key={code} value={code} lang={code} dir={LANGUAGES[code].dir}>
                 {LANGUAGES[code].nativeName}
-              </button>
+              </option>
             ))}
-          </div>
+          </select>
+          {MACHINE_TRANSLATED.has(current) && <small className="muted">{t("ui.machineTranslated")}</small>}
         </div>
         <LazyBoundary>
           <Suspense fallback={<Skeleton lines={1} card={false} />}>
