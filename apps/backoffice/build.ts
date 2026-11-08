@@ -30,6 +30,8 @@ export async function buildBackoffice(outdir = join(import.meta.dir, "dist")): P
     minify: true,
     splitting: true, // one chunk per lazily loaded screen (see src/lib/lazy.tsx)
     target: "browser",
+    // Absolute URLs: imported files (logo, mark) are used as <img src>, which resolves against the page, not the chunk.
+    publicPath: "/",
     naming: { asset: "assets/[name]-[hash].[ext]", chunk: "assets/[name]-[hash].[ext]", entry: "[name].[ext]" },
     define: { "process.env.NODE_ENV": JSON.stringify("production") },
   });
