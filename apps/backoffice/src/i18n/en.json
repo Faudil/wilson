@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Screen language",
   "common.loading": "Loading…",
   "common.retry": "Try again",
@@ -414,7 +414,7 @@
   "nav.usage": "AI costs",
   "more.usage": "Claude usage and this month's budget",
   "usage.title": "AI costs",
-  "usage.intro": "Every time Mon courrier asks Claude something (reading a letter, answering in the chat, translating), the amount of text processed (tokens) and the estimated price are noted here. No message or name is stored.",
+  "usage.intro": "Every time Wilson asks Claude something (reading a letter, answering in the chat, translating), the amount of text processed (tokens) and the estimated price are noted here. No message or name is stored.",
   "usage.fakeMode": "Demo mode: the AI is simulated, no real calls are made, so nothing is counted.",
   "usage.today": "Today",
   "usage.thisMonth": "This month",

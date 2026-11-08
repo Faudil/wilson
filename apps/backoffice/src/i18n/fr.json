@@ -1,5 +1,5 @@
 {
-  "app.name": "Mon courrier",
+  "app.name": "Wilson",
   "ui.language": "Langue de l'écran",
   "common.loading": "Chargement…",
   "common.retry": "Réessayer",
@@ -414,7 +414,7 @@
   "nav.usage": "Coûts de l'IA",
   "more.usage": "Utilisation de Claude et budget du mois",
   "usage.title": "Coûts de l'IA",
-  "usage.intro": "Chaque fois que Mon courrier demande quelque chose à Claude (lire un courrier, répondre dans le chat, traduire), le nombre de mots traités (tokens) et le prix estimé sont notés ici. Aucun message ni nom n'est enregistré.",
+  "usage.intro": "Chaque fois que Wilson demande quelque chose à Claude (lire un courrier, répondre dans le chat, traduire), le nombre de mots traités (tokens) et le prix estimé sont notés ici. Aucun message ni nom n'est enregistré.",
   "usage.fakeMode": "Mode démo : l'IA est simulée, aucun appel réel n'est fait, donc rien n'est compté.",
   "usage.today": "Aujourd'hui",
   "usage.thisMonth": "Ce mois-ci",
