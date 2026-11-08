@@ -49,8 +49,8 @@ IP, and let only the shield's IP ranges reach your reverse proxy (firewall).
       If you can, allow port 22 only from your own IP addresses or through a VPN (WireGuard, Tailscale).
 - [ ] **Brute-force filter**: `fail2ban` or CrowdSec on SSH and on the reverse proxy.
 - [ ] **Firewall** (ufw/nftables): deny everything incoming except 22 (restricted) and 80/443 on the reverse proxy.
-      **Docker bypasses ufw for published ports**: on the Wilson server, set `WILSON_BIND` to the LAN address the
-      reverse proxy uses (or `127.0.0.1` if the proxy is on the same machine), never `0.0.0.0` on a public interface.
+      **Docker bypasses ufw for published ports**: Wilson publishes none (nginx-proxy reaches the back-office over
+      its Docker network); make sure no other container publishes a sensitive port on a public interface.
 - [ ] **Automatic security updates** (`unattended-upgrades` on Debian/Ubuntu) and a reboot when the kernel changes.
 - [ ] **Full-disk encryption** (LUKS) if the provider allows it, with remote unlock (dropbear-initramfs). It protects
       the data when a disk is taken away while the server is off.

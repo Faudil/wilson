@@ -62,25 +62,14 @@ Un serveur (VPS ou machine de l'association) **hébergé en France ou dans l'UE*
 
    → <https://help.ubuntu.com/community/UFW>
 
-   **Attention, piège Docker** : un port publié par Docker passe *à côté* de ufw. Si le reverse proxy est sur la même machine, mettez `WILSON_BIND=127.0.0.1` dans `.env` (étape 4) ; sinon mettez l'IP LAN du serveur et filtrez au niveau de la box ou du réseau. Ne laissez pas `0.0.0.0:8080` joignable depuis Internet.
+   **Piège Docker** : un port publié par Docker passe *à côté* de ufw. Wilson ne publie aucun port (il est servi par nginx-proxy via son réseau Docker) ; vérifiez qu'aucun autre conteneur ne publie de port sensible.
 6. **Contre les essais de mot de passe** : `sudo apt install fail2ban unattended-upgrades` (bannit les IP qui insistent, installe les mises à jour de sécurité automatiquement).
 7. **Le port SSH doit être joignable par GitHub** (les runners sont sur Internet, avec des IP qui changent). Avec l'authentification par clé seule et fail2ban, c'est acceptable. Si vous préférez ne pas l'exposer : un runner *self-hosted* sur votre réseau (voir la fin de [deploy.md §2](deploy.md#2-créer-lenvironnement-et-les-secrets-github)).
 
 ## 3. Domaine, HTTPS et reverse proxy
 
 1. Choisissez un sous-domaine (ex. `courrier.mon-asso.fr`) et créez un enregistrement DNS **A** (et AAAA si IPv6) vers l'IP publique du serveur ou du proxy.
-2. **Reverse proxy avec HTTPS automatique.** Le plus simple est Caddy (certificat Let's Encrypt automatique) : <https://caddyserver.com/docs/quick-starts/reverse-proxy>. `/etc/caddy/Caddyfile` :
-
-   ```
-   courrier.mon-asso.fr {
-       request_body {
-           max_size 12MB
-       }
-       reverse_proxy 127.0.0.1:8080
-   }
-   ```
-
-   Avec nginx : `client_max_body_size 12m;` et `proxy_pass http://127.0.0.1:8080;`. Le back-office relaie lui-même `/rpc` et `/webhooks` vers l'API : une seule règle suffit.
+2. **Reverse proxy avec HTTPS automatique** : nginx-proxy + acme-companion (<https://github.com/nginx-proxy/acme-companion>). Wilson s'y branche tout seul : le conteneur `backoffice` rejoint le réseau `PROXY_NETWORK` avec `VIRTUAL_HOST` / `LETSENCRYPT_HOST` = `PUBLIC_HOST` (voir [deploy.md](deploy.md#reverse-proxy-nginx-proxy--lets-encrypt)). Ajoutez `client_max_body_size 12m;` dans `vhost.d/<votre domaine>` de nginx-proxy (photos de courriers jusqu'à 12 Mo). Le back-office relaie lui-même `/rpc` et `/webhooks` vers l'API.
 3. **Protection devant le site (anti-DDoS, filtrage)** : facultatif mais conseillé une fois public.
    - **Cloudflare** (gratuit) : <https://developers.cloudflare.com/fundamentals/setup/>. Mode SSL **Full (strict)**, nuage orange activé sur le sous-domaine. Contrepartie : Cloudflare est une société américaine et voit le trafic en clair (photos de courriers envoyées depuis le back-office, contenu des webhooks WhatsApp). À inscrire au registre RGPD.
    - **Alternatives européennes** : l'anti-DDoS inclus chez OVHcloud ou Scaleway (rien à faire), Bunny.net (Slovénie) ou Myra Security (Allemagne) si vous voulez un proxy filtrant.
@@ -95,8 +84,9 @@ Copiez [`.env.production.example`](../.env.production.example) sur le serveur, c
 |---|---|
 | `MASTER_KEY`, `LOOKUP_KEY` | `openssl rand -base64 32` (deux fois, deux valeurs différentes). **Copie de `MASTER_KEY` dans le gestionnaire de mots de passe** : sans elle, toutes les données et sauvegardes sont illisibles |
 | `POSTGRES_PASSWORD`, `S3_SECRET_KEY` | `openssl rand -hex 24` |
-| `PUBLIC_ORIGIN` | `https://courrier.mon-asso.fr` |
-| `WILSON_BIND` | `127.0.0.1` si le proxy est sur la machine (voir étape 2.5) |
+| `PUBLIC_HOST` | `courrier.mon-asso.fr` (sans `https://`) |
+| `LETSENCRYPT_EMAIL` | adresse qui reçoit les alertes d'expiration Let's Encrypt |
+| `PROXY_NETWORK` | réseau Docker de nginx-proxy (par défaut `internal_services_network`) |
 | `ASSOCIATION_NAME`, `ASSOCIATION_CONTACT` | nom tel qu'il apparaîtra dans les messages WhatsApp, adresse et horaires de la permanence |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | votre compte admin du back-office |
 | `WHATSAPP_MODE` | `sandbox` pour l'instant ; `meta` à l'étape 7 |
