@@ -11,6 +11,8 @@ on the server and on your accounts. Do the checklist in section 2 before announc
 | **Flood of WhatsApp messages** to drain the Claude budget or bury real people | Per-number limits: too fast → messages stored but not processed, one "slow down" notice; far too fast → number **held** until a volunteer releases or blocks it (Plus → Numéros en attente). During a wave, first messages from new numbers are held and people already helped keep being served. Blocked numbers are dropped before anything is stored and receive nothing. The monthly Claude budget hard stop (Plus → Coûts de l'IA) is the last barrier. | `WA_RATE_*`, `WA_FILES_PER_DAY`, `WA_FLOOD_*`, `WA_GLOBAL_*` |
 | **Forged WhatsApp messages** | Every webhook call must carry Meta's signature (`X-Hub-Signature-256`, checked against `WHATSAPP_APP_SECRET`). In production the webhook is closed in sandbox mode. | `WHATSAPP_APP_SECRET` |
 | **Fake volunteers / infiltration** | Self-signups start with no access until an admin approves them, and then only as *responder* (conversations, no letters, documents or notes). Honeypot field, 3 requests per IP per hour, 20 per day, 30 pending at most. With e-mail set up, the address must be confirmed before approval. | `VOLUNTEER_SIGNUP`, `SIGNUP_*`, `SMTP_URL` |
+| **Fake web accounts** ("Mon espace", `/moi`) to flood the bot | Honeypot field, 20 sign-ups per IP per hour, 300 per day overall. A web account gets the same per-person flood guard and Claude budget as a WhatsApp number. `BENEFICIARY_SIGNUP=off` closes sign-up at once. | `BENEFICIARY_SIGNUP`, `WEB_SIGNUP_*` |
+| **Guessing someone's recovery words** | 128⁶ word combinations; 10 wrong tries per IP in 15 min, and more than 300 wrong tries in an hour overall raises an alert. Only a keyed hash of the words is stored. A volunteer can **lock** an account at once (stolen phone) and give a one-time unlock code; this needs the `beneficiaries.recover` permission **and** an authenticator app. | `WEB_LOGIN_FAILURES_*` |
 | **An insider reading many files** | A volunteer opening more than 60 different people in one hour raises an alert (or is suspended at once with `suspend`). Every view of a photo, file, conversation or note is in `access_log`. | `AUDIT_READS_PER_HOUR`, `AUDIT_BULK_READ_ACTION` |
 | **Password guessing on an account** | 5 failures lock the e-mail for 15 min (then 30, 60…), 20 failures from one IP block it. Passwords hashed with argon2id. | `LOGIN_*` |
 | **Admin account takeover** | Admin rights (volunteers, audit, costs, knowledge sync, moderation) need an authenticator app (TOTP). Without one, they are paused. A lost phone is reset by another admin, with an alert. | `ADMIN_2FA` |
@@ -91,6 +93,8 @@ IP, and let only the shield's IP ranges reach your reverse proxy (firewall).
 - [ ] Disable accounts as soon as someone leaves.
 - [ ] Look at alerts about unusual reads and talk to the person. Use `AUDIT_BULK_READ_ACTION=suspend` if the
       association prefers to block first and ask afterwards.
+- [ ] Give a web space unlock code only to the person themselves, face to face (or by video, with questions only they
+      can answer). Someone calling "for a friend" is exactly how an account gets stolen.
 
 ### 2.6 Keep as little as possible
 

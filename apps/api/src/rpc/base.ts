@@ -15,6 +15,10 @@ export interface RpcContext {
   ip: string | null;
   /** Lets procedures set/clear the session cookie (auth.login / auth.logout). */
   setSessionCookie: (token: string | null, expires?: Date) => void;
+  /** "Mon espace": the beneficiary's own session (cookie wilson_me), resolved; null when signed out. */
+  beneficiary: { id: string; sharedDevice: boolean; token: string } | null;
+  /** Sets/clears the wilson_me cookie (me.signup / login / redeem / logout). */
+  setBeneficiaryCookie: (token: string | null, expires?: Date) => void;
 }
 
 /** Every procedure implementation starts from `os`. */

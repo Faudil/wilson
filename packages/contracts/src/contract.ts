@@ -10,6 +10,7 @@ import { LanguageSchema } from "./languages.js";
 import { BroadcastInputSchema, BroadcastEstimateSchema, BroadcastSchema } from "./broadcasts.js";
 import { PlaceInputSchema, PlaceSchema } from "./places.js";
 import { LetterDetailSchema, LetterEditSchema, LetterStatusSchema, LetterSummarySchema } from "./letters.js";
+import { MeDocumentSchema, MeLoginInputSchema, MeMessageSchema, MeRedeemInputSchema, MeSchema, MeSendInputSchema, MeSignupInputSchema, MeWordsSchema } from "./me.js";
 import { SandboxMessageSchema, SandboxPhoneSchema, SandboxSendInputSchema } from "./sandbox.js";
 import { CaseFileSchema, CaseNoteSchema, CaseTaskSchema, NoteTextSchema, TaskAddSchema, TaskListInputSchema, TaskUpdateSchema } from "./notes.js";
 import { DirectoryEntrySchema, SkillsInputSchema, SuggestionSchema, VolunteerSkillSchema, VolunteerSkillsSchema } from "./skills.js";
@@ -87,6 +88,40 @@ const beneficiaries = {
     .output(pageOf(BeneficiarySummarySchema)),
   get: base.input(z.object({ id: IdSchema })).output(BeneficiaryDetailSchema),
   setLanguage: base.input(z.object({ id: IdSchema, language: LanguageSchema })).output(BeneficiarySummarySchema),
+  /**
+   * Web accounts ("Mon espace", no phone number), `beneficiaries.recover`. After checking in person who they are:
+   * `unlockCode` gives a one-time code (valid 24 h, shown once) with which the person chooses new words; the old words
+   * and every open session stop working at once. `lock` signs the account out everywhere and refuses its words (lost
+   * or stolen phone, someone else knows the words); only an unlock code opens it again. `unlock` lifts a lock set by mistake.
+   */
+  unlockCode: base.input(z.object({ id: IdSchema })).output(z.object({ code: z.string(), expiresAt: z.iso.datetime() })),
+  lock: base.input(z.object({ id: IdSchema })).output(BeneficiaryDetailSchema),
+  unlock: base.input(z.object({ id: IdSchema })).output(BeneficiaryDetailSchema),
+};
+
+/**
+ * "Mon espace": the person's own web space (no phone, no WhatsApp). Public: signup, login, redeem. The rest needs the
+ * person's own session cookie (separate from volunteer sessions) and only ever reads or writes that person's data.
+ * signup/login/redeem: TOO_MANY_REQUESTS when an IP (or everyone) tries too often; FORBIDDEN when BENEFICIARY_SIGNUP=off
+ * (signup only) or the account is locked (login only); UNAUTHORIZED for unknown words or code.
+ */
+const me = {
+  /** Public: who runs the service (shown before signing in, e.g. "I lost my words") and whether sign-up is open. */
+  info: base.output(z.object({ associationName: z.string(), associationContact: z.string(), signupOpen: z.boolean() })),
+  signup: base.input(MeSignupInputSchema).output(MeWordsSchema),
+  login: base.input(MeLoginInputSchema).output(MeSchema),
+  /** A volunteer's unlock code: new words, account unlocked, signed in. */
+  redeem: base.input(MeRedeemInputSchema).output(MeWordsSchema),
+  get: base.output(MeSchema),
+  logout: base.output(z.void()),
+  setLanguage: base.input(z.object({ language: LanguageSchema })).output(MeSchema),
+  /** Everything Wilson said and they wrote, oldest first (same conversation as on WhatsApp). */
+  thread: base.output(z.array(MeMessageSchema)),
+  /** Text (a question, a menu number) and/or a photo or PDF, handled exactly like a WhatsApp message. */
+  send: base.input(MeSendInputSchema).output(z.void()),
+  documents: base.output(z.array(MeDocumentSchema)),
+  /** "Delete all my data": archived now, destroyed after the retention period; signed out. */
+  deleteAll: base.output(z.void()),
 };
 
 const documents = {
@@ -361,5 +396,5 @@ const system = {
   health: oc.output(z.object({ ok: z.boolean(), mode: z.enum(["sandbox", "meta"]), llm: z.enum(["anthropic", "fake"]), chat: z.enum(["review", "auto"]).optional(), signup: z.boolean().optional(), emailVerification: z.boolean().optional() })),
 };
 
-export const contract = { auth, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, numbers, system };
+export const contract = { auth, me, letters, beneficiaries, documents, sandbox, knowledge, conversations, volunteers, associations, invitations, usage, notes, tasks, skills, places, broadcasts, buddies, appointments, numbers, system };
 export type Contract = typeof contract;

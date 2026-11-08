@@ -137,6 +137,20 @@ export const beneficiaries = pgTable("beneficiaries", {
   guardBy: uuid("guard_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
   /** When the person said yes to announcements (menu 6); null = no announcements (opt-in only, WhatsApp policy). */
   announcementsOptInAt: ts("announcements_opt_in_at"),
+  // — Web accounts ("Mon espace", src/webAccounts/): no phone number. wa_id_* then hold the pseudo address
+  //   "web:<id>" (so the conversation engine and the send queue work unchanged) and wa_id_last2 is empty. —
+  /** "W-K7QD3M", random; null for WhatsApp people. Shown as the label instead of the masked number. */
+  webHandle: text("web_handle").unique(),
+  /** The name they chose, under the DEK. */
+  webNameEnc: bytea("web_name_enc"),
+  /** HMAC(LOOKUP_KEY, recovery words): finds the account at login. Null once a volunteer issued an unlock code. */
+  webWordsHash: text("web_words_hash").unique(),
+  /** Locked by a volunteer: the words are refused until an unlock code is used. */
+  webLockedAt: ts("web_locked_at"),
+  webLockedBy: uuid("web_locked_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
+  /** HMAC(LOOKUP_KEY, unlock code) and its expiry: one-time, given by a volunteer to someone who lost their words. */
+  webUnlockHash: text("web_unlock_hash").unique(),
+  webUnlockUntil: ts("web_unlock_until"),
 }, (t) => [
   index("beneficiaries_guard_idx").on(t.guardStatus, t.guardAt).where(sql`${t.guardStatus} <> 'none'`),
   index("beneficiaries_user_id_hash_idx").on(t.userIdHash),
@@ -366,6 +380,16 @@ export const sessions = pgTable("sessions", {
   volunteerId: uuid("volunteer_id").notNull().references(() => volunteers.id, { onDelete: "cascade" }),
   expiresAt: ts("expires_at").notNull(),
 });
+
+/** Web space sessions of beneficiaries (separate cookie, separate table: never a volunteer session). */
+export const beneficiarySessions = pgTable("beneficiary_sessions", {
+  /** SHA-256 of the cookie token. */
+  idHash: text("id_hash").primaryKey(),
+  beneficiaryId: uuid("beneficiary_id").notNull().references(() => beneficiaries.id, { onDelete: "cascade" }),
+  /** "This phone is shared": a short session (1 h instead of 90 days). */
+  sharedDevice: boolean("shared_device").notNull().default(false),
+  expiresAt: ts("expires_at").notNull(),
+}, (t) => [index("beneficiary_sessions_beneficiary_idx").on(t.beneficiaryId)]);
 
 export const accessLog = pgTable("access_log", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -96,7 +96,7 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 
 | Table | Key columns |
 |---|---|
-| `beneficiaries` | id, `wa_id_hash` (HMAC-SHA256, lookup), `wa_id_enc`, language, `language_confirmed`, `conversation_state` jsonb (menu step), `wrapped_dek` (DEK encrypted by master key), created_at, last_message_at, deleted_at, chat_status, chat_assignee_id (volunteer holding the conversation) |
+| `beneficiaries` | id, `wa_id_hash` (HMAC-SHA256, lookup), `wa_id_enc`, language, `language_confirmed`, `conversation_state` jsonb (menu step), `wrapped_dek` (DEK encrypted by master key), created_at, last_message_at, deleted_at, chat_status, chat_assignee_id (volunteer holding the conversation); web space: `web_handle` (W-XXXXXX), `web_name_enc`, `web_words_hash` (HMAC of the recovery words), `web_locked_at/by`, `web_unlock_hash`, `web_unlock_until` |
 | `messages` | id, beneficiary_id, direction (in/out), wa_message_id, kind (text/image/document/template), `body_enc`, status (queued/sent/delivered/read/failed), created_at |
 | `letters` | id, beneficiary_id, status, `photo_key` (nullable, nulled on purge), `analysis_enc` (LetterAnalysis JSON), `target_stale`, letter_type, urgency, deadline (plain, for sorting), low_confidence, received_at, reviewed_by, reviewed_at, sent_at |
 | `letter_events` | id, letter_id, volunteer_id, action, note, at — review audit trail |
@@ -105,6 +105,7 @@ date changed / document deleted ─▶ pending reminders cancelled and recreated
 | `volunteers` | id, email, password_hash (argon2id), name, role (responder/volunteer/admin), ui_language, disabled_at, pending_approval, signup_note, approved_at, approved_by |
 | `volunteer_permissions` | volunteer_id, permission, granted (bool) — per-volunteer overrides on top of the role bundle (empty in the POC) |
 | `sessions` | id (random, httpOnly cookie), volunteer_id, expires_at |
+| `beneficiary_sessions` | id_hash (SHA-256 of the `wilson_me` cookie), beneficiary_id, shared_device, expires_at — web space sessions, separate from volunteers' |
 | `case_notes` | id, beneficiary_id, author_id, `body_enc`, created_at, edited_at — case notes on a person |
 | `case_tasks` | id, beneficiary_id, created_by, assignee_id (null = anyone), `text_enc`, due_on (reminder day, Europe/Paris), status (open/done/cancelled), done_at, done_by |
 | `volunteer_skills` | volunteer_id (PK), languages language[], skills volunteer_skill[], note, updated_at — about volunteers, clear text |
@@ -203,6 +204,15 @@ Goal: the "who to turn to" lines cite real, local, up-to-date offices and proced
 - Messages to the person (accepted, released, cancelled, expired, reminders) are fixed i18n texts with a `{summary}` (topic from the menu label, date + time written out, place), stored as chat rows so they show in Conversations and wait behind the opt-in template outside the 24 h window.
 - `help.dispatch` cron (every 15 min): reminders D-1 and H-2 (claimed `scheduled → sent`, exactly once), open requests whose time passed → `expired` (person told), accepted ones 24 h after their end → `done`, stale drafts deleted. Volunteers get their reminder from the `.ics` file (alarms D-1 and H-2) and the home tile.
 - Permissions: `appointments.view` (open requests without identity), `.accept` (accept/release/done), `.slots`, `.documents`, `.manage`. The masked label and beneficiary id are only in the DTO for the holder or a manager. `appointments.documents` / `documentFile` additionally require: holder, form session, consent, accepted, and now ≤ end + 24 h; the file must be one of that person's current documents. Every action is in `access_log`.
+
+## 8g. Web space for people without WhatsApp ("Mon espace", `/moi`)
+
+- **Who:** people who cannot or will not use WhatsApp. No phone number and no e-mail: a first name or nickname (encrypted under their DEK), a language, and six **recovery words** drawn from `RECOVERY_WORDS` (128 French words, each with a picture, so they can be picked by emoji without reading French). Only `HMAC(LOOKUP_KEY, words)` is stored; the words are shown once, at sign-up.
+- **Same engine:** a web account is a `beneficiaries` row whose address is `web:<id>` (`wa_id_hash` = lookup hash of that, `wa_id_last2` empty, `web_handle` shown instead of the masked number). `withWebAccounts` (`src/whatsapp/web.ts`) wraps the transport: sends to `web:` addresses become `messages` rows (ids `web.out.*`, skipped by `storeOutbound`), uploads are blobs `web/<id>/<uuid>` read back by `downloadMedia`. `me.send` turns a typed message or file into a `WaInboundMessage` for `processInbound`, so letters, documents, chat with volunteers, places, rendez-vous and "delete my data" all work unchanged. The 24 h window is always open for them; the webhook ignores any `from` starting with `web:`; buddy pairing never asks to share a number (call mode is refused).
+- **Guided steps** (`apps/backoffice/src/moi/`, separate entry `moi.html`, one lazy chunk per language, no zod): 1 language (all 28, flags and native names) → 2 what this is and what is kept → 3 name + "this phone is shared" + confidentiality → 4 the six words to copy, with a check before going on. Then tabs Messages (thread with tap-to-answer menus, 📷 letter / 📄 document buttons), Documents, My space (language, sign out, delete everything).
+- **Sessions:** `wilson_me` cookie (httpOnly, SameSite=Strict), 90 days (`WEB_SESSION_DAYS`) or 1 hour on a shared phone. Never mixed with volunteers' sessions: `me.*` only looks at `wilson_me`.
+- **Anti-spam:** honeypot, `WEB_SIGNUP_PER_IP_PER_HOUR`, `WEB_SIGNUP_PER_DAY`; wrong words counted per IP (`WEB_LOGIN_FAILURES_PER_IP`, 15 min) and overall (`WEB_LOGIN_FAILURES_PER_HOUR`, alert). `BENEFICIARY_SIGNUP=off` closes sign-up, existing accounts keep working.
+- **Recovery by a volunteer** (`beneficiaries.recover`, needs 2FA; person page → "Espace web"): `beneficiaries.unlockCode` gives a one-time code (XXXX-XXXX, 24 h, HMAC stored) after checking the person face to face; issuing it erases the old words and signs out every device. The person types it on "I lost my words" (`me.redeem`) and gets six new words. `beneficiaries.lock` signs out everywhere and refuses the words (stolen phone, someone else knows them) until `unlock` or a new code. Every action is in `access_log`.
 
 ## 8e. Performance (low-end phones, slow connections)
 
