@@ -55,7 +55,7 @@ export const am: Record<WaKey, string> = {
   announcements_on: "ተመዝግቧል፦ ማስታወቂያዎችን ይቀበላሉ። ለማቆም STOP ይጻፉ።",
   announcements_off: "ተመዝግቧል፦ ከአሁን በኋላ ማስታወቂያ አይደርስዎትም። እንደገና ለመቀበል በዝርዝሩ ውስጥ 6 ይምረጡ።",
   broadcast_stop_hint: "ማስታወቂያዎችን ለማቆም STOP ይጻፉ።",
-  help_menu: "በጎ ፈቃደኛ ሊረዳዎት ይችላል፦\n1 - ከእኔ ጋር ወደ ቀጠሮ ይምጣ\n2 - አብረን ቅጽ እንሙላ\n3 - ቀጠሮዎቼ\n0 - ወደ ዝርዝሩ ተመለስ",
+  help_menu: "በጎ ፈቃደኛ ሊረዳዎት ይችላል፦\n1 - ከእኔ ጋር ወደ ቀጠሮ ይምጣ\n2 - አብረን ቅጽ እንሙላ\n3 - ቀጠሮዎቼ\n4 - ወርክሾፖች እና ስብሰባዎች\n0 - ወደ ዝርዝሩ ተመለስ",
   help_place_menu: "ቀጠሮዎ የት ነው?\n1 - ፕሪፌክቸር (Préfecture)\n2 - OFII\n3 - ሆስፒታል ወይም ሐኪም\n4 - OFPRA ወይም CNDA\n5 - ሌላ",
   help_form_menu: "የትኛው ቅጽ?\n1 - CAF (ድጎማዎች)\n2 - ANEF (የመኖሪያ ፈቃድ)\n3 - AME (ጤና)\n4 - ሌላ",
   help_ask_datetime: "የቀጠሮውን ቀንና ሰዓት ይጻፉ፣ ለምሳሌ፦ 14/03/2027 9:30",

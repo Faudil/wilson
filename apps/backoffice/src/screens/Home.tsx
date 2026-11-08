@@ -3,6 +3,7 @@ import { Icon, type IconName } from "../components/Icon";
 import { Empty, Skeleton } from "../components/ui";
 import { useAppointmentCounts, useAttentionCount, useDueTasks, useLetterStats, usePendingVolunteers, useWeekDeadlines } from "../lib/counts";
 import { BudgetNotice, useUsageBudget } from "../components/BudgetNotice";
+import { EventsCard } from "../components/EventsCard";
 import { firstName, longDate } from "../lib/relative";
 import { href } from "../lib/router";
 import { canManageMembers, useSession } from "../lib/session";
@@ -119,6 +120,7 @@ export function Home() {
             )}
             {canDeadlines && <Tile to={href("deadlines")} icon="calendar" tone="info" count={deadlines.count} loading={false} title={t("home.deadlines.title")} desc={t("home.deadlines.desc")} />}
           </div>
+          {can("events.view") && <EventsCard />}
           {nothing && (
             <div className="card all-good">
               <Empty art="done" sub={t("home.allGoodText")}>

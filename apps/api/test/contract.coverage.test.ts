@@ -140,6 +140,15 @@ const INPUTS: Record<string, unknown> = {
   "appointments.slots": { scope: "mine" },
   "appointments.addSlot": { startsAt: "2030-01-15T13:00:00.000Z", durationMin: 60, place: "Local de l'association" },
   "appointments.removeSlot": { id },
+  "events.list": { scope: "upcoming" },
+  "events.get": { id },
+  "events.create": { kind: "maraude", title: "Maraude", date: "2030-01-15", startTime: "19:00" },
+  "events.update": { id, event: { kind: "maraude", title: "Maraude", date: "2030-01-15", startTime: "19:00" } },
+  "events.cancel": { id },
+  "events.join": { id },
+  "events.leave": { id },
+  "events.removeAttendee": { id, volunteerId: id },
+  "events.preview": { id, language: "ar" },
 };
 /** The permission(s) each procedure needs (the router's `requirePermission`). null = any logged-in volunteer. */
 const REQUIRES: Record<string, Permission | Permission[] | null> = {
@@ -186,6 +195,11 @@ const REQUIRES: Record<string, Permission | Permission[] | null> = {
   "appointments.complete": ["appointments.view", "appointments.accept"], "appointments.cancel": ["appointments.view", "appointments.manage"],
   "appointments.documents": "appointments.documents", "appointments.documentFile": "appointments.documents",
   "appointments.slots": "appointments.slots", "appointments.addSlot": "appointments.slots", "appointments.removeSlot": "appointments.slots",
+  "events.list": "events.view", "events.get": "events.view", "events.preview": "events.view",
+  "events.join": ["events.view", "events.join"], "events.leave": ["events.view", "events.join"],
+  "events.create": ["events.view", "events.create"],
+  // update / cancel / removeAttendee: view, then the organiser (events.create) or events.manage; tested in events.test.ts.
+  "events.update": "events.view", "events.cancel": "events.view", "events.removeAttendee": "events.view",
   "numbers.list": "numbers.moderate", "numbers.heldCount": "numbers.moderate", "numbers.release": "numbers.moderate",
   "numbers.releaseAllGlobal": "numbers.moderate", "numbers.block": "numbers.moderate", "numbers.unblock": "numbers.moderate",
 };
@@ -221,7 +235,7 @@ describe("contract coverage", () => {
       const v = await createVolunteer(t.deps);
       await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: perm, granted: false });
       // knowledge.manage / volunteers.manage are admin-only by role: grant them per-volunteer so every other procedure starts allowed.
-      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "associations.manage", "usage.manage", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage"] as const) {
+      for (const adminOnly of ["knowledge.manage", "volunteers.manage", "associations.manage", "usage.manage", "broadcasts.approve", "buddies.manage", "buddies.reports", "appointments.manage", "events.create", "events.manage"] as const) {
         if (perm !== adminOnly) await t.deps.db.insert(volunteerPermissions).values({ volunteerId: v.id, permission: adminOnly, granted: true });
       }
       const { client } = makeClient(t.deps);

@@ -20,6 +20,8 @@ import { getBuddies } from "../buddies/service.js";
 import { buddyEntry, isBuddyStep, onBuddyState, type BuddyFlowCtx } from "./buddyFlow.js";
 import { getAppointments } from "../appointments/service.js";
 import { isHelpState, onHelpState, startHelp, type FlowIo } from "../appointments/flow.js";
+import { getEvents } from "../events/service.js";
+import { isEventState, onEventState } from "../events/flow.js";
 import { getGuard, quarantine, throttleNotice } from "../whatsapp/guard.js";
 
 const MAX_MEDIA_BYTES = 12 * 1024 * 1024;
@@ -218,6 +220,10 @@ async function dispatch(c: Ctx, input: Input): Promise<void> {
   if (isHelpState(c.state)) {
     if (input.type === "text" && isMenuWord(input.text)) return showMainMenu(c);
     return onHelpState(helpIo(c), c.state, input.type === "text" ? input.text : null);
+  }
+  if (isEventState(c.state)) {
+    if (input.type === "text" && isMenuWord(input.text)) return showMainMenu(c);
+    return onEventState(helpIo(c), c.state, input.type === "text" ? input.text : null);
   }
   switch (c.state.step) {
     case "choose_language": return onChooseLanguage(c, input);
@@ -492,6 +498,7 @@ async function onConfirmDelete(c: Ctx, input: Input): Promise<void> {
     await say(c, `${waText(c.lang, "delete_done")}\n\n${footerFor(c.deps, c.lang)}`);
     await getBuddies(c.deps).endAllForBeneficiary(c.b.id); // the buddy can no longer reach them
     await getAppointments(c.deps).cancelAllFor(c.b.id); // before archiving: nothing stays open or scheduled
+    await getEvents(c.deps).removeAllFor(c.b.id);
     return c.deps.beneficiaries.archiveAll(c.b.id);
   }
   if (choice === "2") return showMainMenu(c);

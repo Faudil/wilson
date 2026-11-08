@@ -55,7 +55,7 @@ export const ro: Record<WaKey, string> = {
   announcements_on: "Am notat: veți primi anunțurile. Pentru a opri, scrieți STOP.",
   announcements_off: "Am notat: nu veți mai primi anunțuri. Pentru a le primi din nou, alegeți 6 în meniu.",
   broadcast_stop_hint: "Pentru a nu mai primi anunțuri, scrieți STOP.",
-  help_menu: "Un voluntar vă poate ajuta:\n1 - Să vină cu mine la o programare\n2 - Să completăm împreună un formular\n3 - Programările mele\n0 - Înapoi la meniu",
+  help_menu: "Un voluntar vă poate ajuta:\n1 - Să vină cu mine la o programare\n2 - Să completăm împreună un formular\n3 - Programările mele\n4 - Ateliere și întâlniri\n0 - Înapoi la meniu",
   help_place_menu: "Unde este programarea dumneavoastră?\n1 - Prefectură\n2 - OFII\n3 - Spital sau medic\n4 - OFPRA sau CNDA\n5 - Altceva",
   help_form_menu: "Ce formular?\n1 - CAF (alocații)\n2 - ANEF (permis de ședere)\n3 - AME (sănătate)\n4 - Altceva",
   help_ask_datetime: "Scrieți data și ora programării, de exemplu: 14/03/2027 9:30",

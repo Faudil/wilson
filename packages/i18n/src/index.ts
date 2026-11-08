@@ -191,10 +191,19 @@ export function waText(lang: LanguageCode, key: WaKey, params: Params = {}): str
 }
 
 export { BUDDY_CATALOGS, type BuddyKey } from "./buddy/index.js";
+import { EVENT_CATALOGS, type EventKey } from "./events.js";
 
 /** Render a French-practice-buddies message (same rules as waText). `how` is catalog text and is not isolated. */
 export function buddyText(lang: LanguageCode, key: BuddyKey, params: Params = {}): string {
   const out = fill(buddyTemplate(lang, key), params, isRawBuddyParam);
+  return isRtl(lang) ? rtlLines(out) : out;
+}
+
+export { EVENT_CATALOGS, type EventKey } from "./events.js";
+
+/** Render an Agenda message (same rules as waText). `summary` is lines we build, already isolated: not isolated again. */
+export function eventText(lang: LanguageCode, key: EventKey, params: Params = {}): string {
+  const out = fill(EVENT_CATALOGS[lang][key], params, (k) => k === "summary");
   return isRtl(lang) ? rtlLines(out) : out;
 }
 
