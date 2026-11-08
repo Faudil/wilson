@@ -110,6 +110,11 @@ export const beneficiaries = pgTable("beneficiaries", {
   waIdEnc: bytea("wa_id_enc").notNull(),
   /** Last 2 digits only, for the masked label "+33 •• •• •• •• 21". */
   waIdLast2: text("wa_id_last2").notNull(),
+  /**
+   * HMAC-SHA256(LOOKUP_KEY, BSUID), hex: WhatsApp's business-scoped user id, sent with every message since 2026.
+   * Finds the person when WhatsApp hides their phone number (usernames); `wa_id_*` then hold the BSUID itself.
+   */
+  userIdHash: text("user_id_hash"),
   language: languageEnum("language").notNull().default("fr"),
   languageConfirmed: boolean("language_confirmed").notNull().default(false),
   conversationState: jsonb("conversation_state").$type<ConversationState>().notNull().default({ step: "choose_language" }),
@@ -132,7 +137,10 @@ export const beneficiaries = pgTable("beneficiaries", {
   guardBy: uuid("guard_by").references((): AnyPgColumn => volunteers.id, { onDelete: "set null" }),
   /** When the person said yes to announcements (menu 6); null = no announcements (opt-in only, WhatsApp policy). */
   announcementsOptInAt: ts("announcements_opt_in_at"),
-}, (t) => [index("beneficiaries_guard_idx").on(t.guardStatus, t.guardAt).where(sql`${t.guardStatus} <> 'none'`)]);
+}, (t) => [
+  index("beneficiaries_guard_idx").on(t.guardStatus, t.guardAt).where(sql`${t.guardStatus} <> 'none'`),
+  index("beneficiaries_user_id_hash_idx").on(t.userIdHash),
+]);
 
 export const messages = pgTable("messages", {
   id: uuid("id").primaryKey().defaultRandom(),

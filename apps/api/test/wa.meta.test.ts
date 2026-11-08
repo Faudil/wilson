@@ -42,6 +42,18 @@ describe("MetaTransport (Graph API)", () => {
     expect(parts.join("\n\n")).toBe(long);
   });
 
+  it("sends to a BSUID through `recipient` (no `to`) when the phone number is hidden", async () => {
+    const f = fakeFetch(() => ok);
+    const t = new MetaTransport(cfg, f.impl);
+    await t.sendText("FR.13491208655302741918", "hello");
+    await t.sendTemplate("US.ENT.11815799212886844830", "explanation_ready", "fr", []);
+    expect(f.calls[0]!.body).toMatchObject({ recipient: "FR.13491208655302741918", type: "text" });
+    expect(f.calls[0]!.body.to).toBeUndefined();
+    expect(f.calls[1]!.body).toMatchObject({ recipient: "US.ENT.11815799212886844830", type: "template" });
+    await t.sendText("33600000001", "hi");
+    expect(f.calls[2]!.body.recipient).toBeUndefined();
+  });
+
   it("maps our language codes to Meta's, falls back for unsupported ones, and to French on 132001", async () => {
     const f = fakeFetch((_u, body) => (body?.template?.language?.code === "ar" ? { status: 400, json: { error: { code: 132001, message: "no translation" } } } : ok));
     const t = new MetaTransport(cfg, f.impl);
@@ -144,6 +156,44 @@ describe("webhook with real Meta payloads (meta mode)", () => {
     expect(out).toContain(waText("en", "welcome"));
     expect(t.meta!.read).toEqual(expect.arrayContaining(["wamid.u1", "wamid.u2"]));
     expect(WaWebhookSchema.safeParse({ object: "whatsapp_business_account", entry: [{ id: "e", changes: [{ field: "messages", value: { messaging_product: "whatsapp", metadata: { phone_number_id: "1" }, messages: [{ id: "a", from: "b", timestamp: "1", type: "interactive", interactive: { type: "nfm_reply", nfm_reply: {} } }] } }] }] }).success).toBe(true);
+  });
+
+  it("a person whose number WhatsApp hides (BSUID only) is answered by BSUID, then by phone once it is visible", async () => {
+    const bsuid = "FR.70012345678901234567";
+    // April 2026+: no `from`, no contacts[].wa_id, only the business-scoped user id. A message with no id at all is dropped alone.
+    expect(await post({
+      contacts: [{ profile: { name: "X", username: "@x" }, user_id: bsuid }],
+      messages: [
+        { id: "wamid.noid", timestamp: "1", type: "text", text: { body: "?" } },
+        { id: "wamid.b1", from_user_id: bsuid, timestamp: "1", type: "text", text: { body: "Hello, I need help" } },
+      ],
+      statuses: [{ id: "wamid.sent-to-bsuid", status: "delivered", recipient_user_id: bsuid, timestamp: "1" }],
+    })).toBe(200);
+    expect(await t.outbound(bsuid)).toContain(waText("en", "welcome"));
+    expect(t.meta!.texts.some((m) => m.to === bsuid)).toBe(true);
+    const { beneficiary } = await t.services.beneficiaries.findOrCreateByWaId(bsuid);
+    expect(await t.services.beneficiaries.label(beneficiary.id)).toBe("•• •• •• •• ••");
+
+    // Later the number is shared: same person (history kept), and replies go to the phone number.
+    await post({ messages: [{ ...text("wamid.b2", "33631000009", "1"), from_user_id: bsuid }] });
+    const again = await t.services.beneficiaries.findOrCreateByWaId("33631000009");
+    expect(again).toMatchObject({ created: false, beneficiary: { id: beneficiary.id } });
+    expect(await t.services.beneficiaries.getWaId(beneficiary.id)).toBe("33631000009");
+    // A phone-less message from the same BSUID still finds them.
+    expect((await t.services.beneficiaries.findOrCreateByWaId(bsuid, bsuid)).beneficiary.id).toBe(beneficiary.id);
+  });
+
+  it("follows a person who changes phone number (system message), without answering it", async () => {
+    const old = "33631000010";
+    await post({ messages: [{ ...text("wamid.c1", old, "Hello, I need help"), from_user_id: "FR.1111" }] });
+    const { beneficiary } = await t.services.beneficiaries.findOrCreateByWaId(old);
+    const before = t.meta!.texts.length;
+    await post({ messages: [{ id: "wamid.c2", from: old, from_user_id: "FR.1111", timestamp: "2", type: "system",
+      system: { body: "X changed from 33631000010 to 33631000011", wa_id: "33631000011", user_id: "FR.2222", previous_user_id: "FR.1111", type: "user_changed_number" } }] });
+    expect(t.meta!.texts.length).toBe(before);
+    expect(await t.services.beneficiaries.getWaId(beneficiary.id)).toBe("33631000011");
+    expect((await t.services.beneficiaries.findOrCreateByWaId("33631000011")).beneficiary.id).toBe(beneficiary.id);
+    expect((await t.services.beneficiaries.findOrCreateByWaId("FR.2222", "FR.2222")).beneficiary.id).toBe(beneficiary.id);
   });
 
   it("ignores events for another phone number of the same app", async () => {

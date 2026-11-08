@@ -77,7 +77,8 @@ const EnvSchema = z.object({
   WHATSAPP_TEMPLATE_ANNOUNCEMENT: z.string().default("announcement"),
   /**
    * Estimated price of one marketing template message, USD (Meta's rate card for France; check it, it changes).
-   * Only used for the cost shown before an announcement is approved. Messages inside the 24 h window are free.
+   * Only used for the cost shown before an announcement is approved. Inside the 24 h window an announcement is a
+   * service message: free for the first 1,000 per number per month, then about $0.03 in France (since Oct 2026).
    */
   WHATSAPP_PRICE_MARKETING_USD: z.coerce.number().min(0).default(0.0859),
   /** on = an announcement must be approved by someone other than its author. */
