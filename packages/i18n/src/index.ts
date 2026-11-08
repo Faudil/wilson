@@ -33,6 +33,7 @@ import { bm } from "./catalogs/bm.js";
 import { ln } from "./catalogs/ln.js";
 import { sw } from "./catalogs/sw.js";
 import { formatDate, normaliseDigits, utcDate } from "./dates.js";
+import { WEB_CATALOGS, type WebKey } from "./web/index.js";
 import { buddyTemplate, isRawBuddyParam, type BuddyKey } from "./buddy/index.js";
 
 /** Every WhatsApp message the bot can send. Each key exists in all 28 catalogs (test-enforced). */
@@ -191,6 +192,12 @@ export function waText(lang: LanguageCode, key: WaKey, params: Params = {}): str
 }
 
 export { BUDDY_CATALOGS, type BuddyKey } from "./buddy/index.js";
+export { WEB_CATALOGS, WEB_KEYS, type WebKey } from "./web/index.js";
+
+/** A text of the beneficiaries' web space. Placeholder values are bidi-isolated (numbers are not). */
+export function webText(lang: LanguageCode, key: WebKey, params: Params = {}): string {
+  return fill(WEB_CATALOGS[lang][key], params);
+}
 
 /** Render a French-practice-buddies message (same rules as waText). `how` is catalog text and is not isolated. */
 export function buddyText(lang: LanguageCode, key: BuddyKey, params: Params = {}): string {

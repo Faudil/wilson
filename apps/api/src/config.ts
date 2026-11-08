@@ -29,6 +29,18 @@ const EnvSchema = z.object({
   /** Association autocomplete on the sign-up form (official register, server-side). off = free text only. */
   ASSOCIATION_SEARCH: z.enum(["on", "off"]).default("on"),
   ASSOCIATION_SEARCH_URL: z.string().url().default("https://recherche-entreprises.api.gouv.fr/search"),
+  /**
+   * "Mon espace": people can create a web account (a name + recovery words, no phone) at /moi. off = the page only
+   * signs in existing accounts. Sign-ups per IP per hour are generous because a whole permanence shares one IP.
+   */
+  BENEFICIARY_SIGNUP: z.enum(["on", "off"]).default("on"),
+  WEB_SIGNUP_PER_IP_PER_HOUR: z.coerce.number().int().min(1).default(20),
+  WEB_SIGNUP_PER_DAY: z.coerce.number().int().min(1).default(300),
+  /** Wrong recovery words / unlock codes: per IP (15 min), and for everyone together per hour (then refused + alert). */
+  WEB_LOGIN_FAILURES_PER_IP: z.coerce.number().int().min(1).default(10),
+  WEB_LOGIN_FAILURES_PER_HOUR: z.coerce.number().int().min(1).default(300),
+  /** Web space session length; "this phone is shared" sessions last one hour. */
+  WEB_SESSION_DAYS: z.coerce.number().int().min(1).max(365).default(90),
   /** Signup requests accepted per IP address per hour, and in total per day. */
   SIGNUP_PER_IP_PER_HOUR: z.coerce.number().int().min(1).default(3),
   SIGNUP_PER_DAY: z.coerce.number().int().min(1).default(20),

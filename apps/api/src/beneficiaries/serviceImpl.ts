@@ -19,6 +19,7 @@ const toRow = (r: Row): BeneficiaryRow => ({
   announcementsOptInAt: r.announcementsOptInAt,
   createdAt: r.createdAt,
   guardStatus: r.guardStatus as BeneficiaryRow["guardStatus"],
+  web: r.webHandle !== null,
 });
 
 export class BeneficiariesServiceImpl implements BeneficiariesService {
@@ -119,9 +120,10 @@ export class BeneficiariesServiceImpl implements BeneficiariesService {
   }
 
   async label(id: string): Promise<string> {
-    const [r] = await this.deps.db.select({ l: beneficiaries.waIdLast2 }).from(beneficiaries).where(eq(beneficiaries.id, id));
-    return `${LABEL_MASK} ${r?.l ?? "••"}`;
+    const [r] = await this.deps.db.select({ l: beneficiaries.waIdLast2, h: beneficiaries.webHandle }).from(beneficiaries).where(eq(beneficiaries.id, id));
+    return r ? maskedLabel(r.l, r.h) : `${LABEL_MASK} ••`;
   }
 }
 
-export const maskedLabel = (last2: string): string => `${LABEL_MASK} ${last2}`;
+/** What volunteers see instead of a phone number: the last 2 digits, or a web account's number. */
+export const maskedLabel = (last2: string, webHandle: string | null = null): string => webHandle ?? `${LABEL_MASK} ${last2}`;

@@ -18,3 +18,4 @@ export * from "./guard.js";
 export * from "./contract.js";
 export * from "./places.js";
 export * from "./broadcasts.js";
+export * from "./me.js";

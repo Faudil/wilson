@@ -185,7 +185,7 @@ const showMainMenu = async (c: Ctx, intro?: Parameters<typeof waText>[1]) => {
 };
 const today = (c: Ctx) => localDate(c.deps.now(), c.deps.config.TIMEZONE);
 const buddyCtx = (c: Ctx): BuddyFlowCtx => ({
-  deps: c.deps, beneficiaryId: c.b.id, lang: c.lang, state: c.state,
+  deps: c.deps, beneficiaryId: c.b.id, lang: c.lang, state: c.state, web: c.b.web,
   setState: (s) => setState(c, s),
   say: (text, opts) => enqueueText(c.deps, c.b.id, text, opts?.menu ? { interactive: true } : {}),
   showMainMenu: () => showMainMenu(c),
@@ -475,14 +475,19 @@ async function onAnnouncements(c: Ctx, input: Input): Promise<void> {
 
 // ---------------------------------------------------------------- delete all
 
+/** "Delete all my data" (menu 9 on WhatsApp, or the web space): archived now, destroyed after the retention period. */
+export async function deleteAllData(deps: WaDeps, beneficiaryId: string): Promise<void> {
+  await getBuddies(deps).endAllForBeneficiary(beneficiaryId); // the buddy can no longer reach them
+  await getAppointments(deps).cancelAllFor(beneficiaryId); // before archiving: nothing stays open or scheduled
+  await deps.beneficiaries.archiveAll(beneficiaryId);
+}
+
 async function onConfirmDelete(c: Ctx, input: Input): Promise<void> {
   const choice = input.type === "text" ? menuChoice(input.text) : null;
   if (choice === "1") {
     await setState(c, { step: "main_menu" });
     await say(c, `${waText(c.lang, "delete_done")}\n\n${footerFor(c.deps, c.lang)}`);
-    await getBuddies(c.deps).endAllForBeneficiary(c.b.id); // the buddy can no longer reach them
-    await getAppointments(c.deps).cancelAllFor(c.b.id); // before archiving: nothing stays open or scheduled
-    return c.deps.beneficiaries.archiveAll(c.b.id);
+    return deleteAllData(c.deps, c.b.id);
   }
   if (choice === "2") return showMainMenu(c);
   return sayMenu(c, "delete_confirm");

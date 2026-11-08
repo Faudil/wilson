@@ -7,6 +7,7 @@ import type { ConversationState } from "../db/schema.js";
 import type { WaDeps } from "./context.js";
 import { toInteractive } from "./interactive.js";
 import { META_ERRORS, MetaApiError } from "./meta.js";
+import { WEB_MESSAGE_PREFIX } from "./web.js";
 
 const WINDOW_MS = 24 * 3600 * 1000;
 
@@ -26,8 +27,8 @@ export function footerFor(deps: Pick<WaDeps, "config">, lang: Parameters<typeof 
 }
 
 async function storeOutbound(deps: WaDeps, beneficiaryId: string, kind: "text" | "template" | "interactive", body: string, waMessageId: string): Promise<void> {
-  // The sandbox transport records its own rows; only real transports are recorded here.
-  if (deps.wa.mode === "sandbox") return;
+  // The sandbox transport and web deliveries record their own rows; only real transports are recorded here.
+  if (deps.wa.mode === "sandbox" || waMessageId.startsWith(WEB_MESSAGE_PREFIX)) return;
   const dek = await deps.beneficiaries.getDek(beneficiaryId);
   await deps.db.insert(messages).values({
     beneficiaryId, direction: "out", kind, waMessageId, bodyEnc: deps.crypto.encrypt(dek, body), status: "sent",
@@ -67,7 +68,7 @@ export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.
       await storeOutbound(deps, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_EXPLANATION_READY}]`, waMessageId);
       await letters.setAwaitingOptIn(out.letterId, true);
     };
-    if (!windowOpen(deps, b.lastInboundAt)) return optIn();
+    if (!windowOpen(deps, b.lastInboundAt, b.web)) return optIn();
     const sent = await sendTextOr(deps, to, out.text, optIn);
     if (!sent) return;
     const { waMessageId } = sent;
@@ -107,7 +108,7 @@ export async function runSendJob(deps: WaDeps, payload: JobPayloads[typeof JOBS.
     }
     return false;
   };
-  if (!windowOpen(deps, b.lastInboundAt) && (await viaTemplate())) return;
+  if (!windowOpen(deps, b.lastInboundAt, b.web) && (await viaTemplate())) return;
   const menu = payload.interactive && wa.sendInteractive ? toInteractive(payload.body) : null;
   const send = menu ? () => wa.sendInteractive!(to, menu, payload.body) : () => wa.sendText(to, payload.body);
   const sent = await sendOr(send, async () => {
@@ -156,7 +157,7 @@ async function runChatSend(deps: WaDeps, messageId: string): Promise<void> {
     const { waMessageId } = await wa.sendTemplate(to, config.WHATSAPP_TEMPLATE_EXPLANATION_READY, b.language, []);
     await storeOutbound(deps, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_EXPLANATION_READY}]`, waMessageId);
   };
-  if (!windowOpen(deps, b.lastInboundAt)) return optIn();
+  if (!windowOpen(deps, b.lastInboundAt, b.web)) return optIn();
   const dek = await beneficiaries.getDek(b.id);
   const sent = await sendTextOr(deps, to, crypto.decrypt(dek, m.bodyEnc).toString("utf8"), optIn);
   if (!sent) return;
@@ -189,7 +190,7 @@ async function runBroadcastSend(deps: WaDeps, broadcastId: string, beneficiaryId
     await storeOutbound(deps, b.id, "template", `[template ${config.WHATSAPP_TEMPLATE_ANNOUNCEMENT}]`, waMessageId);
     await db.update(broadcastRecipients).set({ status: "awaiting_reply", viaTemplate: true }).where(where);
   };
-  if (!windowOpen(deps, b.lastInboundAt)) return viaTemplate();
+  if (!windowOpen(deps, b.lastInboundAt, b.web)) return viaTemplate();
   const text = await getBroadcasts(deps).render(broadcastId, b.language);
   const sent = await sendTextOr(deps, to, text, viaTemplate);
   if (!sent) return;
@@ -197,7 +198,8 @@ async function runBroadcastSend(deps: WaDeps, broadcastId: string, beneficiaryId
   await db.update(broadcastRecipients).set({ status: "sent", sentAt: deps.now() }).where(where);
 }
 
-export function windowOpen(deps: Pick<WaDeps, "now" | "wa">, lastInboundAt: Date | null): boolean {
-  if (deps.wa.mode === "sandbox") return true;
+/** WhatsApp's 24 h customer-service window. Always open for web accounts (`web`): their page is not WhatsApp. */
+export function windowOpen(deps: Pick<WaDeps, "now" | "wa">, lastInboundAt: Date | null, web = false): boolean {
+  if (deps.wa.mode === "sandbox" || web) return true;
   return !!lastInboundAt && deps.now().getTime() - lastInboundAt.getTime() < WINDOW_MS;
 }
